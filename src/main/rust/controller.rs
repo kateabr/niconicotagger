@@ -165,12 +165,8 @@ pub async fn fetch_videos(_req: HttpRequest, payload: Json<TagFetchRequest>) -> 
                 tag_information.push(client.lookup_tag(mapping.id).await?);
             }
 
-            log::info!("{}", "shit1");
-
             let response = client
                 .get_videos(payload.tag.clone(), payload.scope_tag.clone(), payload.start_offset, payload.max_results).await?;
-
-            log::info!("{}", "shit2");
 
             let futures = response.data.iter()
                 .map(|video|
