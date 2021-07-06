@@ -523,10 +523,11 @@ export default class extends Vue {
       this.filter();
       this.tagMappings = response.tagMappings;
       this.totalVideoCount = response.totalVideoCount;
+      this.scopeTagFrozen = response.safeScope;
+      this.scopeTag = response.safeScope;
       this.tagInfo = response.tags;
       this.tagFrozen = targetTag;
       this.tag = targetTag;
-      this.scopeTagFrozen = this.scopeTag;
       this.showTable = this.videos.length > 0;
       this.page = newStartOffset / this.maxResults + 1;
       this.numOfPages = this.totalVideoCount / this.maxResults + 1;

@@ -73,7 +73,9 @@ pub struct VideosWithEntries {
     pub total_video_count: i32,
     pub tags: Vec<AssignableTag>,
     #[serde(rename = "tagMappings")]
-    pub tag_mappings: Vec<String>
+    pub tag_mappings: Vec<String>,
+    #[serde(rename = "safeScope")]
+    pub safe_scope: String
 }
 
 #[derive(Serialize)]
@@ -111,6 +113,14 @@ pub struct NicoMeta {
 pub struct NicoResponse {
     pub data: Vec<NicoVideo>,
     pub meta: NicoMeta,
+}
+
+#[derive(Deserialize)]
+pub struct NicoResponseWithScope {
+    pub data: Vec<NicoVideo>,
+    pub meta: NicoMeta,
+    #[serde(rename = "safeScope")]
+    pub safe_scope: String
 }
 
 #[derive(Serialize, Deserialize)]
@@ -155,8 +165,12 @@ pub async fn fetch_videos(_req: HttpRequest, payload: Json<TagFetchRequest>) -> 
                 tag_information.push(client.lookup_tag(mapping.id).await?);
             }
 
+            log::info!("{}", "shit1");
+
             let response = client
                 .get_videos(payload.tag.clone(), payload.scope_tag.clone(), payload.start_offset, payload.max_results).await?;
+
+            log::info!("{}", "shit2");
 
             let futures = response.data.iter()
                 .map(|video|
@@ -172,7 +186,8 @@ pub async fn fetch_videos(_req: HttpRequest, payload: Json<TagFetchRequest>) -> 
                 items: video_entries,
                 total_video_count: response.meta.total_count,
                 tags: tag_information,
-                tag_mappings: mappings
+                tag_mappings: mappings,
+                safe_scope: response.safe_scope
             }));
         }
         None => Err(AppError::NoMappingError)

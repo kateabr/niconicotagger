@@ -20,7 +20,7 @@ use crate::client::models::query::OptionalFields;
 use crate::client::models::song::SongForApiContract;
 use crate::client::models::tag::{AssignableTag, SelectedTag, TagBaseContract, TagForApiContract, TagUsageForApiContract};
 use crate::client::models::user::UserForApiContract;
-use crate::controller::{DisplayableTag, NicoResponse, NicoVideo, NicoVideoWithTidyTags, SongForApiContractSimplified, TagMappingContract, VideoWithEntry};
+use crate::controller::{DisplayableTag, NicoResponse, NicoVideo, NicoVideoWithTidyTags, SongForApiContractSimplified, TagMappingContract, VideoWithEntry, NicoResponseWithScope};
 
 pub type ClientCookies<'a> = Option<Vec<Cookie<'a>>>;
 pub type Result<T, E = ClientError> = core::result::Result<T, E>;
@@ -188,11 +188,21 @@ impl<'a> Client<'a> {
         scope_tag: String,
         start_offset: i32,
         max_results: i32,
-    ) -> Result<NicoResponse> {
-        self.http_get(
+    ) -> Result<NicoResponseWithScope> {
+        let mut safe_scope = scope_tag.clone();
+        loop {
+            match safe_scope.trim_start().strip_prefix("OR") {
+                Some(trimmed) => safe_scope = String::from(trimmed),
+                None => break
+            }
+        }
+
+        safe_scope = String::from(safe_scope.trim_start());
+
+        let response: NicoResponse = self.http_get(
             &String::from("https://api.search.nicovideo.jp/api/v2/snapshot/video/contents/search"),
             &vec![
-                ("q", if scope_tag != "" { format!("{} {}", tag, scope_tag) } else { tag }),
+                ("q", if scope_tag != "" { format!("{} {}", tag, safe_scope) } else { tag }),
                 ("_offset", start_offset.to_string()),
                 ("_limit", max_results.to_string()),
                 ("_sort", String::from("startTime")),
@@ -200,7 +210,13 @@ impl<'a> Client<'a> {
                 ("fields", String::from("contentId,title,tags"))
             ],
         )
-            .await
+            .await?;
+
+        Ok(NicoResponseWithScope{
+            safe_scope,
+            data: response.data,
+            meta: response.meta
+        })
     }
 
     pub async fn get_mapping(&self, tag: String) -> Result<Option<Vec<TagBaseContract>>> {

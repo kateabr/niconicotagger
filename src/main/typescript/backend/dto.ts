@@ -58,6 +58,7 @@ export interface VideosWithEntries {
   totalVideoCount: number;
   tags: AssignableTag[];
   tagMappings: string[];
+  safeScope: string;
 }
 
 export interface AssignTagPayload {
