@@ -274,8 +274,9 @@ impl<'a> Client<'a> {
             .await?;
 
         let normalized_nico_tag = kata2hira(&half2kana(&wide2ascii(&nico_tag).to_lowercase()));
-        let normalized_scope_tags: Vec<String> = kata2hira(&half2kana(&wide2ascii(&scope).to_lowercase()))
-            .split(" or ")
+        let normalized_scope_tags: Vec<String> =
+            kata2hira(&half2kana(&wide2ascii(&scope.replace(" OR ", " ")).to_lowercase()))
+            .split(" ")
             .map(|s| String::from(s)).collect();
 
         return Ok(VideoWithEntry {
