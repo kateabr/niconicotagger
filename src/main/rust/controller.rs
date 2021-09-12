@@ -31,7 +31,9 @@ pub struct TagFetchRequest {
     pub max_results: i32,
     pub tag: String,
     #[serde(rename = "scopeTag")]
-    pub scope_tag: String
+    pub scope_tag: String,
+    #[serde(rename = "orderBy")]
+    pub order_by: String
 }
 
 #[derive(Deserialize, Debug)]
@@ -166,7 +168,7 @@ pub async fn fetch_videos(_req: HttpRequest, payload: Json<TagFetchRequest>) -> 
             }
 
             let response = client
-                .get_videos(payload.tag.clone(), payload.scope_tag.clone(), payload.start_offset, payload.max_results).await?;
+                .get_videos(payload.tag.clone(), payload.scope_tag.clone(), payload.start_offset, payload.max_results, payload.order_by.clone()).await?;
 
             let futures = response.data.iter()
                 .map(|video|

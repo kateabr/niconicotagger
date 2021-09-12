@@ -10,14 +10,14 @@
                 v-b-toggle.scope-collapse
                 variant="primary"
                 style="width: 80px"
-                :disabled="fetching || massAssigning"
+                :disabled="defaultDisableCondition()"
               ><i class="fas fa-angle-down mr-sm-1"></i>More</b-button
               >
             </template>
             <b-form-input
               id="tag-form"
               v-model.trim="tag"
-              :disabled="fetching || massAssigning"
+              :disabled="defaultDisableCondition()"
               placeholder="Tag"
               @keydown.enter.native="fetch(tag, 0, 1)"
             >
@@ -44,10 +44,19 @@
                     id="scope-tag-form"
                     v-model="scopeTag"
                     placeholder="Specify tag scope"
-                    :disabled="fetching || massAssigning"
+                    :disabled="defaultDisableCondition()"
                     @keydown.enter.native="fetch(tag.trim(), 0, 1)"
                   >
                   </b-form-input>
+                  <template #prepend>
+                    <b-button
+                      variant="secondary"
+                      style="width: 80px"
+                      @click="scopeTag='VOCALOID OR UTAU OR CEVIO OR SYNTHV OR SYNTHESIZERV OR neutrino(歌声合成エンジン) OR DeepVocal OR Alter/Ego OR AlterEgo OR AquesTalk OR AquesTone OR AquesTone2 OR ボカロ OR ボーカロイド OR 合成音声 OR 歌唱合成 OR coefont OR coefont_studio OR VOICELOID OR VOICEROID'"
+                    >
+                <i class="fas fa-paste"></i>
+                </b-button>
+                  </template>
                   <template #append>
                     <b-button
                       variant="danger"
@@ -59,6 +68,25 @@
                   </template>
                 </b-input-group>
               </b-col>
+              </b-row>
+            <b-row class="mt-2">
+              <b-col>
+                <b-dropdown
+                  block
+                  :disabled="defaultDisableCondition()"
+                  :text="getOrderingCondition()"
+                  variant="primary"
+                >
+                  <b-dropdown-item
+                    v-for="(key, value) in orderOptions"
+                    :key="key"
+                    :disabled="orderBy === value"
+                    @click="setOrderBy(value)"
+                  >
+                    {{ orderOptions[value] }}
+                  </b-dropdown-item>
+                </b-dropdown>
+              </b-col>
               <b-col v-if="tagFrozen !== ''">
                 <template>
                   <b-input-group
@@ -67,14 +95,18 @@
                     invalid-feedback="Wrong page number"
                   >
                     <template #prepend>
-                      <b-input-group-text>Page:</b-input-group-text>
+                      <b-input-group-text
+                        class="justify-content-center"
+                        style="width: 80px"
+                        >Page:</b-input-group-text
+                      >
                     </template>
                     <template>
                       <b-form-input
                         id="page-jump-form"
                         v-model.number="pageToJump"
                         type="number"
-                        :disabled="fetching || massAssigning"
+                        :disabled="defaultDisableCondition()"
                         aria-describedby="input-live-help input-live-feedback"
                         :state="pageState()"
                         @keydown.enter.native="
@@ -93,7 +125,7 @@
                       <b-button
                         style="width: 80px"
                         :variant="pageState() ? 'success' : 'danger'"
-                        :disabled="fetching || massAssigning || !pageState()"
+                        :disabled="defaultDisableCondition() || !pageState()"
                         @click="
                           fetch(
                             tagFrozen,
@@ -128,14 +160,6 @@
       >
         <b-col class="my-auto"
         >Tag:<br/><strong>
-            <span v-if="scopeTagFrozen !== ''"
-            ><a
-              v-if="tagInfo.length !== 0"
-              target="_blank"
-              :href="getNicoTag(scopeTagFrozen, false)"
-            >{{ scopeTagFrozen }}</a
-            ><i class="fas fa-angle-double-right mr-sm-1 ml-sm-1"></i
-            ></span>
           <a
             v-if="tagInfo.length !== 0"
             target="_blank"
@@ -157,7 +181,7 @@
         <b-col class="my-auto">
           <b-dropdown
             block
-            :disabled="fetching || massAssigning"
+            :disabled="defaultDisableCondition()"
             :text="getResultNumberStr()"
             class="m-md-2 my-auto"
             variant="primary"
@@ -191,7 +215,7 @@
         <b-col class="my-auto"
         >
           <b-button
-            :disabled="fetching || massAssigning"
+            :disabled="defaultDisableCondition()"
             variant="primary"
             block
             :pressed.sync="noEntry"
@@ -204,7 +228,7 @@
         <b-col class="my-auto"
         >
           <b-button
-            :disabled="fetching || massAssigning"
+            :disabled="defaultDisableCondition()"
             variant="primary"
             block
             :pressed.sync="tagged"
@@ -223,7 +247,7 @@
                 v-for="(type, key) in songTypes"
                 :key="key"
                 class="pl-4 pr-4"
-                :disabled="fetching || massAssigning"
+                :disabled="defaultDisableCondition()"
                 :variant="
                   (type.show ? '' : 'outline-') + getSongTypeVariant(type.name)
                 "
@@ -249,7 +273,7 @@
               first-number
               last-number
               limit="10"
-              :disabled="fetching || massAssigning"
+              :disabled="defaultDisableCondition()"
               @change="pageClicked"
             ></b-pagination>
           </div>
@@ -258,7 +282,7 @@
       <b-row v-if="tagInfo.length !== 0">
         <b-table-simple
           hover
-          :disabled="fetching || massAssigning"
+          :disabled="defaultDisableCondition()"
           class="mt-1 col-lg-12"
         >
           <b-thead>
@@ -266,7 +290,7 @@
               <b-form-checkbox
                 v-model="allChecked"
                 size="lg"
-                :disabled="fetching || massAssigning"
+                :disabled="defaultDisableCondition()"
                 @change="checkAll"
               ></b-form-checkbox>
             </b-th>
@@ -287,13 +311,13 @@
                   <b-form-checkbox
                     v-model="value.toAssign"
                     size="lg"
-                    :disabled="fetching || massAssigning"
+                    :disabled="defaultDisableCondition()"
                   ></b-form-checkbox>
                 </div>
               </b-td>
               <b-td>
                 <b-button
-                  :disabled="fetching || massAssigning"
+                  :disabled="defaultDisableCondition()"
                   size="sm"
                   variant="primary-outline"
                   class="mr-2"
@@ -385,7 +409,7 @@
                     <b-button
                       v-else
                       :id="getButtonId(value.songEntry)"
-                      :disabled="fetching || massAssigning"
+                      :disabled="defaultDisableCondition()"
                       class="btn"
                       variant="outline-success"
                       @click="assign(value.songEntry.id)"
@@ -410,7 +434,7 @@
               <b-form-checkbox
                 v-model="allChecked"
                 size="lg"
-                :disabled="fetching || massAssigning"
+                :disabled="defaultDisableCondition()"
                 @change="checkAll"
               ></b-form-checkbox>
             </b-th>
@@ -456,7 +480,7 @@
             first-number
             last-number
             limit="10"
-            :disabled="fetching || massAssigning"
+            :disabled="defaultDisableCondition()"
             @change="pageClicked"
           ></b-pagination>
         </div>
@@ -471,7 +495,7 @@ import {Component} from "vue-property-decorator";
 import {
   AssignableTag,
   NicoVideo,
-  NicoVideoWithTidyTags,
+  NicoVideoWithTidyTags, Ordering,
   SongForApiContractSimplified
 } from "@/backend/dto";
 import {api} from "@/backend";
@@ -483,6 +507,12 @@ Vue.use(VueClipboard);
 @Component({components: {}})
 export default class extends Vue {
   private tag: string = "";
+  private orderBy = "startTime";
+  private orderOptions = {
+    "startTime": "upload time",
+    "viewCounter": "views",
+    "lengthSeconds": "length"
+  };
   private tagFrozen: string = "";
   private tagInfo: AssignableTag[] = [];
   private startOffset: number = 0;
@@ -511,6 +541,7 @@ export default class extends Vue {
   private numOfPages: number = 1;
   private allChecked: boolean = false;
   private massAssigning: boolean = false;
+  private assigning: boolean = false;
   private alertMessage: string = "";
   private scopeTag: string = "";
   private scopeTagFrozen: string = "";
@@ -533,7 +564,8 @@ export default class extends Vue {
         tag: targetTag,
         scopeTag: this.scopeTag,
         startOffset: newStartOffset,
-        maxResults: this.maxResults
+        maxResults: this.maxResults,
+        orderBy: this.orderBy
       });
       this.videos = response.items.map(vid => {
         return {
@@ -600,11 +632,13 @@ export default class extends Vue {
   }
 
   private async assign(id: number): Promise<void> {
+    this.assigning = true;
     await api.assignTag({tags: this.tagInfo, songId: id});
     let songEntry = this.videosToDisplay.filter(video => {
       if (video.songEntry == null) return false;
       return video.songEntry.id == id;
     })[0].songEntry as SongForApiContractSimplified;
+    this.assigning = false;
     songEntry.tagInTags = true;
   }
 
@@ -684,6 +718,11 @@ export default class extends Vue {
     );
   }
 
+  private setOrderBy(value: string): void {
+    this.orderBy = value;
+    this.fetch(this.tagFrozen, 0, 1);
+  }
+
   private filter(): void {
     this.videosToDisplay = this.videos.filter(
       vid =>
@@ -706,14 +745,16 @@ export default class extends Vue {
     return this.pageToJump > 0 && this.pageToJump <= this.maxPage;
   }
 
-  private toggleSongTypeDisplay(type: string): void {
-    this.songTypes.filter(t => t.name == type)[0].show = !this.songTypes.filter(
-      t => t.name == type
-    )[0].show;
-  }
-
   private hiddenTypes(): number {
     return this.songTypes.filter(t => !t.show).length;
+  }
+
+  private getOrderingCondition(): string {
+    return "Arrange videos by: " + this.orderOptions[this.orderBy];
+  }
+
+  private defaultDisableCondition(): boolean {
+    return this.fetching || this.massAssigning || this.assigning;
   }
 
   private getTypeInfo(type: string): string {

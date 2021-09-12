@@ -12,6 +12,7 @@ export interface FetchVideosPayload {
   scopeTag: string;
   startOffset: number;
   maxResults: number;
+  orderBy: string;
 }
 
 export interface NicoVideo {
@@ -69,4 +70,9 @@ export interface AssignTagPayload {
 export interface DisplayableTag {
   name: string;
   variant: string;
+}
+
+export interface Ordering {
+  name: string;
+  value: string;
 }

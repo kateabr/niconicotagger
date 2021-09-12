@@ -188,6 +188,7 @@ impl<'a> Client<'a> {
         scope_tag: String,
         start_offset: i32,
         max_results: i32,
+        order_by: String
     ) -> Result<NicoResponseWithScope> {
         let mut safe_scope = scope_tag.clone();
         loop {
@@ -205,7 +206,7 @@ impl<'a> Client<'a> {
                 ("q", if scope_tag != "" { format!("{} {}", tag, safe_scope) } else { tag }),
                 ("_offset", start_offset.to_string()),
                 ("_limit", max_results.to_string()),
-                ("_sort", String::from("startTime")),
+                ("_sort", order_by),
                 ("targets", String::from("tagsExact")),
                 ("fields", String::from("contentId,title,tags"))
             ],
