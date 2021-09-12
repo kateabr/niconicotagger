@@ -69,7 +69,7 @@
                 </b-input-group>
               </b-col>
               </b-row>
-            <b-row class="mt-2">
+            <b-row class="mt-2" v-if="tagFrozen !== ''">
               <b-col>
                 <b-dropdown
                   block
@@ -87,7 +87,7 @@
                   </b-dropdown-item>
                 </b-dropdown>
               </b-col>
-              <b-col v-if="tagFrozen !== ''">
+              <b-col>
                 <template>
                   <b-input-group
                     inline
