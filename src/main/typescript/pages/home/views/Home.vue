@@ -156,7 +156,7 @@
       </b-row>
       <b-row
         v-if="tagInfo.length !== 0"
-        class="mt-lg-3 col-lg-12 text-center m-auto alert-primary rounded p-sm-2 bg-light progress-bar-striped"
+        class="mt-lg-3 pt-lg-3 pb-lg-3 col-lg-12 text-center m-auto alert-primary rounded p-sm-2 bg-light progress-bar-striped"
       >
         <b-col class="my-auto"
         >Tag:<br/><strong>
@@ -183,7 +183,7 @@
             block
             :disabled="defaultDisableCondition()"
             :text="getResultNumberStr()"
-            class="m-md-2 my-auto"
+            class="my-auto"
             variant="primary"
           >
             <b-dropdown-item
