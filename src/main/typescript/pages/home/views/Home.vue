@@ -27,7 +27,7 @@
                 v-if="!fetching"
                 variant="primary"
                 style="width: 80px"
-                :disabled="tag === '' || massAssigning"
+                :disabled="tag === '' || defaultDisableCondition"
                 @click="fetch(tag.trim(), 0, 1)"
               >Load</b-button
               >
