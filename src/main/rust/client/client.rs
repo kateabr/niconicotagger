@@ -137,7 +137,7 @@ impl<'a> Client<'a> {
             T: DeserializeOwned,
     {
         let request = self.create_request(url, Method::GET);
-        let body = request.query(query)?.send().await?.body().await?;
+        let body = request.query(query)?.send().await?.body().limit(10 * 1024 * 1024).await?;
         let json = serde_json::from_slice(&body)?;
         return Ok(json);
     }
