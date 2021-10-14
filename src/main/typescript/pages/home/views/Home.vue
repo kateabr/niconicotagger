@@ -52,7 +52,7 @@
                     <b-button
                       variant="secondary"
                       style="width: 80px"
-                      @click="scopeTag='VOCALOID OR UTAU OR CEVIO OR SYNTHV OR SYNTHESIZERV OR neutrino(歌声合成エンジン) OR DeepVocal OR Alter/Ego OR AlterEgo OR AquesTalk OR AquesTone OR AquesTone2 OR ボカロ OR ボーカロイド OR 合成音声 OR 歌唱合成 OR coefont OR coefont_studio OR VOICELOID OR VOICEROID'"
+                      @click="scopeTag='-歌ってみた VOCALOID OR UTAU OR CEVIO OR SYNTHV OR SYNTHESIZERV OR neutrino(歌声合成エンジン) OR DeepVocal OR Alter/Ego OR AlterEgo OR AquesTalk OR AquesTone OR AquesTone2 OR ボカロ OR ボーカロイド OR 合成音声 OR 歌唱合成 OR coefont OR coefont_studio OR VOICELOID OR VOICEROID'"
                     >
                 <i class="fas fa-paste"></i>
                 </b-button>
