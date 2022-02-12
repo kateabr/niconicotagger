@@ -314,8 +314,7 @@
           <b-tfoot>
             <b-th> </b-th>
             <b-th class="col-3 align-middle">Entry</b-th>
-            <b-th class="col-4 align-middle">Videos</b-th>
-            <b-th class="col-5 align-middle">Tags</b-th>
+            <b-th class="col-9 align-middle">Videos</b-th>
           </b-tfoot>
         </b-table-simple>
 
