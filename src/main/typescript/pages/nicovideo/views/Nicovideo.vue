@@ -11,7 +11,7 @@
                 variant="primary"
                 style="width: 80px"
                 :disabled="defaultDisableCondition()"
-              ><i class="fas fa-angle-down mr-sm-1"></i>More</b-button
+                ><i class="fas fa-angle-down mr-sm-1"></i>More</b-button
               >
             </template>
             <b-form-input
@@ -29,10 +29,10 @@
                 style="width: 80px"
                 :disabled="tag === '' || defaultDisableCondition()"
                 @click="fetch(tag.trim(), 0, 1)"
-              >Load</b-button
+                >Load</b-button
               >
               <b-button v-else variant="primary" style="width: 80px" disabled
-              ><b-spinner small></b-spinner
+                ><b-spinner small></b-spinner
               ></b-button>
             </template>
           </b-input-group>
@@ -52,10 +52,13 @@
                     <b-button
                       variant="secondary"
                       style="width: 80px"
-                      @click="scopeTag='-歌ってみた VOCALOID OR UTAU OR CEVIO OR SYNTHV OR SYNTHESIZERV OR neutrino(歌声合成エンジン) OR DeepVocal OR Alter/Ego OR AlterEgo OR AquesTalk OR AquesTone OR AquesTone2 OR ボカロ OR ボーカロイド OR 合成音声 OR 歌唱合成 OR coefont OR coefont_studio OR VOICELOID OR VOICEROID'"
+                      @click="
+                        scopeTag =
+                          '-歌ってみた VOCALOID OR UTAU OR CEVIO OR SYNTHV OR SYNTHESIZERV OR neutrino(歌声合成エンジン) OR DeepVocal OR Alter/Ego OR AlterEgo OR AquesTalk OR AquesTone OR AquesTone2 OR ボカロ OR ボーカロイド OR 合成音声 OR 歌唱合成 OR coefont OR coefont_studio OR VOICELOID OR VOICEROID'
+                      "
                     >
-                <i class="fas fa-paste"></i>
-                </b-button>
+                      <i class="fas fa-paste"></i>
+                    </b-button>
                   </template>
                   <template #append>
                     <b-button
@@ -63,13 +66,13 @@
                       style="width: 80px"
                       :disabled="scopeTag === ''"
                       @click="scopeTag = ''"
-                    >Clear</b-button
+                      >Clear</b-button
                     >
                   </template>
                 </b-input-group>
               </b-col>
-              </b-row>
-            <b-row class="mt-2" v-if="tagFrozen !== ''">
+            </b-row>
+            <b-row v-if="tagFrozen !== ''" class="mt-2">
               <b-col>
                 <b-dropdown
                   block
@@ -133,8 +136,8 @@
                             pageToJump
                           )
                         "
-                      ><span v-if="pageToJump === page">Refresh</span
-                      ><span v-else>Jump</span></b-button
+                        ><span v-if="pageToJump === page">Refresh</span
+                        ><span v-else>Jump</span></b-button
                       >
                     </template>
                   </b-input-group>
@@ -159,24 +162,24 @@
         class="mt-lg-3 pt-lg-3 pb-lg-3 col-lg-12 text-center m-auto alert-primary rounded p-sm-2 bg-light progress-bar-striped"
       >
         <b-col class="my-auto"
-        >Tag:<br/><strong>
-          <a
-            v-if="tagInfo.length !== 0"
-            target="_blank"
-            :href="getNicoTag(tagFrozen, scopeTagFrozen !== '')"
-          >{{ tagFrozen }}</a
-          >
-        </strong></b-col
+          >Tag:<br /><strong>
+            <a
+              v-if="tagInfo.length !== 0"
+              target="_blank"
+              :href="getNicoTag(tagFrozen, scopeTagFrozen !== '')"
+              >{{ tagFrozen }}</a
+            >
+          </strong></b-col
         >
         <b-col class="my-auto"
-        >Mapped to:<br/>
+          >Mapped to:<br />
           <strong v-for="(tag, key) in tagMappings" :key="key">
             <a target="_blank" :href="getVocaDBTag(tagInfo[key])">{{ tag }}</a
             ><span v-if="tagMappings.length - key > 1">, </span>
           </strong>
         </b-col>
         <b-col class="my-auto"
-        >Videos found:<br/><strong>{{ totalVideoCount }}</strong></b-col
+          >Videos found:<br /><strong>{{ totalVideoCount }}</strong></b-col
         >
         <b-col class="my-auto">
           <b-dropdown
@@ -189,55 +192,45 @@
             <b-dropdown-item
               :disabled="maxResults === 10"
               @click="setMaxResults(10)"
-            >10
-            </b-dropdown-item
-            >
+              >10
+            </b-dropdown-item>
             <b-dropdown-item
               :disabled="maxResults === 25"
               @click="setMaxResults(25)"
-            >25
-            </b-dropdown-item
-            >
+              >25
+            </b-dropdown-item>
             <b-dropdown-item
               :disabled="maxResults === 50"
               @click="setMaxResults(50)"
-            >50
-            </b-dropdown-item
-            >
+              >50
+            </b-dropdown-item>
             <b-dropdown-item
               :disabled="maxResults === 100"
               @click="setMaxResults(100)"
-            >100
-            </b-dropdown-item
-            >
+              >100
+            </b-dropdown-item>
           </b-dropdown>
         </b-col>
-        <b-col class="my-auto"
-        >
+        <b-col class="my-auto">
           <b-button
             :disabled="defaultDisableCondition()"
             variant="primary"
             block
             :pressed.sync="noEntry"
             @click="filter"
-          >Videos without entries
-          </b-button
-          >
-        </b-col
-        >
-        <b-col class="my-auto"
-        >
+            >Videos without entries
+          </b-button>
+        </b-col>
+        <b-col class="my-auto">
           <b-button
             :disabled="defaultDisableCondition()"
             variant="primary"
             block
             :pressed.sync="tagged"
             @click="filter"
-          >Tagged songs
-          </b-button
-          >
-        </b-col
-        >
+            >Tagged songs
+          </b-button>
+        </b-col>
       </b-row>
       <b-row v-if="tagInfo.length > 0">
         <b-col class="col-12">
@@ -255,7 +248,7 @@
                   type.show = !type.show;
                   filter();
                 "
-              >{{ getTypeInfo(type.name) }}
+                >{{ getTypeInfo(type.name) }}
               </b-button>
             </b-button-group>
           </div>
@@ -324,7 +317,7 @@
                   @click="value.visible = !value.visible"
                 >
                   <i class="fas fa-play"></i
-                  ></b-button>
+                ></b-button>
                 <a
                   target="_blank"
                   :href="getVideoUrl(value.video)"
@@ -338,9 +331,8 @@
                     class="m-sm-1"
                     :variant="value1.variant"
                     href="#"
-                  ><i class="fas fa-tag"></i> {{ value1.name }}
-                  </b-badge
-                  >
+                    ><i class="fas fa-tag"></i> {{ value1.name }}
+                  </b-badge>
                 </div>
                 <b-collapse
                   :id="getCollapseId(value.video.contentId)"
@@ -369,10 +361,7 @@
                     :href="getEntryUrl(value.songEntry)"
                     v-html="value.songEntry.name"
                   ></a>
-                  <a
-                    target="_blank"
-                    :href="getEntryUrl(value.songEntry)"
-                  >
+                  <a target="_blank" :href="getEntryUrl(value.songEntry)">
                     <b-badge
                       class="badge text-center ml-2"
                       :variant="getSongTypeVariant(value.songEntry.songType)"
@@ -390,9 +379,8 @@
                     :disabled="fetching"
                     :href="getAddSongUrl(value.video.contentId)"
                     target="_blank"
-                  >Add to the database
-                  </b-button
-                  >
+                    >Add to the database
+                  </b-button>
                 </div>
               </b-td>
               <b-td>
@@ -426,8 +414,7 @@
               <b-td colspan="4" class="text-center text-muted">
                 <small>No items to display</small>
               </b-td>
-            </b-tr
-            >
+            </b-tr>
           </b-tbody>
           <b-tfoot>
             <b-th>
@@ -448,8 +435,7 @@
         v-if="tagInfo.length !== 0"
         class="mt-lg-1 col-lg-12 text-center m-auto alert-primary rounded p-sm-2 bg-light progress-bar-striped"
       >
-        <b-col class="col-lg-3 m-auto"
-        >
+        <b-col class="col-lg-3 m-auto">
           <b-button
             block
             variant="primary"
@@ -460,13 +446,9 @@
               <b-spinner small class="mr-1"></b-spinner>
               Assigning...
             </div>
-            <div v-else>
-              Batch assign ({{ countChecked() }} selected)
-            </div>
-          </b-button
-          >
-        </b-col
-        >
+            <div v-else>Batch assign ({{ countChecked() }} selected)</div>
+          </b-button>
+        </b-col>
       </b-row>
       <b-row v-if="tagInfo.length !== 0">
         <div class="overflow-auto m-auto mt-lg-4">
@@ -487,34 +469,40 @@
       </b-row>
     </b-container>
     <b-row>
-      <b-col><b-link to="vocadb"><b-button size="sm" variant="dark" class="fixed-top m-1" squared>Toggle<br>mode</b-button></b-link></b-col>
+      <b-col
+        ><b-link to="vocadb"
+          ><b-button size="sm" variant="dark" class="fixed-top m-1" squared
+            >Toggle<br />mode</b-button
+          ></b-link
+        ></b-col
+      >
     </b-row>
   </div>
 </template>
 
 <script lang="ts">
 import Vue from "vue";
-import {Component} from "vue-property-decorator";
+import { Component } from "vue-property-decorator";
 import {
   AssignableTag,
   NicoVideo,
-  NicoVideoWithTidyTags, Ordering,
+  NicoVideoWithTidyTags,
   SongForApiContractSimplified
 } from "@/backend/dto";
-import {api} from "@/backend";
+import { api } from "@/backend";
 
 import VueClipboard from "vue-clipboard2";
 
 Vue.use(VueClipboard);
 
-@Component({components: {}})
+@Component({ components: {} })
 export default class extends Vue {
   private tag: string = "";
   private orderBy = "startTime";
   private orderOptions = {
-    "startTime": "upload time",
-    "viewCounter": "views",
-    "lengthSeconds": "length"
+    startTime: "upload time",
+    viewCounter: "views",
+    lengthSeconds: "length"
   };
   private tagFrozen: string = "";
   private tagInfo: AssignableTag[] = [];
@@ -522,16 +510,16 @@ export default class extends Vue {
   private maxResults: number = 10;
   private tagMappings: string[] = [];
   private songTypes: SongType[] = [
-    {name: "Unspecified", show: true},
-    {name: "Original", show: true},
-    {name: "Remaster", show: true},
-    {name: "Remix", show: true},
-    {name: "Cover", show: true},
-    {name: "Instrumental", show: true},
-    {name: "Mashup", show: true},
-    {name: "MusicPV", show: true},
-    {name: "DramaPV", show: true},
-    {name: "Other", show: true}
+    { name: "Unspecified", show: true },
+    { name: "Original", show: true },
+    { name: "Remaster", show: true },
+    { name: "Remix", show: true },
+    { name: "Cover", show: true },
+    { name: "Instrumental", show: true },
+    { name: "Mashup", show: true },
+    { name: "MusicPV", show: true },
+    { name: "DramaPV", show: true },
+    { name: "Other", show: true }
   ];
   private videos: VideoWithEntryAndVisibility[] = [];
   private videosToDisplay: VideoWithEntryAndVisibility[] = [];
@@ -637,7 +625,7 @@ export default class extends Vue {
 
   private async assign(id: number): Promise<void> {
     this.assigning = true;
-    await api.assignTag({tags: this.tagInfo, songId: id});
+    await api.assignTag({ tags: this.tagInfo, songId: id });
     let songEntry = this.videosToDisplay.filter(video => {
       if (video.songEntry == null) return false;
       return video.songEntry.id == id;

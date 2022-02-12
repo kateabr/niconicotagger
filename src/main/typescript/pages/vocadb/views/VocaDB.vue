@@ -36,7 +36,7 @@
               </b-dropdown-item>
             </b-dropdown>
           </b-col>
-          <b-col class="my-auto" v-if="videos.length > 0">
+          <b-col v-if="videos.length > 0" class="my-auto">
             <b-dropdown
               block
               :disabled="defaultDisableCondition()"
@@ -53,7 +53,7 @@
               </b-dropdown-item>
             </b-dropdown>
           </b-col>
-          <b-col class="my-auto" v-if="videos.length > 0">
+          <b-col v-if="videos.length > 0" class="my-auto">
             <template>
               <b-input-group
                 inline
@@ -64,9 +64,8 @@
                   <b-input-group-text
                     class="justify-content-center"
                     style="width: 80px"
-                  >Page:
-                  </b-input-group-text
-                  >
+                    >Page:
+                  </b-input-group-text>
                 </template>
                 <template>
                   <b-form-input
@@ -77,12 +76,10 @@
                     aria-describedby="input-live-help input-live-feedback"
                     :state="pageState()"
                     @keydown.enter.native="
-                          pageState()
-                            ? fetch((pageToJump - 1) * maxResults,
-                                pageToJump
-                              )
-                            : null
-                        "
+                      pageState()
+                        ? fetch((pageToJump - 1) * maxResults, pageToJump)
+                        : null
+                    "
                   >
                   </b-form-input>
                 </template>
@@ -91,49 +88,44 @@
                     style="width: 80px"
                     :variant="pageState() ? 'success' : 'danger'"
                     :disabled="defaultDisableCondition() || !pageState()"
-                    @click="
-                          fetch(
-                            (pageToJump - 1) * maxResults,
-                            pageToJump
-                          )
-                        ">
-                    <span v-if="fetching"><b-spinner small/></span>
+                    @click="fetch((pageToJump - 1) * maxResults, pageToJump)"
+                  >
+                    <span v-if="fetching"><b-spinner small /></span>
                     <span v-else-if="pageToJump === page">Refresh</span>
                     <span v-else>Jump</span>
-                  </b-button
-                  >
+                  </b-button>
                 </template>
               </b-input-group>
             </template>
           </b-col>
-          <b-col class="col-3 m-auto" v-if="videos.length === 0">
+          <b-col v-if="videos.length === 0" class="col-3 m-auto">
             <b-button
               variant="primary"
               block
               :disabled="defaultDisableCondition()"
               @click="fetch(0, 1)"
-            ><span v-if="fetching"><b-spinner small/></span>
+              ><span v-if="fetching"><b-spinner small /></span>
               <span v-else>Load</span>
             </b-button>
           </b-col>
-          <b-col class="my-auto" v-if="videos.length > 0">
+          <b-col v-if="videos.length > 0" class="my-auto">
             <b-button
               variant="primary"
               block
               :pressed="showEntriesWithErrors"
               :disabled="defaultDisableCondition()"
               @click="toggleShowEntriesWithErrors"
-            >Entries with errors
+              >Entries with errors
             </b-button>
           </b-col>
-          <b-col class="my-auto" v-if="videos.length > 0">
+          <b-col v-if="videos.length > 0" class="my-auto">
             <b-button
               variant="primary"
               block
               :pressed="!hideEntriesWithNoTags"
               :disabled="defaultDisableCondition()"
               @click="toggleHideEntriesWithNoTags"
-            >Entries with no tags to add
+              >Entries with no tags to add
             </b-button>
           </b-col>
         </b-row>
@@ -154,7 +146,7 @@
                     type.show = !type.show;
                     filter();
                   "
-                >{{ getTypeInfo(type.name) }}
+                  >{{ getTypeInfo(type.name) }}
                 </b-button>
               </b-button-group>
             </div>
@@ -181,10 +173,7 @@
         <b-table-simple v-if="videos.length > 0" hover class="mt-1 col-lg-12">
           <b-thead>
             <b-th>
-              <b-form-checkbox
-                class="invisible"
-                size="lg"
-              ></b-form-checkbox>
+              <b-form-checkbox class="invisible" size="lg"></b-form-checkbox>
             </b-th>
             <b-th class="col-3 align-middle">Entry</b-th>
             <b-th class="col-9 align-middle">Videos</b-th>
@@ -236,7 +225,7 @@
                       @click="thumbnail.expanded = !thumbnail.expanded"
                     >
                       <i class="fas fa-play"></i
-                      ></b-button>
+                    ></b-button>
                     <a
                       target="_blank"
                       :href="getVideoUrl(thumbnail.thumbnail.id)"
@@ -250,7 +239,7 @@
                         class="m-sm-1"
                         href="#"
                         :variant="nico_tag.variant"
-                      ><i class="fas fa-tag"></i> {{ nico_tag.name }}
+                        ><i class="fas fa-tag"></i> {{ nico_tag.name }}
                       </b-badge>
                     </div>
                     <b-collapse
@@ -274,7 +263,10 @@
                     </b-collapse>
                   </b-col>
                   <b-col>
-                    <span v-for="(tag, tag_key) in thumbnail.mappedTags" :key="tag_key">
+                    <span
+                      v-for="(tag, tag_key) in thumbnail.mappedTags"
+                      :key="tag_key"
+                    >
                       <b-button
                         size="sm"
                         class="m-1"
@@ -284,16 +276,15 @@
                       >
                         <i
                           v-if="!tag.assigned"
-                          :class="tag.toAssign
+                          :class="
+                            tag.toAssign
                               ? 'fas sm mr-sm-1 fa-minus'
                               : 'fas sm mr-sm-1 fa-plus'
                           "
                         /><i
-                        v-if="tag.assigned"
+                          v-if="tag.assigned"
                           class="fas sm fa-check mr-sm-1"
-                      />{{
-                          tag.tag.name
-                        }}
+                        />{{ tag.tag.name }}
                       </b-button>
                     </span>
                     <div
@@ -321,8 +312,7 @@
             </b-tr>
           </b-tbody>
           <b-tfoot>
-            <b-th>
-            </b-th>
+            <b-th> </b-th>
             <b-th class="col-3 align-middle">Entry</b-th>
             <b-th class="col-4 align-middle">Videos</b-th>
             <b-th class="col-5 align-middle">Tags</b-th>
@@ -333,8 +323,7 @@
           v-if="videos.length !== 0"
           class="mt-lg-1 col-lg-12 text-center m-auto alert-primary rounded p-sm-2 bg-light progress-bar-striped"
         >
-          <b-col class="col-lg-3 m-auto"
-          >
+          <b-col class="col-lg-3 m-auto">
             <b-button
               block
               variant="primary"
@@ -345,13 +334,9 @@
                 <b-spinner small class="mr-1"></b-spinner>
                 Assigning...
               </div>
-              <div v-else>
-                Batch assign ({{ countChecked() }} selected)
-              </div>
-            </b-button
-            >
-          </b-col
-          >
+              <div v-else>Batch assign ({{ countChecked() }} selected)</div>
+            </b-button>
+          </b-col>
         </b-row>
 
         <b-row v-if="videos.length !== 0" class="col-12">
@@ -387,7 +372,9 @@
     <b-row>
       <b-col>
         <b-link to="nicovideo">
-          <b-button size="sm" variant="dark" class="fixed-top m-1" squared>Toggle<br>mode</b-button>
+          <b-button size="sm" variant="dark" class="fixed-top m-1" squared
+            >Toggle<br />mode</b-button
+          >
         </b-link>
       </b-col>
     </b-row>
@@ -396,7 +383,7 @@
 
 <script lang="ts">
 import Vue from "vue";
-import {Component} from "vue-property-decorator";
+import { Component } from "vue-property-decorator";
 import {
   MappedTag,
   MinimalTag,
@@ -404,13 +391,13 @@ import {
   NicoVideoWithMappedTags,
   SongForApiContractSimplified
 } from "@/backend/dto";
-import {api} from "@/backend";
+import { api } from "@/backend";
 
 import VueClipboard from "vue-clipboard2";
 
 Vue.use(VueClipboard);
 
-@Component({components: {}})
+@Component({ components: {} })
 export default class extends Vue {
   private orderBy = "AdditionDate";
   private orderOptions = {
@@ -421,16 +408,16 @@ export default class extends Vue {
   private startOffset: number = 0;
   private maxResults: number = 10;
   private songTypes: SongType[] = [
-    {name: "Unspecified", show: true},
-    {name: "Original", show: true},
-    {name: "Remaster", show: true},
-    {name: "Remix", show: true},
-    {name: "Cover", show: true},
-    {name: "Instrumental", show: true},
-    {name: "Mashup", show: true},
-    {name: "MusicPV", show: true},
-    {name: "DramaPV", show: true},
-    {name: "Other", show: true}
+    { name: "Unspecified", show: true },
+    { name: "Original", show: true },
+    { name: "Remaster", show: true },
+    { name: "Remix", show: true },
+    { name: "Cover", show: true },
+    { name: "Instrumental", show: true },
+    { name: "Mashup", show: true },
+    { name: "MusicPV", show: true },
+    { name: "DramaPV", show: true },
+    { name: "Other", show: true }
   ];
   private videos: EntryWithVideosAndVisibility[] = [];
   private totalVideoCount: number = 0;
@@ -445,14 +432,14 @@ export default class extends Vue {
   private hideEntriesWithNoTags: boolean = false;
   private showEntriesWithErrors: boolean = true;
   private songTypeToTag = {
-    "Original": 6479,
-    "Remaster": 1519,
-    "Remix": 371,
-    "Cover": 74,
-    "Instrumental": 208,
-    "MusicPV": 7378,
-    "Mashup": 3392,
-    "DramaPV": 104
+    Original: 6479,
+    Remaster: 1519,
+    Remix: 371,
+    Cover: 74,
+    Instrumental: 208,
+    MusicPV: 7378,
+    Mashup: 3392,
+    DramaPV: 104
   };
 
   async fetch(newStartOffset: number, newPage: number): Promise<void> {
@@ -623,14 +610,18 @@ export default class extends Vue {
         for (i = 0; i < this.videos.length; ++i) {
           let mapped_tags_cnt = 0;
           for (let j = 0; j < this.videos[i].thumbnailsOk.length; ++j) {
-            mapped_tags_cnt += this.videos[i].thumbnailsOk[j].mappedTags.filter(tag => !tag.assigned).length;
+            mapped_tags_cnt += this.videos[i].thumbnailsOk[j].mappedTags.filter(
+              tag => !tag.assigned
+            ).length;
           }
-          this.videos[i].visible = this.videos[i].visible && mapped_tags_cnt > 0;
+          this.videos[i].visible =
+            this.videos[i].visible && mapped_tags_cnt > 0;
         }
       }
       if (!this.showEntriesWithErrors) {
         for (i = 0; i < this.videos.length; ++i) {
-          this.videos[i].visible = this.videos[i].visible || this.videos[i].thumbnailsErr.length != 0;
+          this.videos[i].visible =
+            this.videos[i].visible || this.videos[i].thumbnailsErr.length != 0;
         }
       }
     } else {
@@ -710,10 +701,14 @@ export default class extends Vue {
   private postProcessVideos() {
     for (var i = 0; i < this.videos.length; ++i) {
       for (var j = 0; j < this.videos[i].thumbnailsOk.length; ++j) {
-        this.videos[i].thumbnailsOk[j].mappedTags = this.videos[i].thumbnailsOk[j].mappedTags.filter(
+        this.videos[i].thumbnailsOk[j].mappedTags = this.videos[i].thumbnailsOk[
+          j
+        ].mappedTags.filter(
           t => this.songTypeToTag[this.videos[i].song.songType] != t.tag.id
         );
-        this.videos[i].thumbnailsOk[j].mappedTags = this.videos[i].thumbnailsOk[j].mappedTags.filter(function (elem, index, self) {
+        this.videos[i].thumbnailsOk[j].mappedTags = this.videos[i].thumbnailsOk[
+          j
+        ].mappedTags.filter(function (elem, index, self) {
           return (
             index ===
             self.indexOf(self.find(el => el.tag.name == elem.tag.name)!)
