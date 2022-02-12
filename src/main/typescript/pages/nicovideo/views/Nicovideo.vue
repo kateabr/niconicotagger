@@ -582,7 +582,11 @@ export default class extends Vue {
       this.allChecked = false;
     } catch (err) {
       this.$bvToast.show("error");
-      this.alertMessage = err.response.data.message;
+      if (err.response == undefined) {
+        this.alertMessage = err.message;
+      } else {
+        this.alertMessage = err.response.data.message;
+      }
     } finally {
       this.maxPage = Math.ceil(this.totalVideoCount / this.maxResults);
       this.fetching = false;
