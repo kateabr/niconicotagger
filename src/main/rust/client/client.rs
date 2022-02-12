@@ -15,7 +15,7 @@ use crate::client::errors::Result;
 use crate::client::errors::VocadbClientError;
 use crate::client::jputils::normalize;
 use crate::client::models::misc::PartialFindResult;
-use crate::client::models::pv::{PvService, PvType};
+use crate::client::models::pv::{PVContract, PvService, PvType};
 use crate::client::models::query::OptionalFields;
 use crate::client::models::song::SongForApiContract;
 use crate::client::models::tag::{AssignableTag, SelectedTag, TagBaseContract, TagForApiContract, TagUsageForApiContract};
@@ -421,25 +421,39 @@ impl<'a> Client<'a> {
             let mut ok = vec![];
             let mut err = vec![];
 
-            let mut new_song = song.clone();
-            new_song.pvs.clear();
-            for pv in &song.pvs {
-                if pv.pv_type == PvType::Original && !pv.disabled && pv.service == PvService::NicoNicoDouga {
-                    new_song.pvs.push(pv.clone());
+            let nico_pvs: Vec<PVContract> = match song.pvs {
+                Some(ref new_song_pvs) => {
+                    let mut new_pvs: Vec<PVContract> = vec![];
+                    for pv in new_song_pvs {
+                        if pv.pv_type == PvType::Original && !pv.disabled && pv.service == PvService::NicoNicoDouga {
+                            new_pvs.push(pv.clone());
 
-                    let thumnail_id = pv.pv_id.as_ref().unwrap();
-                    let thumbnail = self.get_thumbinfo(thumnail_id).await?;
-                    let thumbnail_parse_result = parse_thumbnail(String::from_utf8(thumbnail).unwrap().as_str(), thumnail_id);
+                            let thumnail_id = pv.pv_id.as_ref().unwrap();
+                            let thumbnail = self.get_thumbinfo(thumnail_id).await?;
+                            let thumbnail_parse_result = parse_thumbnail(String::from_utf8(thumbnail).unwrap().as_str(), thumnail_id);
 
-                    match thumbnail_parse_result {
-                        Ok(thumb) => ok.push(thumb),
-                        Err(thumb) => err.push(thumb)
+                            match thumbnail_parse_result {
+                                Ok(thumb) => ok.push(thumb),
+                                Err(thumb) => err.push(thumb)
+                            }
+                        }
                     }
-                }
-            }
+                    new_pvs
+                },
+                None => vec![]
+            };
 
             mapped_response.push(SongForApiContractWithThumbnails {
-                song: new_song,
+                song: SongForApiContract{
+                    id: song.id,
+                    name: song.name,
+                    tags: song.tags,
+                    song_type: song.song_type,
+                    artist_string: song.artist_string,
+                    create_date: song.create_date,
+                    rating_score: song.rating_score,
+                    pvs: Some(nico_pvs),
+                },
                 thumbnails_ok: ok,
                 thumbnails_error: err,
             });

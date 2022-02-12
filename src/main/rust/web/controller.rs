@@ -191,7 +191,7 @@ fn map_thumbnail_tags(thumbnails: &Vec<ThumbnailOk>, mappings: &Vec<TagMappingCo
         let mut mapped_nico_tags = vec![];
         for tag in &thumbnail.tags {
             if mapped_tags.contains(&normalize(tag.name.as_str())) {
-                mapped_nico_tags.push(NicoTagWithVariant{name: tag.name.clone(), variant: String::from("dark")});
+                mapped_nico_tags.push(NicoTagWithVariant{name: tag.name.clone(), variant: String::from("dark"), locked: tag.locked});
                 let tag_mappings_temp = mappings.iter().filter(|m| m.source_tag == normalize(tag.name.as_str())).collect::<Vec<_>>();
                 for m in tag_mappings_temp {
                     tag_mappings.push(ThumbnailTagMappedWithAssignAndLockInfo {
@@ -201,7 +201,7 @@ fn map_thumbnail_tags(thumbnails: &Vec<ThumbnailOk>, mappings: &Vec<TagMappingCo
                     });
                 }
             } else {
-                mapped_nico_tags.push(NicoTagWithVariant{name: tag.name.clone(), variant: String::from("secondary")});
+                mapped_nico_tags.push(NicoTagWithVariant{name: tag.name.clone(), variant: String::from("secondary"), locked: tag.locked});
             }
         }
         res.push(ThumbnailOkWithMappedTags {

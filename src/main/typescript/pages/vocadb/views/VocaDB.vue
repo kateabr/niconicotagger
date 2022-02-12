@@ -239,7 +239,7 @@
                         class="m-sm-1"
                         href="#"
                         :variant="nico_tag.variant"
-                        ><i class="fas fa-tag"></i> {{ nico_tag.name }}
+                        >{{ nico_tag.name }}<i v-if="nico_tag.locked" class="fas fa-lock ml-1"/>
                       </b-badge>
                     </div>
                     <b-collapse

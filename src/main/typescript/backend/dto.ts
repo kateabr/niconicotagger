@@ -99,11 +99,7 @@ export interface LookupAndAssignTagPayload {
 export interface DisplayableTag {
   name: string;
   variant: string;
-}
-
-export interface Ordering {
-  name: string;
-  value: string;
+  locked: boolean;
 }
 
 export interface NicoVideoWithMappedTags {

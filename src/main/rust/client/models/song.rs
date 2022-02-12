@@ -104,7 +104,7 @@ pub struct SongForApiContract {
     // @JsonDeserialize(using = ZonedStringDeserializer.class)
     #[serde(rename = "createDate")]
     pub create_date: String,
-    pub pvs: Vec<PVContract>,
+    pub pvs: Option<Vec<PVContract>>,
     #[serde(rename = "ratingScore")]
     pub rating_score: i32,
 }

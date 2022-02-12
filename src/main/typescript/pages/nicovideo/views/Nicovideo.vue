@@ -331,7 +331,7 @@
                     class="m-sm-1"
                     :variant="value1.variant"
                     href="#"
-                    ><i class="fas fa-tag"></i> {{ value1.name }}
+                    ><i class="fas fa-tag mr-1"></i>{{ value1.name }}
                   </b-badge>
                 </div>
                 <b-collapse
@@ -539,7 +539,6 @@ export default class extends Vue {
   private showCollapse: boolean = false;
   private pageToJump: number = this.page;
   private maxPage = Math.ceil(this.totalVideoCount / this.maxResults);
-  private fetchMode = ["database", "NND"];
 
   async fetch(
     targetTag: string,
@@ -599,7 +598,7 @@ export default class extends Vue {
     return "https://vocadb.net/S/" + songEntry.id;
   }
 
-  getVideoUrl(video: NicoVideo): string {
+  getVideoUrl(video: NicoVideoWithTidyTags): string {
     return "https://nicovideo.jp/watch/" + video.contentId;
   }
 

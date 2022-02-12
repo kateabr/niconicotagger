@@ -59,6 +59,7 @@ pub struct ThumbnailOkWithMappedTags {
 pub struct NicoTagWithVariant {
     pub name: String,
     pub variant: String,
+    pub locked: bool
 }
 
 #[derive(Serialize)]
