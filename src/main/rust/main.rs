@@ -1,10 +1,8 @@
-use actix_web::{App, HttpServer, middleware, web};
+use actix_web::{App, HttpServer, middleware};
 use actix_web_httpauth::middleware::HttpAuthentication;
 
 mod client;
-mod controller;
-mod errors;
-mod service;
+mod web;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -16,18 +14,17 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(|| {
         App::new()
             .wrap(middleware::Logger::default())
-            .route("/api/login", web::post().to(controller::login))
+            .service(web::controller::login)
             .service(
-                web::scope("/api")
-                    .wrap(HttpAuthentication::bearer(service::auth::validate_token))
-                    .route(
-                        "/fetch",
-                        web::post().to(controller::fetch_videos),
-                    )
-                    .route("/assign",
-                    web::post().to(controller::assign_tag))
-                    .route("/get_mapped_tags",
-                           web::post().to(controller::get_mapped_tags))
+                actix_web::web::scope("/api")
+                    .wrap(HttpAuthentication::bearer(
+                        web::middleware::auth_token::validate,
+                    ))
+                    .service(web::controller::fetch_videos)
+                    .service(web::controller::fetch_videos_from_db)
+                    .service(web::controller::assign_tag)
+                    .service(web::controller::lookup_and_assign_tag)
+                    .service(web::controller::get_mapped_tags)
             )
     })
     .bind("127.0.0.1:8080")?

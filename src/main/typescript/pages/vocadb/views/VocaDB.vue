@@ -1,0 +1,740 @@
+<template>
+  <div style="display: flex; align-items: center">
+    <b-container class="col-lg-11">
+      <b-row>
+        <b-toaster class="b-toaster-top-center" name="toaster-2"></b-toaster>
+        <b-row
+          class="mt-lg-3 pt-lg-3 pb-lg-3 col-lg-12 text-center m-auto alert-primary rounded p-sm-2 bg-light progress-bar-striped"
+        >
+          <b-col v-if="videos.length > 0" class="my-auto">
+            <b-dropdown
+              :disabled="defaultDisableCondition()"
+              block
+              :text="getResultNumberStr()"
+              class="my-auto"
+              variant="primary"
+            >
+              <b-dropdown-item
+                :disabled="maxResults === 10"
+                @click="setMaxResults(10)"
+                >10
+              </b-dropdown-item>
+              <b-dropdown-item
+                :disabled="maxResults === 25"
+                @click="setMaxResults(25)"
+                >25
+              </b-dropdown-item>
+              <b-dropdown-item
+                :disabled="maxResults === 50"
+                @click="setMaxResults(50)"
+                >50
+              </b-dropdown-item>
+              <b-dropdown-item
+                :disabled="maxResults === 100"
+                @click="setMaxResults(100)"
+                >100
+              </b-dropdown-item>
+            </b-dropdown>
+          </b-col>
+          <b-col class="my-auto" v-if="videos.length > 0">
+            <b-dropdown
+              block
+              :disabled="defaultDisableCondition()"
+              :text="getOrderingCondition()"
+              variant="primary"
+            >
+              <b-dropdown-item
+                v-for="(key, value) in orderOptions"
+                :key="key"
+                :disabled="orderBy === value"
+                @click="setOrderBy(value)"
+              >
+                {{ orderOptions[value] }}
+              </b-dropdown-item>
+            </b-dropdown>
+          </b-col>
+          <b-col class="my-auto" v-if="videos.length > 0">
+            <template>
+              <b-input-group
+                inline
+                :state="pageState"
+                invalid-feedback="Wrong page number"
+              >
+                <template #prepend>
+                  <b-input-group-text
+                    class="justify-content-center"
+                    style="width: 80px"
+                  >Page:
+                  </b-input-group-text
+                  >
+                </template>
+                <template>
+                  <b-form-input
+                    id="page-jump-form"
+                    v-model.number="pageToJump"
+                    type="number"
+                    :disabled="defaultDisableCondition()"
+                    aria-describedby="input-live-help input-live-feedback"
+                    :state="pageState()"
+                    @keydown.enter.native="
+                          pageState()
+                            ? fetch((pageToJump - 1) * maxResults,
+                                pageToJump
+                              )
+                            : null
+                        "
+                  >
+                  </b-form-input>
+                </template>
+                <template #append>
+                  <b-button
+                    style="width: 80px"
+                    :variant="pageState() ? 'success' : 'danger'"
+                    :disabled="defaultDisableCondition() || !pageState()"
+                    @click="
+                          fetch(
+                            (pageToJump - 1) * maxResults,
+                            pageToJump
+                          )
+                        ">
+                    <span v-if="fetching"><b-spinner small/></span>
+                    <span v-else-if="pageToJump === page">Refresh</span>
+                    <span v-else>Jump</span>
+                  </b-button
+                  >
+                </template>
+              </b-input-group>
+            </template>
+          </b-col>
+          <b-col class="col-3 m-auto" v-if="videos.length === 0">
+            <b-button
+              variant="primary"
+              block
+              :disabled="defaultDisableCondition()"
+              @click="fetch(0, 1)"
+            ><span v-if="fetching"><b-spinner small/></span>
+              <span v-else>Load</span>
+            </b-button>
+          </b-col>
+          <b-col class="my-auto" v-if="videos.length > 0">
+            <b-button
+              variant="primary"
+              block
+              :pressed="showEntriesWithErrors"
+              :disabled="defaultDisableCondition()"
+              @click="toggleShowEntriesWithErrors"
+            >Entries with errors
+            </b-button>
+          </b-col>
+          <b-col class="my-auto" v-if="videos.length > 0">
+            <b-button
+              variant="primary"
+              block
+              :pressed="!hideEntriesWithNoTags"
+              :disabled="defaultDisableCondition()"
+              @click="toggleHideEntriesWithNoTags"
+            >Entries with no tags to add
+            </b-button>
+          </b-col>
+        </b-row>
+        <b-row v-if="videos.length !== 0" class="col-12">
+          <b-col class="my-auto">
+            <div class="text-center pt-sm-3">
+              <b-button-group>
+                <b-button
+                  v-for="(type, key) in songTypes"
+                  :key="key"
+                  class="pl-4 pr-4"
+                  :disabled="defaultDisableCondition()"
+                  :variant="
+                    (type.show ? '' : 'outline-') +
+                    getSongTypeVariant(type.name)
+                  "
+                  @click="
+                    type.show = !type.show;
+                    filter();
+                  "
+                >{{ getTypeInfo(type.name) }}
+                </b-button>
+              </b-button-group>
+            </div>
+          </b-col>
+        </b-row>
+        <b-row v-if="videos.length !== 0" class="col-12">
+          <template>
+            <div class="overflow-auto m-auto mt-lg-3">
+              <b-pagination
+                v-model="page"
+                align="center"
+                :total-rows="totalVideoCount"
+                :per-page="maxResults"
+                use-router
+                first-number
+                last-number
+                limit="10"
+                :disabled="defaultDisableCondition()"
+                @change="pageClicked"
+              ></b-pagination>
+            </div>
+          </template>
+        </b-row>
+        <b-table-simple v-if="videos.length > 0" hover class="mt-1 col-lg-12">
+          <b-thead>
+            <b-th>
+              <b-form-checkbox
+                class="invisible"
+                size="lg"
+              ></b-form-checkbox>
+            </b-th>
+            <b-th class="col-3 align-middle">Entry</b-th>
+            <b-th class="col-9 align-middle">Videos</b-th>
+          </b-thead>
+          <b-tbody v-if="videos.filter(video => video.visible).length > 0">
+            <tr
+              v-for="video in videos.filter(video => video.visible)"
+              :key="video.song.id"
+            >
+              <td>
+                <div v-if="video.thumbnailsOk.length > 0">
+                  <b-form-checkbox
+                    v-if="video.tagsToAssign.length > 0"
+                    v-model="video.toAssign"
+                    size="lg"
+                    :disabled="defaultDisableCondition()"
+                  ></b-form-checkbox>
+                </div>
+              </td>
+              <td>
+                <a
+                  target="_blank"
+                  :href="getEntryUrl(video.song)"
+                  v-html="video.song.name"
+                ></a>
+                <a target="_blank" :href="getEntryUrl(video.song)">
+                  <b-badge
+                    class="badge text-center ml-2"
+                    :variant="getSongTypeVariant(video.song.songType)"
+                  >
+                    {{ getSongType(video.song.songType) }}
+                  </b-badge>
+                </a>
+                <div class="text-muted">
+                  {{ video.song.artistString }}
+                </div>
+              </td>
+              <td>
+                <b-row
+                  v-for="(thumbnail, thumbnail_key) in video.thumbnailsOk"
+                  :key="thumbnail_key"
+                >
+                  <b-col class="col-8">
+                    <b-button
+                      :disabled="defaultDisableCondition()"
+                      size="sm"
+                      variant="primary-outline"
+                      class="mr-2"
+                      @click="thumbnail.expanded = !thumbnail.expanded"
+                    >
+                      <i class="fas fa-play"></i
+                      ></b-button>
+                    <a
+                      target="_blank"
+                      :href="getVideoUrl(thumbnail.thumbnail.id)"
+                      v-html="thumbnail.thumbnail.title"
+                    ></a>
+                    <div>
+                      <b-badge
+                        v-for="(nico_tag, key) in thumbnail.nicoTags"
+                        :key="key"
+                        v-clipboard:copy="nico_tag.name"
+                        class="m-sm-1"
+                        href="#"
+                        :variant="nico_tag.variant"
+                      ><i class="fas fa-tag"></i> {{ nico_tag.name }}
+                      </b-badge>
+                    </div>
+                    <b-collapse
+                      :id="getCollapseId(thumbnail.thumbnail.id)"
+                      :visible="thumbnail.expanded && !fetching"
+                      class="mt-2 collapsed"
+                    >
+                      <b-card
+                        v-cloak
+                        :id="'embed_' + thumbnail.thumbnail.id"
+                        class="embed-responsive embed-responsive-16by9"
+                      >
+                        <iframe
+                          v-if="thumbnail.expanded && !fetching"
+                          class="embed-responsive-item"
+                          allowfullscreen="allowfullscreen"
+                          style="border: none"
+                          :src="getEmbedAddr(thumbnail.thumbnail.id)"
+                        ></iframe>
+                      </b-card>
+                    </b-collapse>
+                  </b-col>
+                  <b-col>
+                    <span v-for="(tag, tag_key) in thumbnail.mappedTags" :key="tag_key">
+                      <b-button
+                        size="sm"
+                        class="m-1"
+                        :disabled="tag.assigned || defaultDisableCondition()"
+                        :variant="getTagVariant(tag, video.tagsToAssign)"
+                        @click="toggleTagAssignation(tag, video)"
+                      >
+                        <i
+                          v-if="!tag.assigned"
+                          :class="tag.toAssign
+                              ? 'fas sm mr-sm-1 fa-minus'
+                              : 'fas sm mr-sm-1 fa-plus'
+                          "
+                        /><i
+                        v-if="tag.assigned"
+                          class="fas sm fa-check mr-sm-1"
+                      />{{
+                          tag.tag.name
+                        }}
+                      </b-button>
+                    </span>
+                    <div
+                      v-if="thumbnail.mappedTags.length === 0"
+                      class="text-muted"
+                    >
+                      No mapped tags available for this video
+                    </div>
+                  </b-col>
+                </b-row>
+                <b-row
+                  v-for="(thumbnail, thumbnail_err_key) in video.thumbnailsErr"
+                  :key="thumbnail_err_key"
+                >
+                  {{ thumbnail.contentId }} ({{ thumbnail.description }})
+                </b-row>
+              </td>
+            </tr>
+          </b-tbody>
+          <b-tbody v-else>
+            <b-tr>
+              <b-td colspan="4" class="text-center text-muted">
+                <small>No items to display</small>
+              </b-td>
+            </b-tr>
+          </b-tbody>
+          <b-tfoot>
+            <b-th>
+            </b-th>
+            <b-th class="col-3 align-middle">Entry</b-th>
+            <b-th class="col-4 align-middle">Videos</b-th>
+            <b-th class="col-5 align-middle">Tags</b-th>
+          </b-tfoot>
+        </b-table-simple>
+
+        <b-row
+          v-if="videos.length !== 0"
+          class="mt-lg-1 col-lg-12 text-center m-auto alert-primary rounded p-sm-2 bg-light progress-bar-striped"
+        >
+          <b-col class="col-lg-3 m-auto"
+          >
+            <b-button
+              block
+              variant="primary"
+              :disabled="countChecked() === 0 || massAssigning || fetching"
+              @click="assignMultiple"
+            >
+              <div v-if="massAssigning">
+                <b-spinner small class="mr-1"></b-spinner>
+                Assigning...
+              </div>
+              <div v-else>
+                Batch assign ({{ countChecked() }} selected)
+              </div>
+            </b-button
+            >
+          </b-col
+          >
+        </b-row>
+
+        <b-row v-if="videos.length !== 0" class="col-12">
+          <template>
+            <div class="overflow-auto m-auto my-lg-3">
+              <b-pagination
+                v-model="page"
+                align="center"
+                :total-rows="totalVideoCount"
+                :per-page="maxResults"
+                use-router
+                first-number
+                last-number
+                limit="10"
+                :disabled="defaultDisableCondition()"
+                @change="pageClicked"
+              ></b-pagination>
+            </div>
+          </template>
+        </b-row>
+        <b-toast
+          id="error"
+          title="Error"
+          no-auto-hide
+          variant="danger"
+          class="m-0 rounded-0"
+          toaster="toaster-2"
+        >
+          {{ alertMessage }}
+        </b-toast>
+      </b-row>
+    </b-container>
+    <b-row>
+      <b-col>
+        <b-link to="nicovideo">
+          <b-button size="sm" variant="dark" class="fixed-top m-1" squared>Toggle<br>mode</b-button>
+        </b-link>
+      </b-col>
+    </b-row>
+  </div>
+</template>
+
+<script lang="ts">
+import Vue from "vue";
+import {Component} from "vue-property-decorator";
+import {
+  MappedTag,
+  MinimalTag,
+  NicoVideoWithError,
+  NicoVideoWithMappedTags,
+  SongForApiContractSimplified
+} from "@/backend/dto";
+import {api} from "@/backend";
+
+import VueClipboard from "vue-clipboard2";
+
+Vue.use(VueClipboard);
+
+@Component({components: {}})
+export default class extends Vue {
+  private orderBy = "AdditionDate";
+  private orderOptions = {
+    PublishDate: "upload time",
+    AdditionDate: "addition time",
+    RatingScore: "user rating"
+  };
+  private startOffset: number = 0;
+  private maxResults: number = 10;
+  private songTypes: SongType[] = [
+    {name: "Unspecified", show: true},
+    {name: "Original", show: true},
+    {name: "Remaster", show: true},
+    {name: "Remix", show: true},
+    {name: "Cover", show: true},
+    {name: "Instrumental", show: true},
+    {name: "Mashup", show: true},
+    {name: "MusicPV", show: true},
+    {name: "DramaPV", show: true},
+    {name: "Other", show: true}
+  ];
+  private videos: EntryWithVideosAndVisibility[] = [];
+  private totalVideoCount: number = 0;
+  private fetching: boolean = false;
+  private showTable: boolean = false;
+  private page: number = 1;
+  private numOfPages: number = 1;
+  private massAssigning: boolean = false;
+  private alertMessage: string = "";
+  private pageToJump: number = this.page;
+  private maxPage = Math.ceil(this.totalVideoCount / this.maxResults);
+  private hideEntriesWithNoTags: boolean = false;
+  private showEntriesWithErrors: boolean = true;
+  private songTypeToTag = {
+    "Original": 6479,
+    "Remaster": 1519,
+    "Remix": 371,
+    "Cover": 74,
+    "Instrumental": 208,
+    "MusicPV": 7378,
+    "Mashup": 3392,
+    "DramaPV": 104
+  };
+
+  async fetch(newStartOffset: number, newPage: number): Promise<void> {
+    this.fetching = true;
+    try {
+      let response = await api.fetchVideosFromDb({
+        startOffset: newStartOffset,
+        maxResults: this.maxResults,
+        orderBy: this.orderBy
+      });
+      this.videos = response.items.map(entry => {
+        return {
+          song: entry.song,
+          toAssign: false,
+          visible: true,
+          thumbnailsOk: entry.thumbnailsOk.map(t => {
+            return {
+              thumbnail: t.thumbnail,
+              mappedTags: t.mappedTags.map(tag => {
+                return {
+                  tag: tag.tag,
+                  assigned: tag.assigned,
+                  toAssign: false
+                };
+              }),
+              expanded: false,
+              nicoTags: t.nicoTags
+            };
+          }),
+          thumbnailsErr: entry.thumbnailsErr,
+          tagsToAssign: []
+        };
+      });
+      this.postProcessVideos();
+      this.filter();
+      this.totalVideoCount = response.totalCount;
+      this.showTable = this.videos.length > 0;
+      this.page = newStartOffset / this.maxResults + 1;
+      this.numOfPages = this.totalVideoCount / this.maxResults + 1;
+      this.startOffset = newStartOffset;
+    } catch (err) {
+      this.$bvToast.show("error");
+      this.alertMessage = err.response.data.message;
+    } finally {
+      this.maxPage = Math.ceil(this.totalVideoCount / this.maxResults);
+      this.fetching = false;
+      this.pageToJump = newPage;
+      this.page = newPage;
+    }
+  }
+
+  getEntryUrl(songEntry: SongForApiContractSimplified): string {
+    return "https://vocadb.net/S/" + songEntry.id;
+  }
+
+  getVideoUrl(video: string): string {
+    return "https://nicovideo.jp/watch/" + video;
+  }
+
+  getResultNumberStr(): string {
+    return "Entries per page: " + this.maxResults;
+  }
+
+  pageClicked(pgnum: number): void {
+    this.fetch((pgnum - 1) * this.maxResults, pgnum);
+  }
+
+  setMaxResults(mxres: number): void {
+    this.maxResults = mxres;
+    this.fetch(0, 1);
+  }
+
+  private async assignMultiple(): Promise<void> {
+    this.massAssigning = true;
+    try {
+      for (const song of this.videos.filter(s => s.toAssign)) {
+        await api.lookUpAndAssignTag({
+          tags: song.tagsToAssign,
+          songId: song.song.id
+        });
+        song.toAssign = false;
+        const assigned_ids = song.tagsToAssign.map(tta => tta.id);
+        for (var j = 0; j < song.thumbnailsOk.length; j++) {
+          song.thumbnailsOk[j].mappedTags.forEach(t => {
+            if (assigned_ids.find(id => id == t.tag.id) != undefined) {
+              t.toAssign = false;
+              t.assigned = true;
+            }
+          });
+        }
+        song.tagsToAssign.splice(0, song.tagsToAssign.length);
+      }
+    } finally {
+      this.massAssigning = false;
+    }
+  }
+
+  getButtonId(song: SongForApiContractSimplified): string {
+    return "assign_" + song.id;
+  }
+
+  getCollapseId(videoId: string): string {
+    return "collapse_" + videoId;
+  }
+
+  getEmbedAddr(videoId: string): string {
+    return (
+      "https://embed.nicovideo.jp/watch/" +
+      videoId +
+      "?noRelatedVideo=1&enablejsapi=0"
+    );
+  }
+
+  countChecked(): number {
+    return this.videos.filter(video => video.toAssign).length;
+  }
+
+  getSongType(typeString: string): string {
+    if (typeString == "Unspecified") {
+      return "?";
+    } else if (typeString == "MusicPV") {
+      return "PV";
+    } else {
+      return typeString[0];
+    }
+  }
+
+  getSongTypeVariant(typeString: string): string {
+    if (typeString == "Original" || typeString == "Remaster") {
+      return "primary";
+    } else if (
+      typeString == "Remix" ||
+      typeString == "Cover" ||
+      typeString == "Mashup" ||
+      typeString == "Other"
+    ) {
+      return "secondary";
+    } else if (typeString == "Instrumental") {
+      return "dark";
+    } else if (typeString == "MusicPV" || typeString == "DramaPV") {
+      return "success";
+    } else {
+      return "warning";
+    }
+  }
+
+  private setOrderBy(value: string): void {
+    this.orderBy = value;
+    this.fetch(0, 1);
+  }
+
+  private filter(): void {
+    let i;
+    if (
+      this.hiddenTypes() > 0 ||
+      this.hideEntriesWithNoTags ||
+      !this.showEntriesWithErrors
+    ) {
+      if (this.hiddenTypes() > 0) {
+        this.videos.forEach(vid => {
+          vid.visible = !this.songTypes
+            .filter(t => !t.show)
+            .map(t => t.name)
+            .includes(vid.song.songType);
+        });
+      }
+      if (this.hideEntriesWithNoTags) {
+        for (i = 0; i < this.videos.length; ++i) {
+          let mapped_tags_cnt = 0;
+          for (let j = 0; j < this.videos[i].thumbnailsOk.length; ++j) {
+            mapped_tags_cnt += this.videos[i].thumbnailsOk[j].mappedTags.filter(tag => !tag.assigned).length;
+          }
+          this.videos[i].visible = this.videos[i].visible && mapped_tags_cnt > 0;
+        }
+      }
+      if (!this.showEntriesWithErrors) {
+        for (i = 0; i < this.videos.length; ++i) {
+          this.videos[i].visible = this.videos[i].visible || this.videos[i].thumbnailsErr.length != 0;
+        }
+      }
+    } else {
+      this.videos.forEach(vid => {
+        vid.visible = true;
+      });
+    }
+  }
+
+  pageState(): boolean {
+    return this.pageToJump > 0 && this.pageToJump <= this.maxPage;
+  }
+
+  private hiddenTypes(): number {
+    return this.songTypes.filter(t => !t.show).length;
+  }
+
+  private getOrderingCondition(): string {
+    return "Arrange by: " + this.orderOptions[this.orderBy];
+  }
+
+  private defaultDisableCondition(): boolean {
+    return this.fetching || this.massAssigning;
+  }
+
+  private getTypeInfo(type: string): string {
+    return (
+      type +
+      " (" +
+      this.videos.filter(vid => vid.song != null && vid.song.songType == type)
+        .length +
+      ")"
+    );
+  }
+
+  private getTagVariant(tag: MappedTag, tagsToAssign: MinimalTag[]): string {
+    if (tag.assigned) {
+      return "success";
+    } else if (tagsToAssign.find(t => t.id == tag.tag.id) != undefined) {
+      return "warning";
+    } else {
+      return "outline-success";
+    }
+  }
+
+  private toggleTagAssignation(
+    tag: MappedTag,
+    video: EntryWithVideosAndVisibility
+  ) {
+    if (!tag.assigned) {
+      if (tag.toAssign) {
+        video.tagsToAssign.splice(
+          video.tagsToAssign.indexOf(
+            video.tagsToAssign.find(t => t.id == tag.tag.id)!
+          ),
+          1
+        );
+      } else {
+        video.tagsToAssign.push(tag.tag);
+      }
+      tag.toAssign = !tag.toAssign;
+    }
+
+    video.toAssign = video.tagsToAssign.length > 0;
+  }
+
+  private toggleShowEntriesWithErrors() {
+    this.showEntriesWithErrors = !this.showEntriesWithErrors;
+    this.filter();
+  }
+
+  private toggleHideEntriesWithNoTags() {
+    this.hideEntriesWithNoTags = !this.hideEntriesWithNoTags;
+    this.filter();
+  }
+
+  private postProcessVideos() {
+    for (var i = 0; i < this.videos.length; ++i) {
+      for (var j = 0; j < this.videos[i].thumbnailsOk.length; ++j) {
+        this.videos[i].thumbnailsOk[j].mappedTags = this.videos[i].thumbnailsOk[j].mappedTags.filter(
+          t => this.songTypeToTag[this.videos[i].song.songType] != t.tag.id
+        );
+        this.videos[i].thumbnailsOk[j].mappedTags = this.videos[i].thumbnailsOk[j].mappedTags.filter(function (elem, index, self) {
+          return (
+            index ===
+            self.indexOf(self.find(el => el.tag.name == elem.tag.name)!)
+          );
+        });
+      }
+    }
+  }
+}
+
+export interface EntryWithVideosAndVisibility {
+  thumbnailsOk: NicoVideoWithMappedTags[];
+  thumbnailsErr: NicoVideoWithError[];
+  song: SongForApiContractSimplified;
+  visible: boolean;
+  toAssign: boolean;
+  tagsToAssign: MinimalTag[];
+}
+
+export interface SongType {
+  name: string;
+  show: boolean;
+}
+</script>

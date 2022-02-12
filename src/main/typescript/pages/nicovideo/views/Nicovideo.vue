@@ -486,6 +486,9 @@
         </div>
       </b-row>
     </b-container>
+    <b-row>
+      <b-col><b-link to="vocadb"><b-button size="sm" variant="dark" class="fixed-top m-1" squared>Toggle<br>mode</b-button></b-link></b-col>
+    </b-row>
   </div>
 </template>
 
@@ -548,6 +551,7 @@ export default class extends Vue {
   private showCollapse: boolean = false;
   private pageToJump: number = this.page;
   private maxPage = Math.ceil(this.totalVideoCount / this.maxResults);
+  private fetchMode = ["database", "NND"];
 
   async fetch(
     targetTag: string,

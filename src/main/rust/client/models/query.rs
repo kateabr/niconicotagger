@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use strum_macros::AsRefStr;
 use strum_macros::ToString;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -37,7 +38,7 @@ pub enum LanguagePreference {
     English,
 }
 
-#[derive(Serialize, Deserialize, ToString, Debug)]
+#[derive(Serialize, Deserialize, ToString, AsRefStr, Debug)]
 pub enum OptionalFields {
     None,
 

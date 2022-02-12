@@ -72,7 +72,7 @@ pub struct AssignableTag {
     pub version: i32
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct TagUsageForApiContract {
     pub tag: TagBaseContract,
     pub count: i32,

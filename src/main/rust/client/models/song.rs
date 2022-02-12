@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use strum_macros::ToString;
 
 use crate::client::models::entrythumb::{EntryThumbContract, EntryThumbForApiContract};
+use crate::client::models::pv::PVContract;
 
 use crate::client::models::status::Status;
 use crate::client::models::tag::TagUsageForApiContract;
@@ -91,7 +92,7 @@ pub enum SongFeaturedCategory {
     Other,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SongForApiContract {
     pub id: i32,
     pub name: String,
@@ -99,7 +100,13 @@ pub struct SongForApiContract {
     #[serde(rename = "songType")]
     pub song_type: SongType,
     #[serde(rename = "artistString")]
-    pub artist_string: String
+    pub artist_string: String,
+    // @JsonDeserialize(using = ZonedStringDeserializer.class)
+    #[serde(rename = "createDate")]
+    pub create_date: String,
+    pub pvs: Vec<PVContract>,
+    #[serde(rename = "ratingScore")]
+    pub rating_score: i32,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -113,7 +120,7 @@ pub struct SongInAlbumForApiContract {
     track_number: i32,
 }
 
-#[derive(Serialize, Deserialize, Debug, ToString)]
+#[derive(Serialize, Deserialize, Debug, ToString, Clone)]
 pub enum SongType {
     Unspecified,
     Original,

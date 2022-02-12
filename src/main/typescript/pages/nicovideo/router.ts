@@ -6,13 +6,13 @@ Vue.use(VueRouter);
 const routes: RouteConfig[] = [
   {
     path: "/",
-    name: "home",
-    component: () => import("@/pages/home/views/Home.vue")
+    name: "nicovideo",
+    component: () => import("@/pages/nicovideo/views/Nicovideo.vue")
   }
 ];
 
 export const router = new VueRouter({
-  base: "/home",
+  base: "/vocadb",
   mode: "history",
   routes: routes
 });

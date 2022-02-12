@@ -1,6 +1,7 @@
 export interface AuthenticationPayload {
   username: string;
   password: string;
+  database: string;
 }
 
 export interface AccessToken {
@@ -10,6 +11,12 @@ export interface AccessToken {
 export interface FetchVideosPayload {
   tag: string;
   scopeTag: string;
+  startOffset: number;
+  maxResults: number;
+  orderBy: string;
+}
+
+export interface FetchVideosFromDbPayload {
   startOffset: number;
   maxResults: number;
   orderBy: string;
@@ -54,6 +61,11 @@ export interface AssignableTag {
   version: number;
 }
 
+export interface MinimalTag {
+  id: number;
+  name: string;
+}
+
 export interface VideosWithEntries {
   items: VideoWithEntry[];
   totalVideoCount: number;
@@ -62,9 +74,26 @@ export interface VideosWithEntries {
   safeScope: string;
 }
 
+export interface EntriesWithVideos {
+  items: EntryWithVideos[];
+  totalCount: number;
+}
+
+export interface EntryWithVideos {
+  thumbnailsOk: NicoVideoWithMappedTags[];
+  thumbnailsErr: NicoVideoWithError[];
+  song: SongForApiContractSimplified;
+  totalVideoCount: number;
+}
+
 export interface AssignTagPayload {
   songId: number;
   tags: AssignableTag[];
+}
+
+export interface LookupAndAssignTagPayload {
+  songId: number;
+  tags: MinimalTag[];
 }
 
 export interface DisplayableTag {
@@ -75,4 +104,29 @@ export interface DisplayableTag {
 export interface Ordering {
   name: string;
   value: string;
+}
+
+export interface NicoVideoWithMappedTags {
+  thumbnail: ThumbnailOk;
+  mappedTags: MappedTag[];
+  nicoTags: DisplayableTag[];
+  expanded: boolean;
+}
+
+export interface ThumbnailOk {
+  id: string;
+  title: string;
+  tags: DisplayableTag[];
+}
+
+export interface MappedTag {
+  tag: MinimalTag;
+  assigned: boolean;
+  toAssign: boolean;
+}
+
+export interface NicoVideoWithError {
+  contentId: string;
+  code: string;
+  description: string;
 }

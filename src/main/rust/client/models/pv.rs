@@ -6,7 +6,7 @@ use strum_macros::ToString;
 
 use crate::client::models::song::SongContract;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct PVContract {
     pub id: i32,
     #[serde(rename = "pvType")]
@@ -29,7 +29,7 @@ pub struct PVContract {
     pub thumb_url: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct PVExtendedMetadata {
     #[serde(deserialize_with = "raw_json_to_map_deserializer")]
     pub json: HashMap<String, Value>,
@@ -85,7 +85,7 @@ pub enum PvService {
     Bandcamp,
 }
 
-#[derive(Serialize, Deserialize, Clone, Copy, ToString, Debug)]
+#[derive(Serialize, Deserialize, Clone, Copy, ToString, Debug, PartialEq)]
 pub enum PvType {
     Original,
     Reprint,

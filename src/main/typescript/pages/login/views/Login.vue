@@ -62,10 +62,11 @@ export default class extends Vue {
     try {
       let response = await api.authenticate({
         username: this.username,
-        password: this.password
+        password: this.password,
+        database: "VocaDb"
       });
       localStorage.setItem("accessToken", response.data.token);
-      window.location.href = "/home";
+      window.location.href = "/nicovideo";
     } catch (err) {
       this.$bvToast.show("error");
       this.alertMessage = err.response.data.message;
