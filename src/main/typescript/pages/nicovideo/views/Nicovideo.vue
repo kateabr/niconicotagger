@@ -475,7 +475,7 @@
     </b-container>
     <b-row>
       <b-col
-        ><b-link to="vocadb"
+        ><b-link to="vocadb" target="_blank"
           ><b-button size="sm" variant="dark" class="fixed-top m-1" squared
             >Toggle<br />mode</b-button
           ></b-link
