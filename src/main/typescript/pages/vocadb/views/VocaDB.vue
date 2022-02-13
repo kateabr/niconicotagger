@@ -462,7 +462,7 @@ export default class extends Vue {
     Remix: [371, 74, 391],
     Cover: [74, 371],
     Instrumental: [208],
-    MusicPV: [7378],
+    MusicPV: [7378, 74],
     Mashup: [3392],
     DramaPV: [104],
     Other: []
