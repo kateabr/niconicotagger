@@ -456,6 +456,7 @@ export default class extends Vue {
   private hideEntriesWithNoTags: boolean = false;
   private showEntriesWithErrors: boolean = true;
   private songTypeToTag = {
+    Unspecified: [],
     Original: [6479],
     Remaster: [1519, 391, 371],
     Remix: [371, 74, 391],
@@ -463,7 +464,8 @@ export default class extends Vue {
     Instrumental: [208],
     MusicPV: [7378],
     Mashup: [3392],
-    DramaPV: [104]
+    DramaPV: [104],
+    Other: []
   };
 
   async fetch(newStartOffset: number, newPage: number): Promise<void> {
