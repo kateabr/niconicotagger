@@ -1,5 +1,6 @@
 extern crate kana;
 
+use std::borrow::Borrow;
 use std::str::FromStr;
 use std::time::Duration;
 
@@ -353,7 +354,7 @@ impl<'a> Client<'a> {
         max_results: i32,
         order_by: String,
     ) -> Result<SongsForApiContractWithThumbnails> {
-        pub fn parse_thumbnail(xml: &str, thumnail_id: &str) -> Result<ThumbnailOk, ThumbnailError> {
+        pub fn parse_thumbnail(xml: &str, thumnail_id: &str, pv: &PVContract) -> Result<ThumbnailOk, ThumbnailError> {
             let doc = roxmltree::Document::parse(xml).unwrap();
             let status = doc.descendants()
                 .find(|node| node.has_tag_name("nicovideo_thumb_response"))
@@ -377,6 +378,8 @@ impl<'a> Client<'a> {
                     id: thumnail_id.to_string(),
                     code: get_text(&doc, "code"),
                     description: get_text(&doc, "description"),
+                    disabled: pv.disabled,
+                    title: String::from(&pv.name)
                 };
                 Err(err)
             };
@@ -430,7 +433,7 @@ impl<'a> Client<'a> {
 
                             let thumnail_id = pv.pv_id.as_ref().unwrap();
                             let thumbnail = self.get_thumbinfo(thumnail_id).await?;
-                            let thumbnail_parse_result = parse_thumbnail(String::from_utf8(thumbnail).unwrap().as_str(), thumnail_id);
+                            let thumbnail_parse_result = parse_thumbnail(String::from_utf8(thumbnail).unwrap().as_str(), thumnail_id, pv);
 
                             match thumbnail_parse_result {
                                 Ok(thumb) => ok.push(thumb),

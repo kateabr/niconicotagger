@@ -224,8 +224,8 @@
                       class="mr-2"
                       @click="thumbnail.expanded = !thumbnail.expanded"
                     >
-                      <i class="fas fa-play"></i
-                    ></b-button>
+                      <font-awesome-icon icon="fas fa-play" />
+                    </b-button>
                     <a
                       target="_blank"
                       :href="getVideoUrl(thumbnail.thumbnail.id)"
@@ -239,7 +239,12 @@
                         class="m-sm-1"
                         href="#"
                         :variant="nico_tag.variant"
-                        >{{ nico_tag.name }}<i v-if="nico_tag.locked" class="fas fa-lock ml-1"/>
+                        >{{ nico_tag.name
+                        }}<font-awesome-icon
+                          v-if="nico_tag.locked"
+                          icon="fas fa-lock"
+                          class="ml-1"
+                        />
                       </b-badge>
                     </div>
                     <b-collapse
@@ -299,7 +304,27 @@
                   v-for="(thumbnail, thumbnail_err_key) in video.thumbnailsErr"
                   :key="thumbnail_err_key"
                 >
-                  {{ thumbnail.contentId }} ({{ thumbnail.description }})
+                  <b-col>
+                    <b-link :to="getDeletedVideoAddr(thumbnail.id)">{{
+                      thumbnail.title
+                    }}</b-link
+                    ><span
+                      ><b-badge variant="danger" size="sm" class="ml-1">{{
+                        thumbnail.code
+                      }}</b-badge></span
+                    >
+                    <div>
+                      <span
+                        ><b-badge
+                          v-if="!thumbnail.disabled"
+                          variant="warning"
+                          class="mr-1"
+                        >
+                          Needs to be disabled</b-badge
+                        >
+                      </span>
+                    </div>
+                  </b-col>
                 </b-row>
               </td>
             </tr>
@@ -431,14 +456,14 @@ export default class extends Vue {
   private hideEntriesWithNoTags: boolean = false;
   private showEntriesWithErrors: boolean = true;
   private songTypeToTag = {
-    Original: 6479,
-    Remaster: 1519,
-    Remix: 371,
-    Cover: 74,
-    Instrumental: 208,
-    MusicPV: 7378,
-    Mashup: 3392,
-    DramaPV: 104
+    Original: [6479],
+    Remaster: [1519],
+    Remix: [371, 74],
+    Cover: [74, 371],
+    Instrumental: [208],
+    MusicPV: [7378],
+    Mashup: [3392],
+    DramaPV: [104]
   };
 
   async fetch(newStartOffset: number, newPage: number): Promise<void> {
@@ -556,6 +581,10 @@ export default class extends Vue {
     );
   }
 
+  getDeletedVideoAddr(videoId: string): string {
+    return "https://nicolog.jp/watch/" + videoId;
+  }
+
   countChecked(): number {
     return this.videos.filter(video => video.toAssign).length;
   }
@@ -596,41 +625,22 @@ export default class extends Vue {
 
   private filter(): void {
     let i;
-    if (
-      this.hiddenTypes() > 0 ||
-      this.hideEntriesWithNoTags ||
-      !this.showEntriesWithErrors
-    ) {
-      if (this.hiddenTypes() > 0) {
-        this.videos.forEach(vid => {
-          vid.visible = !this.songTypes
+    for (i = 0; i < this.videos.length; ++i) {
+      let assignable_mapped_tags_cnt = 0;
+      for (let j = 0; j < this.videos[i].thumbnailsOk.length; ++j) {
+        assignable_mapped_tags_cnt += this.videos[i].thumbnailsOk[
+          j
+        ].mappedTags.filter(tag => !tag.assigned).length;
+      }
+
+      this.videos[i].visible =
+        ((this.hiddenTypes() == 0 ||
+          !this.songTypes
             .filter(t => !t.show)
             .map(t => t.name)
-            .includes(vid.song.songType);
-        });
-      }
-      if (this.hideEntriesWithNoTags) {
-        for (i = 0; i < this.videos.length; ++i) {
-          let mapped_tags_cnt = 0;
-          for (let j = 0; j < this.videos[i].thumbnailsOk.length; ++j) {
-            mapped_tags_cnt += this.videos[i].thumbnailsOk[j].mappedTags.filter(
-              tag => !tag.assigned
-            ).length;
-          }
-          this.videos[i].visible =
-            this.videos[i].visible && mapped_tags_cnt > 0;
-        }
-      }
-      if (!this.showEntriesWithErrors) {
-        for (i = 0; i < this.videos.length; ++i) {
-          this.videos[i].visible =
-            this.videos[i].visible || this.videos[i].thumbnailsErr.length != 0;
-        }
-      }
-    } else {
-      this.videos.forEach(vid => {
-        vid.visible = true;
-      });
+            .includes(this.videos[i].song.songType)) &&
+          (!this.hideEntriesWithNoTags || assignable_mapped_tags_cnt > 0)) ||
+        (this.showEntriesWithErrors && this.videos[i].thumbnailsErr.length > 0);
     }
   }
 
@@ -707,7 +717,10 @@ export default class extends Vue {
         this.videos[i].thumbnailsOk[j].mappedTags = this.videos[i].thumbnailsOk[
           j
         ].mappedTags.filter(
-          t => this.songTypeToTag[this.videos[i].song.songType] != t.tag.id
+          t =>
+            this.songTypeToTag[this.videos[i].song.songType].find(
+              (id: number) => id == t.tag.id
+            ) == undefined
         );
         this.videos[i].thumbnailsOk[j].mappedTags = this.videos[i].thumbnailsOk[
           j

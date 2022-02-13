@@ -11,7 +11,10 @@
                 variant="primary"
                 style="width: 80px"
                 :disabled="defaultDisableCondition()"
-                ><i class="fas fa-angle-down mr-sm-1"></i>More</b-button
+                ><font-awesome-icon
+                  class="mr-sm-1"
+                  icon="fas fa-angle-down"
+                />More</b-button
               >
             </template>
             <b-form-input
@@ -54,10 +57,10 @@
                       style="width: 80px"
                       @click="
                         scopeTag =
-                          '-歌ってみた VOCALOID OR UTAU OR CEVIO OR SYNTHV OR SYNTHESIZERV OR neutrino(歌声合成エンジン) OR DeepVocal OR Alter/Ego OR AlterEgo OR AquesTalk OR AquesTone OR AquesTone2 OR ボカロ OR ボーカロイド OR 合成音声 OR 歌唱合成 OR coefont OR coefont_studio OR VOICELOID OR VOICEROID'
+                          '-歌ってみた VOCALOID OR UTAU OR CEVIO OR SYNTHV OR SYNTHESIZERV OR neutrino(歌声合成エンジン) OR DeepVocal OR Alter/Ego OR AlterEgo OR AquesTalk OR AquesTone OR AquesTone2 OR ボカロ OR ボーカロイド OR 合成音声 OR 歌唱合成 OR coefont OR coefont_studio OR VOICELOID OR VOICEROID OR ENUNU'
                       "
                     >
-                      <i class="fas fa-paste"></i>
+                      <font-awesome-icon icon="fa-solid fa-paste" />
                     </b-button>
                   </template>
                   <template #append>
@@ -316,8 +319,8 @@
                   class="mr-2"
                   @click="value.visible = !value.visible"
                 >
-                  <i class="fas fa-play"></i
-                ></b-button>
+                  <font-awesome-icon icon="fas fa-play"
+                /></b-button>
                 <a
                   target="_blank"
                   :href="getVideoUrl(value.video)"
@@ -331,7 +334,9 @@
                     class="m-sm-1"
                     :variant="value1.variant"
                     href="#"
-                    ><i class="fas fa-tag mr-1"></i>{{ value1.name }}
+                    ><font-awesome-icon icon="fas fa-tag" class="mr-1" />{{
+                      value1.name
+                    }}
                   </b-badge>
                 </div>
                 <b-collapse
@@ -392,7 +397,7 @@
                       class="btn disabled"
                       variant="success"
                     >
-                      <i class="fas fa-check"></i>
+                      <font-awesome-icon icon="fas fa-check" />
                     </b-button>
                     <b-button
                       v-else
@@ -402,7 +407,7 @@
                       variant="outline-success"
                       @click="assign(value.songEntry.id)"
                     >
-                      <i class="fas fa-plus"></i>
+                      <font-awesome-icon icon="fas fa-plus" />
                     </b-button>
                   </b-button-toolbar>
                 </div>
@@ -485,7 +490,6 @@ import Vue from "vue";
 import { Component } from "vue-property-decorator";
 import {
   AssignableTag,
-  NicoVideo,
   NicoVideoWithTidyTags,
   SongForApiContractSimplified
 } from "@/backend/dto";

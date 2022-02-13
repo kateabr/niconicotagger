@@ -12,7 +12,7 @@ const routes: RouteConfig[] = [
 ];
 
 export const router = new VueRouter({
-  base: "/vocadb",
+  base: "/nicovideo",
   mode: "history",
   routes: routes
 });

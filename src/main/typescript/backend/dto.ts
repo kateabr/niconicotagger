@@ -122,7 +122,9 @@ export interface MappedTag {
 }
 
 export interface NicoVideoWithError {
-  contentId: string;
+  id: string;
   code: string;
   description: string;
+  title: string;
+  disabled: boolean;
 }
