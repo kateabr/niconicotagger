@@ -457,7 +457,7 @@ export default class extends Vue {
   private showEntriesWithErrors: boolean = true;
   private songTypeToTag = {
     Original: [6479],
-    Remaster: [1519],
+    Remaster: [1519, 391, 371],
     Remix: [371, 74],
     Cover: [74, 371],
     Instrumental: [208],
