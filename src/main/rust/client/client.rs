@@ -1,6 +1,5 @@
 extern crate kana;
 
-use std::borrow::Borrow;
 use std::str::FromStr;
 use std::time::Duration;
 
@@ -279,14 +278,15 @@ impl<'a> Client<'a> {
         let normalized_scope = normalize(&scope.replace(" OR ", " "));
         let normalized_scope_tags = normalized_scope.split(" ").map(|s| String::from(s)).collect::<Vec<_>>();
 
-        let nico_tags = video.tags.split(" ").map(|s| String::from(normalize(s))).collect::<Vec<_>>();
+        let nico_tags = video.tags.split(" ").map(|s| String::from(s)).collect::<Vec<_>>();
 
         let tags = nico_tags.iter().map(|t| {
-            let variant = if t == &normalized_nico_tag {
+            let normalized_t: String = normalize(t);
+            let variant = if normalized_t == normalized_nico_tag {
                 String::from("primary")
-            } else if normalized_scope_tags.iter().any(|s| s == t) {
+            } else if normalized_scope_tags.iter().any(|s| s == &normalized_t) {
                 String::from("info")
-            } else if mappings.iter().any(|m| m == t) {
+            } else if mappings.iter().any(|m| m == &normalized_t) {
                 String::from("dark")
             } else {
                 String::from("secondary")
@@ -294,7 +294,7 @@ impl<'a> Client<'a> {
 
             DisplayableTag {
                 name: t.clone(),
-                variant: variant,
+                variant,
             }
         }).collect();
 
