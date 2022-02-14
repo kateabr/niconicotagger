@@ -299,7 +299,7 @@
                   :key="thumbnail_err_key"
                 >
                   <b-col>
-                    <b-link :to="getDeletedVideoAddr(thumbnail.id)">{{
+                    <b-link :to="getDeletedVideoAddr(thumbnail.id)" target="_blank">{{
                       thumbnail.title
                     }}</b-link
                     ><span
