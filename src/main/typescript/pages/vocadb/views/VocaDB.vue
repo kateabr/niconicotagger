@@ -546,8 +546,8 @@ export default class extends Vue {
         });
         song.toAssign = false;
         const assigned_ids = song.tagsToAssign.map(tta => tta.id);
-        for (var j = 0; j < song.thumbnailsOk.length; j++) {
-          song.thumbnailsOk[j].mappedTags.forEach(t => {
+        for (const thumbnailOk of song.thumbnailsOk) {
+          thumbnailOk.mappedTags.forEach(t => {
             if (assigned_ids.find(id => id == t.tag.id) != undefined) {
               t.toAssign = false;
               t.assigned = true;
@@ -620,23 +620,22 @@ export default class extends Vue {
   }
 
   private filter(): void {
-    let i;
-    for (i = 0; i < this.videos.length; ++i) {
+    for (const video of this.videos) {
       let assignable_mapped_tags_cnt = 0;
-      for (let j = 0; j < this.videos[i].thumbnailsOk.length; ++j) {
-        assignable_mapped_tags_cnt += this.videos[i].thumbnailsOk[
-          j
-        ].mappedTags.filter(tag => !tag.assigned).length;
+      for (const thumbnailOk of video.thumbnailsOk) {
+        assignable_mapped_tags_cnt += thumbnailOk.mappedTags.filter(
+          tag => !tag.assigned
+        ).length;
       }
 
-      this.videos[i].visible =
+      video.visible =
         ((this.hiddenTypes() == 0 ||
           !this.songTypes
             .filter(t => !t.show)
             .map(t => t.name)
-            .includes(this.videos[i].song.songType)) &&
+            .includes(video.song.songType)) &&
           (!this.hideEntriesWithNoTags || assignable_mapped_tags_cnt > 0)) ||
-        (this.showEntriesWithErrors && this.videos[i].thumbnailsErr.length > 0);
+        (this.showEntriesWithErrors && video.thumbnailsErr.length > 0);
     }
   }
 
@@ -692,21 +691,19 @@ export default class extends Vue {
   ) {
     const assign =
       video.tagsToAssign.filter(t => t.id == tag.tag.id).length > 0;
-    console.log(assign);
     if (assign) {
       video.tagsToAssign = video.tagsToAssign.filter(t => t.id != tag.tag.id);
     } else {
       video.tagsToAssign.push(tag.tag);
     }
-    for (let i = 0; i < video.thumbnailsOk.length; ++i) {
-      for (let j = 0; i < video.thumbnailsOk[i].mappedTags.length; ++j) {
-        if (video.thumbnailsOk[i].mappedTags[j].tag.id == tag.tag.id) {
-          video.thumbnailsOk[i].mappedTags[j].toAssign = !assign;
-          break;
+    for (const thumbnailOk of video.thumbnailsOk) {
+      for (const mappedTag of thumbnailOk.mappedTags) {
+        if (mappedTag.tag.id == tag.tag.id) {
+          mappedTag.toAssign = !assign;
         }
       }
+      video.toAssign = video.tagsToAssign.length > 0;
     }
-    video.toAssign = video.tagsToAssign.length > 0;
   }
 
   private toggleShowEntriesWithErrors() {
@@ -720,19 +717,19 @@ export default class extends Vue {
   }
 
   private postProcessVideos() {
-    for (var i = 0; i < this.videos.length; ++i) {
-      for (var j = 0; j < this.videos[i].thumbnailsOk.length; ++j) {
-        this.videos[i].thumbnailsOk[j].mappedTags = this.videos[i].thumbnailsOk[
-          j
-        ].mappedTags.filter(
+    for (const video of this.videos) {
+      for (const thumbnailOk of video.thumbnailsOk) {
+        thumbnailOk.mappedTags = thumbnailOk.mappedTags.filter(
           t =>
-            this.songTypeToTag[this.videos[i].song.songType].find(
+            this.songTypeToTag[video.song.songType].find(
               (id: number) => id == t.tag.id
             ) == undefined
         );
-        this.videos[i].thumbnailsOk[j].mappedTags = this.videos[i].thumbnailsOk[
-          j
-        ].mappedTags.filter(function (elem, index, self) {
+        thumbnailOk.mappedTags = thumbnailOk.mappedTags.filter(function (
+          elem,
+          index,
+          self
+        ) {
           return (
             index ===
             self.indexOf(self.find(el => el.tag.name == elem.tag.name)!)
