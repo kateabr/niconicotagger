@@ -690,7 +690,9 @@ export default class extends Vue {
     tag: MappedTag,
     video: EntryWithVideosAndVisibility
   ) {
-    const assign = video.tagsToAssign.map(t => t.id == tag.tag.id).length > 0;
+    const assign =
+      video.tagsToAssign.filter(t => t.id == tag.tag.id).length > 0;
+    console.log(assign);
     if (assign) {
       video.tagsToAssign = video.tagsToAssign.filter(t => t.id != tag.tag.id);
     } else {
