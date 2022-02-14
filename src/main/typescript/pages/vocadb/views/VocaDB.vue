@@ -279,17 +279,11 @@
                         :variant="getTagVariant(tag, video.tagsToAssign)"
                         @click="toggleTagAssignation(tag, video)"
                       >
-                        <i
-                          v-if="!tag.assigned"
-                          :class="
-                            tag.toAssign
-                              ? 'fas sm mr-sm-1 fa-minus'
-                              : 'fas sm mr-sm-1 fa-plus'
-                          "
-                        /><i
-                          v-if="tag.assigned"
-                          class="fas sm fa-check mr-sm-1"
-                        />{{ tag.tag.name }}
+                        <font-awesome-icon
+                          :icon="getTagIcon(tag, video.tagsToAssign)"
+                          class="sm mr-sm-1"
+                        />
+                        {{ tag.tag.name }}
                       </b-button>
                     </span>
                     <div
@@ -682,24 +676,34 @@ export default class extends Vue {
     }
   }
 
+  private getTagIcon(tag: MappedTag, tagsToAssign: MinimalTag[]): string[] {
+    if (tag.assigned) {
+      return ["fas", "fa-check"];
+    } else if (tagsToAssign.find(t => t.id == tag.tag.id) != undefined) {
+      return ["fas", "fa-minus"];
+    } else {
+      return ["fas", "fa-plus"];
+    }
+  }
+
   private toggleTagAssignation(
     tag: MappedTag,
     video: EntryWithVideosAndVisibility
   ) {
-    if (!tag.assigned) {
-      if (tag.toAssign) {
-        video.tagsToAssign.splice(
-          video.tagsToAssign.indexOf(
-            video.tagsToAssign.find(t => t.id == tag.tag.id)!
-          ),
-          1
-        );
-      } else {
-        video.tagsToAssign.push(tag.tag);
-      }
-      tag.toAssign = !tag.toAssign;
+    const assign = video.tagsToAssign.map(t => t.id == tag.tag.id).length > 0;
+    if (assign) {
+      video.tagsToAssign = video.tagsToAssign.filter(t => t.id != tag.tag.id);
+    } else {
+      video.tagsToAssign.push(tag.tag);
     }
-
+    for (let i = 0; i < video.thumbnailsOk.length; ++i) {
+      for (let j = 0; i < video.thumbnailsOk[i].mappedTags.length; ++j) {
+        if (video.thumbnailsOk[i].mappedTags[j].tag.id == tag.tag.id) {
+          video.thumbnailsOk[i].mappedTags[j].toAssign = !assign;
+          break;
+        }
+      }
+    }
     video.toAssign = video.tagsToAssign.length > 0;
   }
 
