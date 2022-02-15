@@ -393,7 +393,12 @@ impl<'a> Client<'a> {
         fn get_text(doc: &Document, param: &str) -> String {
             doc.descendants()
                 .filter(|node| node.has_tag_name(param))
-                .map(|node| node.text().unwrap().trim()).collect::<Vec<_>>().first()
+                .map(|node| {
+                    match node.text() {
+                        Some(text) => text.trim(),
+                        None => ""
+                    }
+                }).collect::<Vec<_>>().first()
                 .unwrap()
                 .to_string()
         }
