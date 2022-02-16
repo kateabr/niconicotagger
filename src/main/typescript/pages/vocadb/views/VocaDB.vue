@@ -189,204 +189,186 @@
                   </div>
                 </template>
               </b-row>
-
-              <b-overlay
-                class="w-100"
-                variant="white"
-                :show="fetching && videos.length > 0"
-                rounded="sm"
+              <b-table-simple
+                v-if="videos.length > 0"
+                hover
+                class="mt-1 col-lg-12"
               >
-                <template #overlay style="position: fixed !important">
-                  <div class="text-center" style="visibility: hidden"></div>
-                </template>
-                <b-table-simple
-                  v-if="videos.length > 0"
-                  hover
-                  class="mt-1 col-lg-12"
+                <b-thead>
+                  <b-th>
+                    <b-form-checkbox
+                      class="invisible"
+                      size="lg"
+                    ></b-form-checkbox>
+                  </b-th>
+                  <b-th class="col-3 align-middle">Entry</b-th>
+                  <b-th class="col-9 align-middle">Videos</b-th>
+                </b-thead>
+                <b-tbody
+                  v-if="videos.filter(video => video.visible).length > 0"
                 >
-                  <b-thead>
-                    <b-th>
-                      <b-form-checkbox
-                        class="invisible"
-                        size="lg"
-                      ></b-form-checkbox>
-                    </b-th>
-                    <b-th class="col-3 align-middle">Entry</b-th>
-                    <b-th class="col-9 align-middle">Videos</b-th>
-                  </b-thead>
-                  <b-tbody
-                    v-if="videos.filter(video => video.visible).length > 0"
+                  <tr
+                    v-for="video in videos.filter(vid => vid.visible)"
+                    :key="video.song.id"
                   >
-                    <tr
-                      v-for="video in videos.filter(vid => vid.visible)"
-                      :key="video.song.id"
-                    >
-                      <td>
-                        <div v-if="video.thumbnailsOk.length > 0">
-                          <b-form-checkbox
-                            v-if="video.tagsToAssign.length > 0"
-                            v-model="video.toAssign"
-                            size="lg"
+                    <td>
+                      <div v-if="video.thumbnailsOk.length > 0">
+                        <b-form-checkbox
+                          v-if="video.tagsToAssign.length > 0"
+                          v-model="video.toAssign"
+                          size="lg"
+                          :disabled="defaultDisableCondition()"
+                        ></b-form-checkbox>
+                      </div>
+                    </td>
+                    <td>
+                      <a
+                        target="_blank"
+                        :href="getEntryUrl(video.song)"
+                        v-html="video.song.name"
+                      ></a>
+                      <a target="_blank" :href="getEntryUrl(video.song)">
+                        <b-badge
+                          class="badge text-center ml-2"
+                          :variant="getSongTypeVariant(video.song.songType)"
+                        >
+                          {{ getSongType(video.song.songType) }}
+                        </b-badge>
+                      </a>
+                      <div class="text-muted">
+                        {{ video.song.artistString }}
+                      </div>
+                    </td>
+                    <td>
+                      <b-row
+                        v-for="(thumbnail, thumbnail_key) in video.thumbnailsOk"
+                        :key="thumbnail_key"
+                      >
+                        <b-col class="col-8">
+                          <b-button
                             :disabled="defaultDisableCondition()"
-                          ></b-form-checkbox>
-                        </div>
-                      </td>
-                      <td>
-                        <a
-                          target="_blank"
-                          :href="getEntryUrl(video.song)"
-                          v-html="video.song.name"
-                        ></a>
-                        <a target="_blank" :href="getEntryUrl(video.song)">
-                          <b-badge
-                            class="badge text-center ml-2"
-                            :variant="getSongTypeVariant(video.song.songType)"
+                            size="sm"
+                            variant="primary-outline"
+                            class="mr-2"
+                            @click="thumbnail.expanded = !thumbnail.expanded"
                           >
-                            {{ getSongType(video.song.songType) }}
-                          </b-badge>
-                        </a>
-                        <div class="text-muted">
-                          {{ video.song.artistString }}
-                        </div>
-                      </td>
-                      <td>
-                        <b-row
-                          v-for="(
-                            thumbnail, thumbnail_key
-                          ) in video.thumbnailsOk"
-                          :key="thumbnail_key"
-                        >
-                          <b-col class="col-8">
-                            <b-button
-                              :disabled="defaultDisableCondition()"
-                              size="sm"
-                              variant="primary-outline"
-                              class="mr-2"
-                              @click="thumbnail.expanded = !thumbnail.expanded"
-                            >
-                              <font-awesome-icon icon="fas fa-play" />
-                            </b-button>
-                            <a
-                              target="_blank"
-                              :href="getVideoUrl(thumbnail.thumbnail.id)"
-                              v-html="thumbnail.thumbnail.title"
-                            ></a>
-                            <div>
-                              <b-badge
-                                v-for="(nico_tag, key) in thumbnail.nicoTags"
-                                :key="key"
-                                v-clipboard:copy="nico_tag.name"
-                                class="m-sm-1"
-                                href="#"
-                                :variant="nico_tag.variant"
-                                >{{ nico_tag.name
-                                }}<font-awesome-icon
-                                  v-if="nico_tag.locked"
-                                  icon="fas fa-lock"
-                                  class="ml-1"
-                                />
-                              </b-badge>
-                            </div>
-                            <b-collapse
-                              :id="getCollapseId(thumbnail.thumbnail.id)"
-                              :visible="thumbnail.expanded && !fetching"
-                              class="mt-2 collapsed"
-                            >
-                              <b-card
-                                v-cloak
-                                :id="'embed_' + thumbnail.thumbnail.id"
-                                class="embed-responsive embed-responsive-16by9"
-                              >
-                                <iframe
-                                  v-if="thumbnail.expanded && !fetching"
-                                  class="embed-responsive-item"
-                                  allowfullscreen="allowfullscreen"
-                                  style="border: none"
-                                  :src="getEmbedAddr(thumbnail.thumbnail.id)"
-                                ></iframe>
-                              </b-card>
-                            </b-collapse>
-                          </b-col>
-                          <b-col>
-                            <span
-                              v-for="(tag, tag_key) in thumbnail.mappedTags"
-                              :key="tag_key"
-                            >
-                              <b-button
-                                size="sm"
-                                class="m-1"
-                                :disabled="
-                                  tag.assigned || defaultDisableCondition()
-                                "
-                                :variant="
-                                  getTagVariant(tag, video.tagsToAssign)
-                                "
-                                @click="toggleTagAssignation(tag, video)"
-                              >
-                                <font-awesome-icon
-                                  :icon="getTagIcon(tag, video.tagsToAssign)"
-                                  class="sm mr-sm-1"
-                                />
-                                {{ tag.tag.name }}
-                              </b-button>
-                            </span>
-                            <div
-                              v-if="thumbnail.mappedTags.length === 0"
-                              class="text-muted"
-                            >
-                              No mapped tags available for this video
-                            </div>
-                          </b-col>
-                        </b-row>
-                        <b-row
-                          v-for="(
-                            thumbnail, thumbnail_err_key
-                          ) in video.thumbnailsErr"
-                          :key="thumbnail_err_key"
-                        >
-                          <b-col>
-                            <b-link
-                              :to="getDeletedVideoAddr(thumbnail.id)"
-                              target="_blank"
-                              >{{ thumbnail.title }}</b-link
-                            ><span
-                              ><b-badge
-                                variant="danger"
-                                size="sm"
+                            <font-awesome-icon icon="fas fa-play" />
+                          </b-button>
+                          <a
+                            target="_blank"
+                            :href="getVideoUrl(thumbnail.thumbnail.id)"
+                            v-html="thumbnail.thumbnail.title"
+                          ></a>
+                          <div>
+                            <b-badge
+                              v-for="(nico_tag, key) in thumbnail.nicoTags"
+                              :key="key"
+                              v-clipboard:copy="nico_tag.name"
+                              class="m-sm-1"
+                              href="#"
+                              :variant="nico_tag.variant"
+                              >{{ nico_tag.name
+                              }}<font-awesome-icon
+                                v-if="nico_tag.locked"
+                                icon="fas fa-lock"
                                 class="ml-1"
-                                >{{ thumbnail.code }}</b-badge
-                              ></span
+                              />
+                            </b-badge>
+                          </div>
+                          <b-collapse
+                            :id="getCollapseId(thumbnail.thumbnail.id)"
+                            :visible="thumbnail.expanded && !fetching"
+                            class="mt-2 collapsed"
+                          >
+                            <b-card
+                              v-cloak
+                              :id="'embed_' + thumbnail.thumbnail.id"
+                              class="embed-responsive embed-responsive-16by9"
                             >
-                            <div>
-                              <span
-                                ><b-badge
-                                  v-if="!thumbnail.disabled"
-                                  variant="warning"
-                                  class="mr-1"
-                                >
-                                  Needs to be disabled</b-badge
-                                >
-                              </span>
-                            </div>
-                          </b-col>
-                        </b-row>
-                      </td>
-                    </tr>
-                  </b-tbody>
-                  <b-tbody v-else>
-                    <b-tr>
-                      <b-td colspan="4" class="text-center text-muted">
-                        <small>No items to display</small>
-                      </b-td>
-                    </b-tr>
-                  </b-tbody>
-                  <b-tfoot>
-                    <b-th> </b-th>
-                    <b-th class="col-3 align-middle">Entry</b-th>
-                    <b-th class="col-9 align-middle">Videos</b-th>
-                  </b-tfoot>
-                </b-table-simple>
-              </b-overlay>
+                              <iframe
+                                v-if="thumbnail.expanded && !fetching"
+                                class="embed-responsive-item"
+                                allowfullscreen="allowfullscreen"
+                                style="border: none"
+                                :src="getEmbedAddr(thumbnail.thumbnail.id)"
+                              ></iframe>
+                            </b-card>
+                          </b-collapse>
+                        </b-col>
+                        <b-col>
+                          <span
+                            v-for="(tag, tag_key) in thumbnail.mappedTags"
+                            :key="tag_key"
+                          >
+                            <b-button
+                              size="sm"
+                              class="m-1"
+                              :disabled="
+                                tag.assigned || defaultDisableCondition()
+                              "
+                              :variant="getTagVariant(tag, video.tagsToAssign)"
+                              @click="toggleTagAssignation(tag, video)"
+                            >
+                              <font-awesome-icon
+                                :icon="getTagIcon(tag, video.tagsToAssign)"
+                                class="sm mr-sm-1"
+                              />
+                              {{ tag.tag.name }}
+                            </b-button>
+                          </span>
+                          <div
+                            v-if="thumbnail.mappedTags.length === 0"
+                            class="text-muted"
+                          >
+                            No mapped tags available for this video
+                          </div>
+                        </b-col>
+                      </b-row>
+                      <b-row
+                        v-for="(
+                          thumbnail, thumbnail_err_key
+                        ) in video.thumbnailsErr"
+                        :key="thumbnail_err_key"
+                      >
+                        <b-col>
+                          <b-link
+                            :to="getDeletedVideoAddr(thumbnail.id)"
+                            target="_blank"
+                            >{{ thumbnail.title }}</b-link
+                          ><span
+                            ><b-badge variant="danger" size="sm" class="ml-1">{{
+                              thumbnail.code
+                            }}</b-badge></span
+                          >
+                          <div>
+                            <span
+                              ><b-badge
+                                v-if="!thumbnail.disabled"
+                                variant="warning"
+                                class="mr-1"
+                              >
+                                Needs to be disabled</b-badge
+                              >
+                            </span>
+                          </div>
+                        </b-col>
+                      </b-row>
+                    </td>
+                  </tr>
+                </b-tbody>
+                <b-tbody v-else>
+                  <b-tr>
+                    <b-td colspan="4" class="text-center text-muted">
+                      <small>No items to display</small>
+                    </b-td>
+                  </b-tr>
+                </b-tbody>
+                <b-tfoot>
+                  <b-th> </b-th>
+                  <b-th class="col-3 align-middle">Entry</b-th>
+                  <b-th class="col-9 align-middle">Videos</b-th>
+                </b-tfoot>
+              </b-table-simple>
               <b-row
                 v-if="videos.length !== 0"
                 class="mt-lg-1 col-lg-12 text-center m-auto alert-primary rounded p-sm-2 bg-light progress-bar-striped"
