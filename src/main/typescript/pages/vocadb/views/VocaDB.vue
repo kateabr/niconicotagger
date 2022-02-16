@@ -497,7 +497,27 @@ export default class extends Vue {
     Instrumental: [208],
     MusicPV: [7378, 74],
     Mashup: [3392],
-    DramaPV: [104],
+    DramaPV: [
+      104,
+      1736,
+      7276,
+      3180,
+      7728,
+      8509,
+      7748,
+      7275,
+      6701,
+      3186,
+      8130,
+      6700,
+      7615,
+      6703,
+      6702,
+      7988,
+      6650,
+      8043,
+      8409
+    ],
     Other: []
   };
   private distinct_song_count: number = 0;
