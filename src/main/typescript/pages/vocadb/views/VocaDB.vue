@@ -343,11 +343,26 @@
                           <div>
                             <span
                               ><b-badge
-                                v-if="!thumbnail.disabled"
+                                v-if="thumbnail.code === 'DELETED'"
                                 variant="warning"
                                 class="mr-1"
                               >
                                 Needs to be disabled</b-badge
+                              >
+                              <b-badge
+                                v-else-if="thumbnail.code === 'COMMUNITY'"
+                                variant="warning"
+                                class="mr-1"
+                              >
+                                Needs to be tagged with
+                                <b-link
+                                  target="_blank"
+                                  :to="'https://vocadb.net/T/7446/niconico-community-exclusive'"
+                                  >niconico community exclusive</b-link
+                                ></b-badge
+                              >
+                              <b-badge v-else variant="warning" class="mr-1">
+                                Unrecognized error code</b-badge
                               >
                             </span>
                           </div>
@@ -423,16 +438,28 @@
               </b-toast>
             </b-row>
           </b-container>
-          <b-row>
-            <b-col>
-              <b-link to="nicovideo" target="_blank">
-                <b-button size="sm" variant="dark" class="fixed-top m-1" squared
-                  >Toggle<br />mode</b-button
-                >
-              </b-link>
-            </b-col>
-          </b-row>
         </div>
+      </b-col>
+    </b-row>
+    <b-row class="fixed-top m-1" style="z-index: 1; max-width: min-content">
+      <b-col class="p-0">
+        <b-link to="nicovideo" target="_blank">
+          <b-button size="sm" style="width: 60px" variant="dark" squared
+            >Toggle<br />mode</b-button
+          > </b-link
+        ><br />
+        <b-button
+          class="mt-1"
+          :variant="liveSearch ? 'dark' : 'outline-dark'"
+          size="sm"
+          style="width: 60px"
+          squared
+          @click="liveSearch = !liveSearch"
+          ><font-awesome-icon
+            class="mr-1"
+            :icon="['fa-regular', liveSearch ? 'fa-square-check' : 'fa-square']"
+          />Live<br />search</b-button
+        >
       </b-col>
     </b-row>
   </div>
@@ -456,6 +483,7 @@ Vue.use(VueClipboard);
 
 @Component({ components: {} })
 export default class extends Vue {
+  private liveSearch = true;
   private orderBy = "AdditionDate";
   private orderOptions = {
     PublishDate: "upload time",
@@ -613,7 +641,9 @@ export default class extends Vue {
 
   setMaxResults(mxres: number): void {
     this.maxResults = mxres;
-    this.fetch(0, 1);
+    if (this.liveSearch) {
+      this.fetch(0, 1);
+    }
   }
 
   private async assignMultiple(): Promise<void> {
@@ -696,7 +726,9 @@ export default class extends Vue {
 
   private setOrderBy(value: string): void {
     this.orderBy = value;
-    this.fetch(0, 1);
+    if (this.liveSearch) {
+      this.fetch(0, 1);
+    }
   }
 
   private filterVideos(): void {

@@ -473,14 +473,26 @@
         </div>
       </b-row>
     </b-container>
-    <b-row>
-      <b-col
-        ><b-link to="vocadb" target="_blank"
-          ><b-button size="sm" variant="dark" class="fixed-top m-1" squared
+    <b-row class="fixed-top m-1" style="z-index: 1; max-width: min-content">
+      <b-col class="p-0">
+        <b-link to="nicovideo" target="_blank">
+          <b-button size="sm" style="width: 60px" variant="dark" squared
             >Toggle<br />mode</b-button
-          ></b-link
-        ></b-col
-      >
+          > </b-link
+        ><br />
+        <b-button
+          class="mt-1"
+          :variant="liveSearch ? 'dark' : 'outline-dark'"
+          size="sm"
+          style="width: 60px"
+          squared
+          @click="liveSearch = !liveSearch"
+          ><font-awesome-icon
+            class="mr-1"
+            :icon="['fa-regular', liveSearch ? 'fa-square-check' : 'fa-square']"
+          />Live<br />search</b-button
+        >
+      </b-col>
     </b-row>
   </div>
 </template>
@@ -501,6 +513,7 @@ Vue.use(VueClipboard);
 
 @Component({ components: {} })
 export default class extends Vue {
+  private liveSearch = true;
   private tag: string = "";
   private orderBy = "startTime";
   private orderOptions = {
@@ -627,7 +640,9 @@ export default class extends Vue {
 
   setMaxResults(mxres: number): void {
     this.maxResults = mxres;
-    this.fetch(this.tagFrozen, 0, 1);
+    if (this.liveSearch) {
+      this.fetch(this.tagFrozen, 0, 1);
+    }
   }
 
   private async assign(id: number): Promise<void> {
@@ -719,7 +734,9 @@ export default class extends Vue {
 
   private setOrderBy(value: string): void {
     this.orderBy = value;
-    this.fetch(this.tagFrozen, 0, 1);
+    if (this.liveSearch) {
+      this.fetch(this.tagFrozen, 0, 1);
+    }
   }
 
   private filter(): void {
