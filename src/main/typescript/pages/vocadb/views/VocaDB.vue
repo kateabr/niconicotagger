@@ -483,7 +483,7 @@ Vue.use(VueClipboard);
 
 @Component({ components: {} })
 export default class extends Vue {
-  private liveSearch = true;
+  private liveSearch = false;
   private orderBy = "AdditionDate";
   private orderOptions = {
     PublishDate: "upload time",
@@ -521,7 +521,7 @@ export default class extends Vue {
     Original: [6479],
     Remaster: [1519, 391, 371],
     Remix: [371, 74, 391],
-    Cover: [74, 371],
+    Cover: [74, 371, 392],
     Instrumental: [208],
     MusicPV: [7378, 74, 4582],
     Mashup: [3392],

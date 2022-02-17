@@ -513,7 +513,7 @@ Vue.use(VueClipboard);
 
 @Component({ components: {} })
 export default class extends Vue {
-  private liveSearch = true;
+  private liveSearch = false;
   private tag: string = "";
   private orderBy = "startTime";
   private orderOptions = {
