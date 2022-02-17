@@ -11,7 +11,7 @@
       />
     </div>
 
-    <b-row class="col-12">
+    <b-row class="col-12 m-0">
       <b-col>
         <div style="display: flex; align-items: center">
           <b-container class="col-lg-11">
@@ -345,14 +345,14 @@
                               ><b-badge
                                 v-if="thumbnail.code === 'DELETED'"
                                 variant="warning"
-                                class="mr-1"
+                                class="m-1"
                               >
                                 Needs to be disabled</b-badge
                               >
                               <b-badge
                                 v-else-if="thumbnail.code === 'COMMUNITY'"
                                 variant="warning"
-                                class="mr-1"
+                                class="m-1"
                               >
                                 Needs to be tagged with
                                 <b-link
@@ -361,8 +361,8 @@
                                   >niconico community exclusive</b-link
                                 ></b-badge
                               >
-                              <b-badge v-else variant="warning" class="mr-1">
-                                Unrecognized error code</b-badge
+                              <b-badge v-else variant="warning" class="m-1">
+                                Unknown error</b-badge
                               >
                             </span>
                           </div>
@@ -446,19 +446,7 @@
         <b-link to="nicovideo" target="_blank">
           <b-button size="sm" style="width: 60px" variant="dark" squared
             >Toggle<br />mode</b-button
-          > </b-link
-        ><br />
-        <b-button
-          class="mt-1"
-          :variant="liveSearch ? 'dark' : 'outline-dark'"
-          size="sm"
-          style="width: 60px"
-          squared
-          @click="liveSearch = !liveSearch"
-          ><font-awesome-icon
-            class="mr-1"
-            :icon="['fa-regular', liveSearch ? 'fa-square-check' : 'fa-square']"
-          />Live<br />search</b-button
+          ></b-link
         >
       </b-col>
     </b-row>
@@ -483,7 +471,6 @@ Vue.use(VueClipboard);
 
 @Component({ components: {} })
 export default class extends Vue {
-  private liveSearch = false;
   private orderBy = "AdditionDate";
   private orderOptions = {
     PublishDate: "upload time",
@@ -641,9 +628,6 @@ export default class extends Vue {
 
   setMaxResults(mxres: number): void {
     this.maxResults = mxres;
-    if (this.liveSearch) {
-      this.fetch(0, 1);
-    }
   }
 
   private async assignMultiple(): Promise<void> {
@@ -726,9 +710,6 @@ export default class extends Vue {
 
   private setOrderBy(value: string): void {
     this.orderBy = value;
-    if (this.liveSearch) {
-      this.fetch(0, 1);
-    }
   }
 
   private filterVideos(): void {

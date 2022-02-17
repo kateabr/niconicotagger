@@ -478,20 +478,8 @@
         <b-link to="nicovideo" target="_blank">
           <b-button size="sm" style="width: 60px" variant="dark" squared
             >Toggle<br />mode</b-button
-          > </b-link
-        ><br />
-        <b-button
-          class="mt-1"
-          :variant="liveSearch ? 'dark' : 'outline-dark'"
-          size="sm"
-          style="width: 60px"
-          squared
-          @click="liveSearch = !liveSearch"
-          ><font-awesome-icon
-            class="mr-1"
-            :icon="['fa-regular', liveSearch ? 'fa-square-check' : 'fa-square']"
-          />Live<br />search</b-button
-        >
+          >
+        </b-link>
       </b-col>
     </b-row>
   </div>
@@ -513,7 +501,6 @@ Vue.use(VueClipboard);
 
 @Component({ components: {} })
 export default class extends Vue {
-  private liveSearch = false;
   private tag: string = "";
   private orderBy = "startTime";
   private orderOptions = {
@@ -640,9 +627,6 @@ export default class extends Vue {
 
   setMaxResults(mxres: number): void {
     this.maxResults = mxres;
-    if (this.liveSearch) {
-      this.fetch(this.tagFrozen, 0, 1);
-    }
   }
 
   private async assign(id: number): Promise<void> {
@@ -734,9 +718,6 @@ export default class extends Vue {
 
   private setOrderBy(value: string): void {
     this.orderBy = value;
-    if (this.liveSearch) {
-      this.fetch(this.tagFrozen, 0, 1);
-    }
   }
 
   private filter(): void {
