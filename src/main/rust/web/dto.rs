@@ -1,7 +1,10 @@
 use serde::{Deserialize, Serialize};
+use crate::client::models::activity::ActivityEditEvent;
+use crate::client::models::archived::ArchivedObjectVersionForApiContract;
 
 use crate::client::models::song::SongForApiContract;
 use crate::client::models::tag::{AssignableTag};
+use crate::client::models::user::UserForApiContract;
 use crate::client::nicomodels::{SongForApiContractWithThumbnailsAndMappedTags, TagBaseContractSimplified};
 
 #[derive(Deserialize, Debug)]
@@ -174,4 +177,35 @@ pub struct DBFetchRequest {
     pub max_results: i32,
     #[serde(rename = "orderBy")]
     pub order_by: String,
+}
+
+#[derive(Deserialize)]
+pub struct DBBeforeSinceFetchRequest {
+    #[serde(rename = "maxResults")]
+    pub max_results: i32,
+    pub mode: String,
+    #[serde(rename = "dateTime")]
+    pub date_time: String,
+    #[serde(rename = "sortRule")]
+    pub sort_rule: String
+}
+
+#[derive(Serialize)]
+pub struct DBBeforeSinceFetchResponse {
+    pub response: DBFetchResponse,
+    pub before: String,
+    pub since: String,
+    pub retry: bool
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct SongActivityEntryForApiContract {
+    #[serde(rename = "archivedVersion")]
+    pub archived_version: Option<ArchivedObjectVersionForApiContract>,
+    pub author: UserForApiContract,
+    #[serde(rename = "createDate")]
+    pub create_date: String,
+    #[serde(rename = "editEvent")]
+    pub edit_event: ActivityEditEvent,
+    pub entry: SongForApiContract,
 }

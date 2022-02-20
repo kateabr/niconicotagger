@@ -22,6 +22,7 @@ async fn main() -> std::io::Result<()> {
                     ))
                     .service(web::controller::fetch_videos)
                     .service(web::controller::fetch_videos_from_db)
+                    .service(web::controller::fetch_videos_from_db_before_since)
                     .service(web::controller::assign_tag)
                     .service(web::controller::lookup_and_assign_tag)
                     .service(web::controller::get_mapped_tags)

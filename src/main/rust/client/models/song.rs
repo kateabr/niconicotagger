@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-
+use serde_aux::prelude::*;
 use strum_macros::ToString;
 
 use crate::client::models::entrythumb::{EntryThumbContract, EntryThumbForApiContract};
@@ -106,7 +106,7 @@ pub struct SongForApiContract {
     pub create_date: String,
     pub pvs: Option<Vec<PVContract>>,
     #[serde(rename = "ratingScore")]
-    pub rating_score: i32,
+    pub rating_score: Option<i32>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

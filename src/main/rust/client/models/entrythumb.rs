@@ -16,7 +16,7 @@ pub struct EntryThumbForApiContract {
     #[serde(rename = "urlSmallThumb")]
     url_small_thumb: Option<String>,
     #[serde(rename = "urlThumb")]
-    url_thumb: String,
+    url_thumb: Option<String>,
     #[serde(rename = "urlTinyThumb")]
     url_tiny_thumb: Option<String>,
 }
@@ -24,48 +24,48 @@ pub struct EntryThumbForApiContract {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct EntryForApiContract {
     #[serde(rename = "activityDate")]
-    activity_date: String,
+    pub activity_date: String,
     #[serde(rename = "additionalNames")]
-    additional_names: String,
+    pub additional_names: String,
     #[serde(rename = "artistString")]
-    artist_string: String,
+    pub artist_string: String,
     #[serde(rename = "artistType")]
-    artist_type: ArtistType,
+    pub artist_type: ArtistType,
     #[serde(rename = "createDate")]
-    create_date: String,
+    pub create_date: String,
     #[serde(rename = "defaultName")]
-    default_name: String,
+    pub default_name: String,
     #[serde(rename = "defaultNameLanguage")]
-    default_name_language: Language,
-    description: String,
+    pub default_name_language: Language,
+    pub description: String,
     #[serde(rename = "discType")]
-    disc_type: DiscType,
+    pub disc_type: DiscType,
     #[serde(rename = "entryType")]
-    entry_type: EntryType,
+    pub entry_type: EntryType,
     #[serde(rename = "eventCategory")]
-    event_category: EventCategory,
-    id: i32,
+    pub event_category: EventCategory,
+    pub id: i32,
     #[serde(rename = "mainPicture")]
-    main_picture: EntryThumbForApiContract,
-    name: String,
-    names: Vec<LocalizedStringContract>,
+    pub main_picture: EntryThumbForApiContract,
+    pub name: String,
+    pub names: Vec<LocalizedStringContract>,
     #[serde(rename = "pVs")]
-    pvs: Vec<PVContract>,
+    pub pvs: Vec<PVContract>,
     #[serde(rename = "songListFeaturedCategory")]
-    song_list_featured_category: SongFeaturedCategory,
+    pub song_list_featured_category: SongFeaturedCategory,
     #[serde(rename = "songType")]
-    song_type: SongType,
-    status: Status,
+    pub song_type: SongType,
+    pub status: Status,
     #[serde(rename = "releaseEventSeriesName")]
-    release_event_series_name: String,
+    pub release_event_series_name: String,
     #[serde(rename = "tagCategoryName")]
-    tag_category_name: String,
-    tags: Vec<TagUsageForApiContract>,
+    pub tag_category_name: String,
+    pub tags: Vec<TagUsageForApiContract>,
     #[serde(rename = "urlSlug")]
-    url_slug: String,
-    version: i32,
+    pub url_slug: String,
+    pub version: i32,
     #[serde(rename = "webLinks")]
-    web_links: Vec<ArchivedWebLinkContract>,
+    pub web_links: Vec<ArchivedWebLinkContract>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

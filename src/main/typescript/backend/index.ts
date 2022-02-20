@@ -7,7 +7,8 @@ import {
   AssignTagPayload,
   FetchVideosFromDbPayload,
   EntriesWithVideos,
-  LookupAndAssignTagPayload
+  LookupAndAssignTagPayload,
+  FetchVideosFromDbBeforeSincePayload
 } from "@/backend/dto";
 import { AxiosResponse } from "axios";
 
@@ -20,6 +21,11 @@ export const api = {
   },
   async fetchVideosFromDb(payload: FetchVideosFromDbPayload): Promise<EntriesWithVideos> {
     return axios.post("/api/fetch_from_db", payload).then(value => value.data);
+  },
+  async fetchVideosFromDbBeforeSince(
+    payload: FetchVideosFromDbBeforeSincePayload
+  ): Promise<EntriesWithVideos> {
+    return axios.post("/api/fetch_from_db_before_since", payload).then(value => value.data);
   },
   async assignTag(payload: AssignTagPayload): Promise<number> {
     return axios.post("/api/assign", payload).then(value => value.data);

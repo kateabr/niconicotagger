@@ -5,6 +5,7 @@ use actix_web::web::Json;
 use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use anyhow::Context;
 use futures::future;
+use log::{debug, info};
 
 use crate::client::client::Client;
 use crate::web::errors::Result;
@@ -12,7 +13,7 @@ use crate::client::errors::VocadbClientError;
 use crate::client::jputils::normalize;
 use crate::client::models::tag::{AssignableTag, TagBaseContract};
 use crate::client::nicomodels::{NicoTagWithVariant, SongForApiContractWithThumbnailsAndMappedTags, ThumbnailOk, ThumbnailOkWithMappedTags, ThumbnailTagMappedWithAssignAndLockInfo};
-use crate::web::dto::{AssignTagRequest, LookupAndAssignTagRequest, Database, DBFetchRequest, DBFetchResponse, LoginRequest, LoginResponse, TagFetchRequest, TagMappingContract, Token, VideosWithEntries};
+use crate::web::dto::{AssignTagRequest, LookupAndAssignTagRequest, Database, DBFetchRequest, DBBeforeSinceFetchRequest, DBFetchResponse, LoginRequest, LoginResponse, TagFetchRequest, TagMappingContract, Token, VideosWithEntries, DBBeforeSinceFetchResponse};
 use crate::web::errors::AppResponseError;
 use crate::web::middleware::auth_token;
 
@@ -81,6 +82,25 @@ pub async fn fetch_videos(_req: HttpRequest, payload: Json<TagFetchRequest>) -> 
     }
 }
 
+#[post("/fetch_from_db_before_since")]
+pub async fn fetch_videos_from_db_before_since(_req: HttpRequest, payload: Json<DBBeforeSinceFetchRequest>) -> Result<impl Responder> {
+    if payload.mode == "" && payload.date_time == "" || payload.max_results > 100 {
+        return Err(AppResponseError::ConstraintViolationError(String::from("Invalid arguments")));
+    }
+
+    let token = extract_token(&_req)?;
+    let client = client_from_token(&token)?;
+
+    let songs = client.get_videos_from_db_before_since(payload.max_results, payload.mode.clone(), payload.date_time.clone(), payload.sort_rule.clone()).await?;
+
+    debug!("{:?}", "before_since");
+
+    let processed_entries = client.process_songs_with_thumbnails(songs).await?;
+
+    return Ok(Json(processed_entries));
+}
+
+
 #[post("/fetch_from_db")]
 pub async fn fetch_videos_from_db(_req: HttpRequest, payload: Json<DBFetchRequest>) -> Result<impl Responder> {
     if payload.start_offset < 0 || payload.max_results < 0 || payload.max_results > 100 {
@@ -90,22 +110,11 @@ pub async fn fetch_videos_from_db(_req: HttpRequest, payload: Json<DBFetchReques
     let token = extract_token(&_req)?;
     let client = client_from_token(&token)?;
 
-    let mappings = client.get_mappings_raw().await?;
-    let mapped_tags: Vec<String> = mappings.iter().map(|m| m.source_tag.clone()).collect();
     let songs = client.get_videos_from_db(payload.start_offset, payload.max_results, payload.order_by.clone()).await?;
 
-    let mut song_tags_to_map = vec![];
+    let processed_entries = client.process_songs_with_thumbnails(songs).await?;
 
-    for song in songs.items {
-        let th_ok = map_thumbnail_tags(&song.thumbnails_ok, &mappings, &mapped_tags, &song.song.tags.iter().map(|t| t.tag.id).collect());
-        song_tags_to_map.push(SongForApiContractWithThumbnailsAndMappedTags {
-            song: song.song,
-            thumbnails_error: song.thumbnails_error,
-            thumbnails_ok: th_ok,
-        });
-    }
-
-    return Ok(Json(DBFetchResponse { items: song_tags_to_map, total_count: songs.total_count}));
+    return Ok(Json(processed_entries));
 }
 
 #[post("/assign")]
@@ -183,37 +192,6 @@ pub async fn get_mapped_tags(_req: HttpRequest) -> Result<impl Responder> {
 
     return Ok(Json(mapped_tags));
 }
-
-fn map_thumbnail_tags(thumbnails: &Vec<ThumbnailOk>, mappings: &Vec<TagMappingContract>, mapped_tags: &Vec<String>, song_tag_ids: &Vec<i32>) -> Vec<ThumbnailOkWithMappedTags> {
-    let mut res = vec![];
-    for thumbnail in thumbnails {
-        let mut tag_mappings = vec![];
-        let mut mapped_nico_tags = vec![];
-        for tag in &thumbnail.tags {
-            if mapped_tags.contains(&normalize(tag.name.as_str())) {
-                mapped_nico_tags.push(NicoTagWithVariant{name: tag.name.clone(), variant: String::from("dark"), locked: tag.locked});
-                let tag_mappings_temp = mappings.iter().filter(|m| m.source_tag == normalize(tag.name.as_str())).collect::<Vec<_>>();
-                for m in tag_mappings_temp {
-                    tag_mappings.push(ThumbnailTagMappedWithAssignAndLockInfo {
-                        tag: m.tag.clone(),
-                        locked: tag.locked,
-                        assigned: song_tag_ids.contains(&m.tag.id),
-                    });
-                }
-            } else {
-                mapped_nico_tags.push(NicoTagWithVariant{name: tag.name.clone(), variant: String::from("secondary"), locked: tag.locked});
-            }
-        }
-        res.push(ThumbnailOkWithMappedTags {
-            thumbnail: thumbnail.clone(),
-            mapped_tags: tag_mappings,
-            nico_tags: mapped_nico_tags
-        });
-    }
-
-    return res;
-}
-
 
 fn extract_token(req: &HttpRequest) -> Result<Token> {
     let auth = Authorization::<Bearer>::parse(req).context("Unable to parse Bearer header")?;

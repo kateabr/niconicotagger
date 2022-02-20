@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::client::models::song::SongForApiContract;
+use crate::web::dto::DBFetchResponse;
 
 #[derive(Debug, Serialize)]
 pub struct ThumbnailError {

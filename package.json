@@ -16,6 +16,7 @@
     "axios": "0.21.1",
     "bootstrap": "4.6.0",
     "bootstrap-vue": "2.21.2",
+    "luxon": "^2.3.0",
     "reflect-metadata": "0.1.13",
     "v-clipboard": "^2.2.3",
     "vue": "2.6.12",
@@ -26,6 +27,7 @@
     "vue-router": "^3.5.1"
   },
   "devDependencies": {
+    "@types/luxon": "^2.0.9",
     "@typescript-eslint/eslint-plugin": "4.15.1",
     "@typescript-eslint/parser": "4.15.1",
     "@vue/cli-plugin-eslint": "4.5.11",

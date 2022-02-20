@@ -15,11 +15,11 @@ pub enum ActivityEditEvent {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ActivityEntryForApiContract {
     #[serde(rename = "archivedVersion")]
-    archived_version: ArchivedObjectVersionForApiContract,
-    author: UserForApiContract,
+    pub archived_version: ArchivedObjectVersionForApiContract,
+    pub author: UserForApiContract,
     #[serde(rename = "createDate")]
-    create_date: String,
+    pub create_date: String,
     #[serde(rename = "editEvent")]
-    edit_event: ActivityEditEvent,
-    entry: EntryForApiContract,
+    pub edit_event: ActivityEditEvent,
+    pub entry: EntryForApiContract,
 }

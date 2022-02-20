@@ -22,6 +22,13 @@ export interface FetchVideosFromDbPayload {
   orderBy: string;
 }
 
+export interface FetchVideosFromDbBeforeSincePayload {
+  maxResults: number;
+  mode: string;
+  dateTime: string;
+  sortRule: string;
+}
+
 export interface NicoVideo {
   contentId: string;
   title: string;
@@ -40,6 +47,7 @@ export interface SongForApiContractSimplified {
   tagInTags: boolean;
   songType: string;
   artistString: string;
+  createDate: string;
 }
 
 export interface VideoWithEntry {
