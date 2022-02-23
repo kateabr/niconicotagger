@@ -5,15 +5,16 @@ use actix_web::web::Json;
 use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use anyhow::Context;
 use futures::future;
-use log::{debug, info};
+
+
 
 use crate::client::client::Client;
 use crate::web::errors::Result;
 use crate::client::errors::VocadbClientError;
-use crate::client::jputils::normalize;
+
 use crate::client::models::tag::{AssignableTag, TagBaseContract};
-use crate::client::nicomodels::{NicoTagWithVariant, SongForApiContractWithThumbnailsAndMappedTags, ThumbnailOk, ThumbnailOkWithMappedTags, ThumbnailTagMappedWithAssignAndLockInfo};
-use crate::web::dto::{AssignTagRequest, LookupAndAssignTagRequest, Database, DBFetchRequest, DBBeforeSinceFetchRequest, DBFetchResponse, LoginRequest, LoginResponse, TagFetchRequest, TagMappingContract, Token, VideosWithEntries, DBBeforeSinceFetchResponse};
+
+use crate::web::dto::{AssignTagRequest, LookupAndAssignTagRequest, Database, DBFetchRequest, DBBeforeSinceFetchRequest, LoginRequest, LoginResponse, TagFetchRequest, Token, VideosWithEntries};
 use crate::web::errors::AppResponseError;
 use crate::web::middleware::auth_token;
 
@@ -92,8 +93,6 @@ pub async fn fetch_videos_from_db_before_since(_req: HttpRequest, payload: Json<
     let client = client_from_token(&token)?;
 
     let songs = client.get_videos_from_db_before_since(payload.max_results, payload.mode.clone(), payload.date_time.clone(), payload.sort_rule.clone()).await?;
-
-    debug!("{:?}", "before_since");
 
     let processed_entries = client.process_songs_with_thumbnails(songs).await?;
 

@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use crate::client::models::activity::ActivityEditEvent;
+use crate::client::models::activity::{ActivityEditEvent, ActivityEntryForApiContract};
 use crate::client::models::archived::ArchivedObjectVersionForApiContract;
 
 use crate::client::models::song::SongForApiContract;
@@ -169,6 +169,17 @@ pub struct DBFetchResponse {
     pub total_count: i32
 }
 
+#[derive(Serialize)]
+pub struct DBFetchResponseWithTimestamps {
+    pub items: Vec<SongForApiContractWithThumbnailsAndMappedTags>,
+    #[serde(rename = "totalCount")]
+    pub total_count: i32,
+    #[serde(rename = "timestampFirst")]
+    pub timestamp_first: String,
+    #[serde(rename = "timestampLast")]
+    pub timestamp_last: String,
+}
+
 #[derive(Deserialize)]
 pub struct DBFetchRequest {
     #[serde(rename = "startOffset")]
@@ -187,7 +198,7 @@ pub struct DBBeforeSinceFetchRequest {
     #[serde(rename = "dateTime")]
     pub date_time: String,
     #[serde(rename = "sortRule")]
-    pub sort_rule: String
+    pub sort_rule: String,
 }
 
 #[derive(Serialize)]
@@ -207,5 +218,5 @@ pub struct SongActivityEntryForApiContract {
     pub create_date: String,
     #[serde(rename = "editEvent")]
     pub edit_event: ActivityEditEvent,
-    pub entry: SongForApiContract,
+    pub entry: ActivityEntryForApiContract,
 }

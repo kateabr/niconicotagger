@@ -19,7 +19,7 @@
               name="toaster-2"
             ></b-toaster>
             <b-tabs v-model="browseMode" class="mt-3" content-class="mt-3">
-              <b-tab title="Browse consecutively" active>
+              <b-tab title="Browse via song entries" active>
                 <b-row>
                   <b-row
                     class="pt-lg-3 pb-lg-3 col-lg-12 text-center m-auto alert-primary rounded p-sm-2 bg-light progress-bar-striped"
@@ -240,7 +240,6 @@
                             >
                               {{ getSongType(video.song.songType) }}
                             </b-badge>
-                            {{ video.song.createDate }}
                           </b-link>
                           <div class="text-muted">
                             {{ video.song.artistString }}
@@ -455,7 +454,7 @@
                   </b-toast>
                 </b-row>
               </b-tab>
-              <b-tab title="Browse by date and time">
+              <b-tab title="Browse via activity entries">
                 <b-row>
                   <div
                     class="py-lg-3 px-lg-4 col-lg-12 text-center m-auto alert-primary rounded p-sm-2 bg-light progress-bar-striped"
@@ -513,14 +512,12 @@
                           variant="primary"
                           block
                           :disabled="
-                            defaultDisableCondition() ||
-                            dateBound === '' ||
-                            !dateIsValid
+                            defaultDisableCondition() || !timestampIsValid
                           "
                           @click="
                             fetch1('right', {
                               mode: addedMode,
-                              createDate: dateBound + 'T00:00:00',
+                              createDate: timestamp,
                               sortRule: sortBy,
                               reverse: false
                             })
@@ -558,12 +555,13 @@
                         <template>
                           <b-input-group inline>
                             <b-form-input
-                              v-model="dateBound"
+                              v-model="timestamp"
+                              :readonly="fetching"
                               type="text"
-                              placeholder="Select reference date"
-                              :state="validateState()"
+                              placeholder="Specify timestamp"
+                              :state="validateDateTime()"
+                              @input="disableDateTimePicker = true"
                             />
-
                             <template #prepend>
                               <b-form-datepicker
                                 v-model="dateBound"
@@ -572,17 +570,32 @@
                                 :initial-date="now"
                                 locale="en"
                                 button-only
-                                :disabled="fetching"
+                                :disabled="fetching || disableDateTimePicker"
                                 hide-header
                                 style="width: 80px"
+                                @input="refreshTimestamp()"
+                              />
+                              <b-form-timepicker
+                                v-model="timeBound"
+                                button-only
+                                show-seconds
+                                style="width: 80px"
+                                hide-header
+                                no-close-button
+                                :disabled="
+                                  fetching ||
+                                  dateBound === '' ||
+                                  disableDateTimePicker
+                                "
+                                @input="refreshTimestamp()"
                               />
                             </template>
                             <template #append>
                               <b-button
                                 style="width: 80px"
                                 variant="danger"
-                                :disabled="dateBound === '' || fetching"
-                                @click="clearBoundData"
+                                :disabled="timestamp === '' || fetching"
+                                @click="clearDateTimeBoundData"
                               >
                                 Clear
                               </b-button>
@@ -593,7 +606,7 @@
                       <b-col class="my-auto text-left align-middle">
                         <b-dropdown
                           block
-                          :disabled="defaultDisableCondition()"
+                          :disabled="defaultDisableCondition() || showTable1"
                           :text="getAddedModeCondition()"
                           variant="primary"
                         >
@@ -637,26 +650,31 @@
                       <b-button-group class="col-2">
                         <b-button
                           variant="link"
-                          :disabled="defaultDisableCondition()"
+                          :disabled="
+                            defaultDisableCondition() || !timestampIsValid
+                          "
                           class="text-left pl-3"
                           @click="
                             fetch1(
                               'left',
                               leftButtonPayload(
                                 sortBy,
-                                addedMode,
                                 videos[0].song.createDate
                               )
                             )
                           "
-                          ><font-awesome-icon
+                        >
+                          <font-awesome-icon
                             icon="fa-solid fa-less-than"
                             class="mr-3"
-                          />{{ sortBy === "CreateDate" ? "Older" : "Newer" }}
+                          />
+                          {{ sortBy === "CreateDate" ? "Older" : "Newer" }}
                         </b-button>
                         <b-button
                           variant="link"
-                          :disabled="defaultDisableCondition()"
+                          :disabled="
+                            defaultDisableCondition() || !timestampIsValid
+                          "
                           class="text-right pr-3"
                           @click="
                             fetch1(
@@ -667,8 +685,8 @@
                               )
                             )
                           "
-                          >{{ sortBy === "CreateDate" ? "Newer" : "Older"
-                          }}<font-awesome-icon
+                          >{{ sortBy === "CreateDate" ? "Newer" : "Older" }}
+                          <font-awesome-icon
                             icon="fa-solid fa-greater-than"
                             class="ml-3"
                           />
@@ -723,16 +741,16 @@
                             </b-badge>
                           </b-link>
                           <b-badge
-                            v-clipboard:copy="
-                              video.song.createDate.split('T')[0]
-                            "
+                            v-clipboard:copy="video.song.createDate"
                             class="m-sm-1"
                             href="#"
                             variant="light"
-                            ><font-awesome-icon
+                          >
+                            <font-awesome-icon
                               icon="fa-solid fa-calendar"
                               class="mr-1"
-                            />{{ video.song.createDate.split("T")[0] }}
+                            />
+                            {{ video.song.createDate.split("T")[0] }}
                           </b-badge>
                           <div class="text-muted">
                             {{ video.song.artistString }}
@@ -877,6 +895,17 @@
                               </div>
                             </b-col>
                           </b-row>
+                          <b-row
+                            v-if="
+                              video.thumbnailsOk.length === 0 &&
+                              video.thumbnailsErr.length === 0
+                            "
+                          >
+                            <b-col class="text-muted">
+                              No NicoNicoDouga uploads associated with this
+                              entry
+                            </b-col>
+                          </b-row>
                         </td>
                       </tr>
                     </b-tbody>
@@ -921,26 +950,31 @@
                       <b-button-group class="col-2">
                         <b-button
                           variant="link"
-                          :disabled="defaultDisableCondition()"
+                          :disabled="
+                            defaultDisableCondition() || !timestampIsValid
+                          "
                           class="text-left pl-3"
                           @click="
                             fetch1(
                               'left',
                               leftButtonPayload(
                                 sortBy,
-                                addedMode,
                                 videos[0].song.createDate
                               )
                             )
                           "
-                          ><font-awesome-icon
+                        >
+                          <font-awesome-icon
                             icon="fa-solid fa-less-than"
                             class="mr-3"
-                          />{{ sortBy === "CreateDate" ? "Older" : "Newer" }}
+                          />
+                          {{ sortBy === "CreateDate" ? "Older" : "Newer" }}
                         </b-button>
                         <b-button
                           variant="link"
-                          :disabled="defaultDisableCondition()"
+                          :disabled="
+                            defaultDisableCondition() || !timestampIsValid
+                          "
                           class="text-right pr-3"
                           @click="
                             fetch1(
@@ -951,8 +985,8 @@
                               )
                             )
                           "
-                          >{{ sortBy === "CreateDate" ? "Newer" : "Older"
-                          }}<font-awesome-icon
+                          >{{ sortBy === "CreateDate" ? "Newer" : "Older" }}
+                          <font-awesome-icon
                             icon="fa-solid fa-greater-than"
                             class="ml-3"
                           />
@@ -1008,15 +1042,16 @@ Vue.use(VueClipboard);
 
 @Component({ components: {} })
 export default class extends Vue {
-  private dateIsValid = false;
+  private disableDateTimePicker = false;
   private browseMode = 0;
   private showTable0 = false;
   private showTable1 = false;
   private now = new Date();
   private min = new Date("2012-02-23T09:58:03");
+  private timeBound = "00:00:00";
   private dateBound = "";
-  private dateTimeBoundStringBefore = "";
-  private dateTimeBoundStringSince = "";
+  private timestamp = "";
+  private timestampIsValid = false;
   private orderBy = "AdditionDate";
   private orderOptions = {
     PublishDate: "upload time",
@@ -1170,6 +1205,8 @@ export default class extends Vue {
 
   async fetch1(direction: string, payload: Fetch1Payload): Promise<void> {
     this.fetching = true;
+    this.timestamp = payload.createDate;
+    this.addedMode = payload.mode;
     const reverse = payload.reverse;
     try {
       let videos: EntryWithVideosAndVisibility[] = [];
@@ -1208,6 +1245,10 @@ export default class extends Vue {
           }
         );
 
+        end =
+          response.timestampFirst === response.timestampLast &&
+          response.items.length === 1;
+
         if (this.distinct_song_count > 0) {
           const overlap = videos_temp.find(
             video => video.song.id == videos[videos.length - 1].song.id
@@ -1219,40 +1260,35 @@ export default class extends Vue {
 
         this.totalVideoCount = response.totalCount;
 
-        end = videos_temp.length == 0;
-
         this.distinct_song_count += videos_temp.length;
 
         videos = videos.concat(videos_temp);
 
+        // update payload
         if (this.sortBy === "CreateDate") {
           payload =
             direction == "right"
               ? this.rightButtonPayload(
                   payload.sortRule,
-                  videos_temp[videos_temp.length - 1].song.createDate
+                  response.timestampLast
                 )
-              : this.leftButtonPayload(
-                  this.sortBy,
-                  this.addedMode,
-                  videos_temp[0].song.createDate
-                );
+              : this.leftButtonPayload(this.sortBy, response.timestampFirst);
         } else {
           payload =
             direction == "right"
               ? this.rightButtonPayload(
                   payload.sortRule,
-                  videos_temp[videos_temp.length - 1].song.createDate
+                  response.timestampLast
                 )
               : this.leftButtonPayload(
                   this.sortBy,
-                  this.addedMode,
                   this.sortBy === "CreateDate"
-                    ? videos_temp[0].song.createDate
-                    : videos_temp[videos_temp.length - 1].song.createDate
+                    ? response.timestampFirst
+                    : response.timestampLast
                 );
         }
       }
+
       videos.splice(this.maxResults);
       if (reverse) {
         videos = videos.reverse();
@@ -1318,11 +1354,7 @@ export default class extends Vue {
     }
   }
 
-  private leftButtonPayload(
-    sortBy: string,
-    mode: string,
-    createDate: string
-  ): Fetch1Payload {
+  private leftButtonPayload(sortBy: string, createDate: string): Fetch1Payload {
     if (sortBy === "CreateDate") {
       return {
         mode: "before",
@@ -1562,125 +1594,30 @@ export default class extends Vue {
     }
   }
 
-  private clearBoundData() {
+  private clearDateTimeBoundData() {
     this.dateBound = "";
-    this.dateTimeBoundStringSince = "";
-    this.dateTimeBoundStringBefore = "";
+    this.timeBound = "00:00:00";
+    this.timestamp = "";
     this.videos = [];
     this.showTable1 = false;
+    this.disableDateTimePicker = false;
   }
 
-  private getDateString() {
-    if (this.dateTimeBoundStringBefore != "") {
-      return "Before " + this.dateTimeBoundStringBefore;
-    } else if (this.dateTimeBoundStringSince != "") {
-      return "Since " + this.dateTimeBoundStringSince;
-    } else if (this.dateBound != "") {
-      return "Before " + this.dateBound;
-    } else {
-      return "";
-    }
-  }
-
-  private getDate(mode: string): string {
-    if (mode === "before") {
-      if (this.sortBy == "CreateDate") {
-        return this.videos[0].song.createDate;
-      } else {
-        return this.videos[this.videos.length - 1].song.createDate;
-      }
-    } else {
-      if (this.sortBy == "CreateDate") {
-        return this.videos[0].song.createDate;
-      } else {
-        return this.videos[this.videos.length - 1].song.createDate;
-      }
-    }
-  }
-
-  private generateFetch1Payload(
-    direction: string,
-    sortBy: string,
-    videos: EntryWithVideosAndVisibility[]
-  ): Fetch1Payload {
-    if (direction === "right") {
-      if (sortBy === "CreateDate") {
-        return {
-          mode: "since",
-          createDate: videos[videos.length - 1].song.createDate,
-          sortRule: "CreateDate",
-          reverse: false
-        };
-      } else {
-        return {
-          mode: "before",
-          createDate: videos[videos.length - 1].song.createDate,
-          sortRule: "CreateDateDescending",
-          reverse: false
-        };
-      }
-    } else {
-      if (sortBy === "CreateDate") {
-        return {
-          mode: "since",
-          createDate: videos[0].song.createDate,
-          sortRule: "CreateDateDescending",
-          reverse: true
-        };
-      } else {
-        return {
-          mode: "before",
-          createDate: videos[0].song.createDate,
-          sortRule: "CreateDate",
-          reverse: true
-        };
-      }
-    }
-  }
-
-  private validateState(): boolean | null {
-    if (this.dateBound === "") {
+  private validateDateTime(): boolean | null {
+    if (this.timestamp === "") {
+      this.timestampIsValid = false;
       return null;
-    } else if (!DateTime.fromSQL(this.dateBound).isValid) {
-      this.dateIsValid = false;
-      return false;
     }
-    try {
-      let d = new Date(this.dateBound);
-      if (d.getFullYear() < this.min.getFullYear()) {
-        this.dateIsValid = false;
-        return false;
-      } else if (d.getFullYear() === this.min.getFullYear()) {
-        if (d.getMonth() < this.min.getMonth()) {
-          this.dateIsValid = false;
-          return false;
-        } else if (
-          d.getMonth() === this.min.getMonth() &&
-          d.getDate() < this.min.getDate()
-        ) {
-          this.dateIsValid = false;
-          return false;
-        }
-      }
-      if (d.getFullYear() > this.now.getFullYear()) {
-        this.dateIsValid = false;
-        return false;
-      } else if (d.getFullYear() === this.now.getFullYear()) {
-        if (d.getMonth() > this.now.getMonth()) {
-          this.dateIsValid = false;
-          return false;
-        } else if (d.getMonth() === this.now.getMonth()) {
-          if (d.getDate() > this.now.getDate()) {
-            this.dateIsValid = false;
-            return false;
-          }
-        }
-      }
-      this.dateIsValid = true;
-      return true;
-    } catch (e) {
-      this.dateIsValid = false;
-      return false;
+    this.timestampIsValid = DateTime.fromISO(this.timestamp).isValid;
+    return this.timestampIsValid;
+  }
+
+  private refreshTimestamp() {
+    const temp = DateTime.fromISO(this.dateBound + "T" + this.timeBound)
+      .toJSON()
+      .split("+")[0];
+    if (this.timestamp !== temp) {
+      this.timestamp = temp;
     }
   }
 }

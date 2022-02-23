@@ -85,6 +85,8 @@ export interface VideosWithEntries {
 export interface EntriesWithVideos {
   items: EntryWithVideos[];
   totalCount: number;
+  timestampFirst: string;
+  timestampLast: string;
 }
 
 export interface EntryWithVideos {

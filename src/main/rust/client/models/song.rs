@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use serde_aux::prelude::*;
+
 use strum_macros::ToString;
 
 use crate::client::models::entrythumb::{EntryThumbContract, EntryThumbForApiContract};

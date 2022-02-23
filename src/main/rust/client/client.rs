@@ -1,33 +1,34 @@
 extern crate kana;
 
-use std::borrow::Borrow;
-use std::ops::Add;
+use std::cmp::min;
 use std::str::FromStr;
 use std::time::Duration;
 
 use actix_web::cookie::Cookie;
 use actix_web::http::Method;
-use actix_web::Responder;
-use actix_web::web::Json;
+
+
+
 use anyhow::Context;
 use log::{debug, info};
 use roxmltree::Document;
 use serde::de::DeserializeOwned;
+
 use serde::Serialize;
 
 use crate::client::errors::Result;
 use crate::client::errors::VocadbClientError;
 use crate::client::jputils::normalize;
-use crate::client::models::activity::ActivityEntryForApiContract;
-use crate::client::models::entrythumb::EntryForApiContract;
+use crate::client::models::activity::{ActivityEditEvent, ActivityEntryForApiContract};
+use crate::client::models::entrythumb::{EntryType};
 use crate::client::models::misc::PartialFindResult;
 use crate::client::models::pv::{PVContract, PvService, PvType};
 use crate::client::models::query::OptionalFields;
-use crate::client::models::song::{SongForApiContract, SongType};
+use crate::client::models::song::{SongForApiContract};
 use crate::client::models::tag::{AssignableTag, SelectedTag, TagBaseContract, TagForApiContract, TagUsageForApiContract};
 use crate::client::models::user::UserForApiContract;
-use crate::client::nicomodels::{NicoTagWithVariant, SongForApiContractWithThumbnails, SongForApiContractWithThumbnailsAndMappedTags, SongsForApiContractWithThumbnails, Tag, TagBaseContractSimplified, ThumbnailError, ThumbnailOk, ThumbnailOkWithMappedTags, ThumbnailTagMappedWithAssignAndLockInfo};
-use crate::web::dto::{DBBeforeSinceFetchResponse, DBFetchResponse, DisplayableTag, NicoResponse, NicoResponseWithScope, NicoVideo, NicoVideoWithTidyTags, SongActivityEntryForApiContract, SongForApiContractSimplified, TagMappingContract, VideoWithEntry};
+use crate::client::nicomodels::{NicoTagWithVariant, SongForApiContractWithThumbnails, SongForApiContractWithThumbnailsAndMappedTags, SongsForApiContractWithThumbnailsAndTimestamp, Tag, TagBaseContractSimplified, ThumbnailError, ThumbnailOk, ThumbnailOkWithMappedTags, ThumbnailTagMappedWithAssignAndLockInfo};
+use crate::web::dto::{DBFetchResponseWithTimestamps, DisplayableTag, NicoResponse, NicoResponseWithScope, NicoVideo, NicoVideoWithTidyTags, SongForApiContractSimplified, TagMappingContract, VideoWithEntry};
 
 pub struct Client<'a> {
     pub client: awc::Client,
@@ -320,7 +321,7 @@ impl<'a> Client<'a> {
             video: NicoVideoWithTidyTags {
                 id: video.id.clone(),
                 title: video.title.clone(),
-                tags: tags,
+                tags,
             },
             song_entry: entry,
         });
@@ -354,16 +355,15 @@ impl<'a> Client<'a> {
         }
     }
 
-    pub async fn get_videos_from_db_before_since(&self, max_results: i32, mode: String, date_time: String, sort_rule: String) -> Result<SongsForApiContractWithThumbnails> {
+    pub async fn get_videos_from_db_before_since(&self, max_results: i32, mode: String, date_time: String, sort_rule: String) -> Result<SongsForApiContractWithThumbnailsAndTimestamp> {
         let mut response_entries: Vec<SongForApiContract> = vec![];
-
-        let response: PartialFindResult<SongActivityEntryForApiContract> = self.http_get(
+        info!("fetching...");
+        let response: PartialFindResult<ActivityEntryForApiContract> = self.http_get(
             &String::from("https://vocadb.net/api/activityEntries"),
             &vec![
                 (mode.as_ref(), date_time),
+                ("maxResults", String::from("200")),
                 ("editEvent", String::from("Created")),
-                ("entryType", String::from("Song")),
-                ("maxResults", max_results.to_string()),
                 ("getTotalCount", String::from("true")),
                 ("fields", String::from("Entry")),
                 ("entryFields", String::from("PVs,Tags")),
@@ -372,46 +372,72 @@ impl<'a> Client<'a> {
             ],
         ).await?;
 
+        info!("fetched.");
+
+        let mut timestamp_first = response.items[0].entry.create_date.clone();
+        let mut timestamp_last = response.items[response.items.len() - 1].entry.create_date.clone();
+
+
         for response_item in response.items {
-            match response_item.entry.pvs {
-                Some(ref pvs) => {
-                    if pvs.iter().any(|pv| pv.service == PvService::NicoNicoDouga) {
-                        response_entries.push(SongForApiContract {
-                            id: response_item.entry.id,
-                            name: response_item.entry.name,
-                            tags: response_item.entry.tags,
-                            song_type: response_item.entry.song_type,
-                            artist_string: response_item.entry.artist_string,
-                            create_date: response_item.entry.create_date,
-                            pvs: response_item.entry.pvs,
-                            rating_score: Some(0),
-                        });
-                    } else {
-                        response_entries.push(SongForApiContract {
-                            id: response_item.entry.id,
-                            name: response_item.entry.name,
-                            tags: response_item.entry.tags,
-                            song_type: response_item.entry.song_type,
-                            artist_string: response_item.entry.artist_string,
-                            create_date: response_item.entry.create_date,
-                            pvs: Some(vec![]),
-                            rating_score: Some(0),
-                        });
+            if response_item.entry.entry_type == EntryType::Song && response_item.edit_event == ActivityEditEvent::Created {
+                match response_item.entry.pvs {
+                    Some(ref pvs) => {
+                        if pvs.iter().any(|pv| pv.service == PvService::NicoNicoDouga && !pv.disabled) {
+                            response_entries.push(SongForApiContract {
+                                id: response_item.entry.id,
+                                name: response_item.entry.name,
+                                tags: match response_item.entry.tags {
+                                    Some(tags) => tags,
+                                    None => vec![]
+                                },
+                                song_type: response_item.entry.song_type.unwrap(),
+                                artist_string: response_item.entry.artist_string.unwrap(),
+                                create_date: response_item.entry.create_date,
+                                pvs: response_item.entry.pvs,
+                                rating_score: Some(0),
+                            });
+                        } else {
+                            response_entries.push(SongForApiContract {
+                                id: response_item.entry.id,
+                                name: response_item.entry.name,
+                                tags: vec![],
+                                song_type: response_item.entry.song_type.unwrap(),
+                                artist_string: response_item.entry.artist_string.unwrap(),
+                                create_date: response_item.entry.create_date,
+                                pvs: Some(vec![]),
+                                rating_score: Some(0),
+                            });
+                        };
                     }
+                    None => {}
                 }
-                None => {}
             }
             if response_entries.len() == max_results as usize {
-                break
+                break;
             }
         }
 
-        let mapped_response = self.process_mapped_response(response_entries).await?;
+        let response_entries_small: Vec<SongForApiContract> = response_entries[0..min(max_results as usize, response_entries.len() as usize)].to_vec();
+        let mut mapped_response = vec![];
 
-        Ok(SongsForApiContractWithThumbnails{items: mapped_response, total_count: response.total_count })
+        info!("fetched {:?} songs ({:?}-{:?}); gathering thumbnail data...", response_entries_small.len(), timestamp_first, timestamp_last);
+
+        let res_len = i32::from(response_entries_small.len() as i32);
+
+        if i32::from(res_len) > 0 {
+            if i32::from(res_len) == max_results {
+                timestamp_first = response_entries_small[0].create_date.clone();
+                timestamp_last = response_entries_small[res_len as usize - 1].create_date.clone();
+            }
+            mapped_response = self.process_mapped_response(response_entries_small).await?;
+        }
+
+        info!("done.");
+
+        Ok(SongsForApiContractWithThumbnailsAndTimestamp { items: mapped_response, total_count: response.total_count, timestamp_first, timestamp_last })
     }
 
-    pub async fn process_mapped_response(&self, items: Vec<SongForApiContract>) -> Result<Vec<SongForApiContractWithThumbnails>> {
+    pub async fn process_mapped_response(&self, songs: Vec<SongForApiContract>) -> Result<Vec<SongForApiContractWithThumbnails>> {
         pub fn parse_thumbnail(xml: &str, thumnail_id: &str, pv: &PVContract) -> Result<ThumbnailOk, ThumbnailError> {
             let doc = roxmltree::Document::parse(xml).unwrap();
             let status = doc.descendants()
@@ -470,7 +496,7 @@ impl<'a> Client<'a> {
 
         let mut mapped_response = vec![];
 
-        for song in items {
+        for song in songs {
             let mut ok = vec![];
             let mut err = vec![];
 
@@ -520,7 +546,7 @@ impl<'a> Client<'a> {
         start_offset: i32,
         max_results: i32,
         order_by: String,
-    ) -> Result<SongsForApiContractWithThumbnails> {
+    ) -> Result<SongsForApiContractWithThumbnailsAndTimestamp> {
         let response: PartialFindResult<SongForApiContract> = self.http_get(
             &String::from("https://vocadb.net/api/songs"),
             &vec![
@@ -531,12 +557,13 @@ impl<'a> Client<'a> {
                 ("sort", order_by),
                 ("getTotalCount", String::from("true")),
                 ("fields", String::from("PVs,Tags")),
+                ("lang", String::from("Default")),
             ],
         ).await?;
 
         let mapped_response = self.process_mapped_response(response.items).await?;
 
-        Ok(SongsForApiContractWithThumbnails { items: mapped_response, total_count: response.total_count })
+        Ok(SongsForApiContractWithThumbnailsAndTimestamp { items: mapped_response, total_count: response.total_count, timestamp_first: String::from(""), timestamp_last: String::from("") })
     }
 
     pub async fn get_thumbinfo(
@@ -548,7 +575,7 @@ impl<'a> Client<'a> {
             .await;
     }
 
-    pub async fn process_songs_with_thumbnails(&self, songs: SongsForApiContractWithThumbnails) -> Result<DBFetchResponse> {
+    pub async fn process_songs_with_thumbnails(&self, songs: SongsForApiContractWithThumbnailsAndTimestamp) -> Result<DBFetchResponseWithTimestamps> {
         let mappings = self.get_mappings_raw().await?;
         let mapped_tags: Vec<String> = mappings.iter().map(|m| m.source_tag.clone()).collect();
         let mut song_tags_to_map = vec![];
@@ -562,7 +589,7 @@ impl<'a> Client<'a> {
             });
         }
 
-        return Ok(DBFetchResponse { items: song_tags_to_map, total_count: songs.total_count });
+        return Ok(DBFetchResponseWithTimestamps { items: song_tags_to_map, total_count: songs.total_count, timestamp_first: songs.timestamp_first, timestamp_last: songs.timestamp_last });
     }
 
     fn map_thumbnail_tags(&self, thumbnails: &Vec<ThumbnailOk>, mappings: &Vec<TagMappingContract>, mapped_tags: &Vec<String>, song_tag_ids: &Vec<i32>) -> Vec<ThumbnailOkWithMappedTags> {

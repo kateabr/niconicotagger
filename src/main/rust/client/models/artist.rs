@@ -156,6 +156,7 @@ pub enum ArtistType {
     Circle,
     Label,
     Producer,
+    CoverArtist,
     Animator,
     Illustrator,
     Lyricist,

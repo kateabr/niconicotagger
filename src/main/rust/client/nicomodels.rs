@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::client::models::song::SongForApiContract;
-use crate::web::dto::DBFetchResponse;
+
 
 #[derive(Debug, Serialize)]
 pub struct ThumbnailError {
@@ -29,11 +29,17 @@ pub struct Tag {
     pub locked: bool,
 }
 
-pub struct SongsForApiContractWithThumbnails {
+#[derive(Serialize)]
+pub struct SongsForApiContractWithThumbnailsAndTimestamp {
     pub items: Vec<SongForApiContractWithThumbnails>,
-    pub(crate) total_count: i32,
+    pub total_count: i32,
+    #[serde(rename = "timestampFirst")]
+    pub timestamp_first: String,
+    #[serde(rename = "timestampLast")]
+    pub timestamp_last: String,
 }
 
+#[derive(Serialize)]
 pub struct SongForApiContractWithThumbnails {
     pub song: SongForApiContract,
     pub thumbnails_ok: Vec<ThumbnailOk>,

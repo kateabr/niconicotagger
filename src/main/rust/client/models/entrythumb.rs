@@ -24,48 +24,48 @@ pub struct EntryThumbForApiContract {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct EntryForApiContract {
     #[serde(rename = "activityDate")]
-    pub activity_date: String,
+    pub activity_date: Option<String>,
     #[serde(rename = "additionalNames")]
-    pub additional_names: String,
+    pub additional_names: Option<String>,
     #[serde(rename = "artistString")]
-    pub artist_string: String,
+    pub artist_string: Option<String>,
     #[serde(rename = "artistType")]
-    pub artist_type: ArtistType,
+    pub artist_type: Option<ArtistType>,
     #[serde(rename = "createDate")]
     pub create_date: String,
     #[serde(rename = "defaultName")]
-    pub default_name: String,
+    pub default_name: Option<String>,
     #[serde(rename = "defaultNameLanguage")]
     pub default_name_language: Language,
-    pub description: String,
+    pub description: Option<String>,
     #[serde(rename = "discType")]
-    pub disc_type: DiscType,
+    pub disc_type: Option<DiscType>,
     #[serde(rename = "entryType")]
     pub entry_type: EntryType,
     #[serde(rename = "eventCategory")]
-    pub event_category: EventCategory,
+    pub event_category: Option<EventCategory>,
     pub id: i32,
     #[serde(rename = "mainPicture")]
-    pub main_picture: EntryThumbForApiContract,
+    pub main_picture: Option<EntryThumbForApiContract>,
     pub name: String,
-    pub names: Vec<LocalizedStringContract>,
-    #[serde(rename = "pVs")]
-    pub pvs: Vec<PVContract>,
+    pub names: Option<Vec<LocalizedStringContract>>,
+    #[serde(rename = "pvs")]
+    pub pvs: Option<Vec<PVContract>>,
     #[serde(rename = "songListFeaturedCategory")]
-    pub song_list_featured_category: SongFeaturedCategory,
+    pub song_list_featured_category: Option<SongFeaturedCategory>,
     #[serde(rename = "songType")]
-    pub song_type: SongType,
+    pub song_type: Option<SongType>,
     pub status: Status,
     #[serde(rename = "releaseEventSeriesName")]
-    pub release_event_series_name: String,
+    pub release_event_series_name: Option<String>,
     #[serde(rename = "tagCategoryName")]
-    pub tag_category_name: String,
-    pub tags: Vec<TagUsageForApiContract>,
+    pub tag_category_name: Option<String>,
+    pub tags: Option<Vec<TagUsageForApiContract>>,
     #[serde(rename = "urlSlug")]
-    pub url_slug: String,
+    pub url_slug: Option<String>,
     pub version: i32,
     #[serde(rename = "webLinks")]
-    pub web_links: Vec<ArchivedWebLinkContract>,
+    pub web_links: Option<Vec<ArchivedWebLinkContract>>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -77,7 +77,7 @@ pub struct EntryThumbContract {
     version: Option<i32>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub enum EntryType {
     Undefined,
     Album,
