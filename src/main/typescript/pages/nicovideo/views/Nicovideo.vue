@@ -475,7 +475,7 @@
     </b-container>
     <b-row class="fixed-top m-1" style="z-index: 1; max-width: min-content">
       <b-col class="p-0">
-        <b-link to="nicovideo" target="_blank">
+        <b-link to="vocadb" target="_blank">
           <b-button size="sm" style="width: 60px" variant="dark" squared
             >Toggle<br />mode</b-button
           >
