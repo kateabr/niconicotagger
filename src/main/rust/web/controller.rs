@@ -91,8 +91,7 @@ pub async fn fetch_videos_from_db_before_since(_req: HttpRequest, payload: Json<
 
     let token = extract_token(&_req)?;
     let client = client_from_token(&token)?;
-
-    let songs = client.get_videos_from_db_before_since(payload.max_results, payload.mode.clone(), payload.date_time.clone(), payload.sort_rule.clone()).await?;
+    let songs = client.get_videos_from_db_before_since(payload.max_results, payload.mode.clone(), payload.date_time.clone(), payload.song_id.clone(), payload.sort_rule.clone()).await?;
 
     let processed_entries = client.process_songs_with_thumbnails(songs).await?;
 

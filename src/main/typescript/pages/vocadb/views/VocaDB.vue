@@ -518,6 +518,7 @@
                             fetch1('right', {
                               mode: addedMode,
                               createDate: timestamp,
+                              id: addedMode === 'since' ? 0 : 10000000,
                               sortRule: sortBy,
                               reverse: false
                             })
@@ -659,7 +660,8 @@
                               'left',
                               leftButtonPayload(
                                 sortBy,
-                                videos[0].song.createDate
+                                videos[0].song.createDate,
+                                videos[0].song.id
                               )
                             )
                           "
@@ -681,7 +683,8 @@
                               'right',
                               rightButtonPayload(
                                 sortBy,
-                                videos[videos.length - 1].song.createDate
+                                videos[videos.length - 1].song.createDate,
+                                videos[videos.length - 1].song.id
                               )
                             )
                           "
@@ -959,7 +962,8 @@
                               'left',
                               leftButtonPayload(
                                 sortBy,
-                                videos[0].song.createDate
+                                videos[0].song.createDate,
+                                videos[0].song.id
                               )
                             )
                           "
@@ -981,7 +985,8 @@
                               'right',
                               rightButtonPayload(
                                 sortBy,
-                                videos[videos.length - 1].song.createDate
+                                videos[videos.length - 1].song.createDate,
+                                videos[videos.length - 1].song.id
                               )
                             )
                           "
@@ -1204,6 +1209,7 @@ export default class extends Vue {
   }
 
   async fetch1(direction: string, payload: Fetch1Payload): Promise<void> {
+    console.log(payload);
     this.fetching = true;
     this.timestamp = payload.createDate;
     this.addedMode = payload.mode;
@@ -1217,6 +1223,7 @@ export default class extends Vue {
           maxResults: 10,
           mode: payload.mode,
           dateTime: payload.createDate,
+          songId: payload.id,
           sortRule: payload.sortRule
         });
         let videos_temp: EntryWithVideosAndVisibility[] = response.items.map(
@@ -1265,26 +1272,41 @@ export default class extends Vue {
         videos = videos.concat(videos_temp);
 
         // update payload
+        let minId =
+          videos_temp.length > 0
+            ? Math.min(...videos_temp.map(video => video.song.id))
+            : 10000000;
+        let maxId =
+          videos_temp.length > 0
+            ? Math.max(...videos_temp.map(video => video.song.id))
+            : 0;
         if (this.sortBy === "CreateDate") {
           payload =
             direction == "right"
               ? this.rightButtonPayload(
                   payload.sortRule,
-                  response.timestampLast
+                  response.timestampLast,
+                  maxId
                 )
-              : this.leftButtonPayload(this.sortBy, response.timestampFirst);
+              : this.leftButtonPayload(
+                  this.sortBy,
+                  response.timestampFirst,
+                  minId
+                );
         } else {
           payload =
             direction == "right"
               ? this.rightButtonPayload(
                   payload.sortRule,
-                  response.timestampLast
+                  response.timestampLast,
+                  maxId
                 )
               : this.leftButtonPayload(
                   this.sortBy,
                   this.sortBy === "CreateDate"
                     ? response.timestampFirst
-                    : response.timestampLast
+                    : response.timestampLast,
+                  this.addedMode === "before" ? minId : maxId
                 );
         }
       }
@@ -1335,12 +1357,14 @@ export default class extends Vue {
 
   private rightButtonPayload(
     sortBy: string,
-    createDate: string
+    createDate: string,
+    id: number
   ): Fetch1Payload {
     if (sortBy === "CreateDate") {
       return {
         mode: "since",
         createDate: createDate,
+        id: id,
         sortRule: "CreateDate",
         reverse: false
       };
@@ -1348,17 +1372,23 @@ export default class extends Vue {
       return {
         mode: "before",
         createDate: createDate,
+        id: id,
         sortRule: "CreateDateDescending",
         reverse: false
       };
     }
   }
 
-  private leftButtonPayload(sortBy: string, createDate: string): Fetch1Payload {
+  private leftButtonPayload(
+    sortBy: string,
+    createDate: string,
+    id: number
+  ): Fetch1Payload {
     if (sortBy === "CreateDate") {
       return {
         mode: "before",
         createDate: createDate,
+        id: id,
         sortRule: "CreateDateDescending",
         reverse: true
       };
@@ -1366,6 +1396,7 @@ export default class extends Vue {
       return {
         mode: "since",
         createDate: createDate,
+        id: id,
         sortRule: "CreateDate",
         reverse: true
       };
@@ -1625,6 +1656,7 @@ export default class extends Vue {
 export interface Fetch1Payload {
   mode: string;
   createDate: string;
+  id: number;
   sortRule: string;
   reverse: boolean;
 }

@@ -1,4 +1,8 @@
-use actix_web::http::StatusCode;
+use std::error::Error;
+use actix_web::body::BoxBody;
+use actix_web::http::{header, StatusCode};
+use actix_web::HttpResponse;
+use serde::Serialize;
 
 use crate::client::errors::VocadbClientError;
 
@@ -6,8 +10,6 @@ pub type Result<T, E = AppResponseError> = core::result::Result<T, E>;
 
 #[derive(thiserror::Error, Debug)]
 pub enum AppResponseError {
-    #[error("Provided credentials are not valid")]
-    BadCredentialsError,
     #[error("Resource not found")]
     NotFoundError,
     #[error("{0}")]
@@ -16,6 +18,13 @@ pub enum AppResponseError {
     UnexpectedError(#[from] anyhow::Error),
     #[error(transparent)]
     VocadbClientError(#[from] VocadbClientError),
+}
+
+#[derive(Serialize, Debug)]
+pub struct ErrorResponse {
+    pub code: u16,
+    pub message: String,
+    pub stacktrace: Vec<String>,
 }
 
 impl actix_web::ResponseError for AppResponseError {
@@ -29,11 +38,47 @@ impl actix_web::ResponseError for AppResponseError {
         }
 
         return match self {
-            AppResponseError::BadCredentialsError => StatusCode::UNAUTHORIZED,
             AppResponseError::ConstraintViolationError(_) => StatusCode::BAD_REQUEST,
             AppResponseError::VocadbClientError(e) => vocadb_client_error(e),
             AppResponseError::UnexpectedError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             AppResponseError::NotFoundError => StatusCode::NOT_FOUND
         };
     }
+
+    fn error_response(&self) -> HttpResponse<BoxBody> {
+        let message = match self {
+            AppResponseError::ConstraintViolationError(e) => {
+                format!("Constraint violation: {}", e.to_string())
+            }
+            AppResponseError::UnexpectedError(e) => format!("Unexpected error: {}", e.to_string()),
+            AppResponseError::VocadbClientError(e) => {
+                format!("Web client error: {}", e.to_string())
+            }
+            AppResponseError::NotFoundError => {
+                format!("{}", AppResponseError::NotFoundError.to_string())
+            }
+        };
+        let stacktrace = collect_stacktrace(self);
+        let code = self.status_code();
+        let response = ErrorResponse {
+            code: code.as_u16(),
+            message,
+            stacktrace,
+        };
+
+        HttpResponse::build(code)
+            .append_header((header::CONTENT_TYPE, "application/json"))
+            .json(response)
+    }
+}
+
+pub fn collect_stacktrace(err: &dyn Error) -> Vec<String> {
+    let mut stacktrace = vec![];
+    let mut cause = err.source();
+    while cause.is_some() {
+        let err = cause.unwrap();
+        stacktrace.push(err.to_string());
+        cause = err.source();
+    }
+    stacktrace
 }

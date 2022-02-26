@@ -50,7 +50,7 @@ where
 #[derive(Serialize, Deserialize, Debug)]
 pub struct PVForSongContract {
     song: SongContract,
-    author: String,
+    author: Option<String>,
     #[serde(rename = "createdBy")]
     created_by: Option<i32>,
     disabled: bool,

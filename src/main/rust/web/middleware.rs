@@ -11,7 +11,7 @@ pub mod auth_token {
     use hex_literal::hex;
 
     use crate::web::dto::{Database, Token};
-    use crate::web::errors::{AppResponseError, Result};
+    use crate::web::errors::{Result};
 
     type AES = Cbc<Aes128, Pkcs7>;
 
@@ -20,12 +20,12 @@ pub mod auth_token {
 
     pub fn parse(token: &str) -> Result<Token> {
         let raw = base64::decode(token).context("Token is not in base64 format")?;
-
         let aes_cipher: AES = AES::new_from_slices(&KEY, &IV).unwrap();
         let token = aes_cipher
             .decrypt_vec(&raw)
             .context("Unable to decode a token")?;
-        return Ok(serde_json::from_slice(&token).context("Unable to deserialize a token")?);
+        let token_json = serde_json::from_slice(&token).context("Unable to deserialize a token")?;
+        return Ok(token_json);
     }
 
     pub fn encode(user_id: i32, database: &Database, cookies: &Vec<Cookie>) -> Result<String> {
@@ -49,11 +49,6 @@ pub mod auth_token {
         credentials: BearerAuth,
     ) -> actix_web::Result<ServiceRequest> {
         let token = credentials.token();
-        if token.trim().is_empty() {
-            return Err(actix_web::Error::from(
-                AppResponseError::BadCredentialsError,
-            ));
-        }
         parse(token)?;
         Ok(req)
     }

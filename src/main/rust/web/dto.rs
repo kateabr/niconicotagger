@@ -197,6 +197,8 @@ pub struct DBBeforeSinceFetchRequest {
     pub mode: String,
     #[serde(rename = "dateTime")]
     pub date_time: String,
+    #[serde(rename = "songId")]
+    pub song_id: i32,
     #[serde(rename = "sortRule")]
     pub sort_rule: String,
 }

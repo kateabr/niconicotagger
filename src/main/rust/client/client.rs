@@ -14,6 +14,7 @@ use log::{debug, info};
 use roxmltree::Document;
 use serde::de::DeserializeOwned;
 
+
 use serde::Serialize;
 
 use crate::client::errors::Result;
@@ -109,8 +110,8 @@ impl<'a> Client<'a> {
             .await?
             .body()
             .await?;
-        debug!("Response: {}", String::from_utf8(body.to_vec()).unwrap());
-        let json = serde_json::from_slice(&body).context("Unable to deserialize a payload")?;
+        let body_string = String::from_utf8(body.to_vec()).unwrap();
+        let json = serde_json::from_slice(&body).context(format!("Unable to deserialize a payload: {}", body_string))?;
         return Ok(json);
     }
 
@@ -311,7 +312,7 @@ impl<'a> Client<'a> {
             SongForApiContractSimplified {
                 id: res.id,
                 name: res.name.clone(),
-                tag_in_tags: tag_in_tags,
+                tag_in_tags,
                 song_type: res.song_type.to_string(),
                 artist_string: res.artist_string.clone(),
             }
@@ -355,7 +356,7 @@ impl<'a> Client<'a> {
         }
     }
 
-    pub async fn get_videos_from_db_before_since(&self, max_results: i32, mode: String, date_time: String, sort_rule: String) -> Result<SongsForApiContractWithThumbnailsAndTimestamp> {
+    pub async fn get_videos_from_db_before_since(&self, max_results: i32, mode: String, date_time: String, song_id: i32, sort_rule: String) -> Result<SongsForApiContractWithThumbnailsAndTimestamp> {
         let mut response_entries: Vec<SongForApiContract> = vec![];
         info!("fetching...");
         let response: PartialFindResult<ActivityEntryForApiContract> = self.http_get(
@@ -374,42 +375,43 @@ impl<'a> Client<'a> {
 
         info!("fetched.");
 
-        let mut timestamp_first = response.items[0].entry.create_date.clone();
+        let timestamp_first = response.items[0].entry.create_date.clone();
         let mut timestamp_last = response.items[response.items.len() - 1].entry.create_date.clone();
-
 
         for response_item in response.items {
             if response_item.entry.entry_type == EntryType::Song && response_item.edit_event == ActivityEditEvent::Created {
-                match response_item.entry.pvs {
-                    Some(ref pvs) => {
-                        if pvs.iter().any(|pv| pv.service == PvService::NicoNicoDouga && !pv.disabled) {
-                            response_entries.push(SongForApiContract {
-                                id: response_item.entry.id,
-                                name: response_item.entry.name,
-                                tags: match response_item.entry.tags {
-                                    Some(tags) => tags,
-                                    None => vec![]
-                                },
-                                song_type: response_item.entry.song_type.unwrap(),
-                                artist_string: response_item.entry.artist_string.unwrap(),
-                                create_date: response_item.entry.create_date,
-                                pvs: response_item.entry.pvs,
-                                rating_score: Some(0),
-                            });
-                        } else {
-                            response_entries.push(SongForApiContract {
-                                id: response_item.entry.id,
-                                name: response_item.entry.name,
-                                tags: vec![],
-                                song_type: response_item.entry.song_type.unwrap(),
-                                artist_string: response_item.entry.artist_string.unwrap(),
-                                create_date: response_item.entry.create_date,
-                                pvs: Some(vec![]),
-                                rating_score: Some(0),
-                            });
-                        };
+                if (mode == String::from("since") && response_item.entry.id > song_id) || (mode == String::from("before") && response_item.entry.id < song_id) {
+                    match response_item.entry.pvs {
+                        Some(ref pvs) => {
+                            if pvs.iter().any(|pv| pv.service == PvService::NicoNicoDouga && !pv.disabled) {
+                                response_entries.push(SongForApiContract {
+                                    id: response_item.entry.id,
+                                    name: response_item.entry.name,
+                                    tags: match response_item.entry.tags {
+                                        Some(tags) => tags,
+                                        None => vec![]
+                                    },
+                                    song_type: response_item.entry.song_type.unwrap(),
+                                    artist_string: response_item.entry.artist_string.unwrap(),
+                                    create_date: response_item.entry.create_date,
+                                    pvs: response_item.entry.pvs,
+                                    rating_score: Some(0),
+                                });
+                            } else {
+                                response_entries.push(SongForApiContract {
+                                    id: response_item.entry.id,
+                                    name: response_item.entry.name,
+                                    tags: vec![],
+                                    song_type: response_item.entry.song_type.unwrap(),
+                                    artist_string: response_item.entry.artist_string.unwrap(),
+                                    create_date: response_item.entry.create_date,
+                                    pvs: Some(vec![]),
+                                    rating_score: Some(0),
+                                });
+                            };
+                        }
+                        None => {}
                     }
-                    None => {}
                 }
             }
             if response_entries.len() == max_results as usize {
@@ -420,17 +422,17 @@ impl<'a> Client<'a> {
         let response_entries_small: Vec<SongForApiContract> = response_entries[0..min(max_results as usize, response_entries.len() as usize)].to_vec();
         let mut mapped_response = vec![];
 
-        info!("fetched {:?} songs ({:?}-{:?}); gathering thumbnail data...", response_entries_small.len(), timestamp_first, timestamp_last);
+        info!("fetched {:?} songs ({:?}-{:?}), with id {:?} than {:?}; gathering thumbnail data...", response_entries_small.len(), timestamp_first, timestamp_last, if mode == "since" { "greater" } else { "less" }, song_id);
 
         let res_len = i32::from(response_entries_small.len() as i32);
 
         if i32::from(res_len) > 0 {
             if i32::from(res_len) == max_results {
-                timestamp_first = response_entries_small[0].create_date.clone();
                 timestamp_last = response_entries_small[res_len as usize - 1].create_date.clone();
             }
             mapped_response = self.process_mapped_response(response_entries_small).await?;
         }
+
 
         info!("done.");
 

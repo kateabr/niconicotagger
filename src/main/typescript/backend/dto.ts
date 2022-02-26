@@ -26,6 +26,7 @@ export interface FetchVideosFromDbBeforeSincePayload {
   maxResults: number;
   mode: string;
   dateTime: string;
+  songId: number;
   sortRule: string;
 }
 
