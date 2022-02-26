@@ -1209,7 +1209,6 @@ export default class extends Vue {
   }
 
   async fetch1(direction: string, payload: Fetch1Payload): Promise<void> {
-    console.log(payload);
     this.fetching = true;
     this.timestamp = payload.createDate;
     this.addedMode = payload.mode;
