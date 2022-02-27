@@ -64,7 +64,7 @@ pub async fn fetch_videos(_req: HttpRequest, payload: Json<TagFetchRequest>) -> 
             let futures = response.data.iter()
                 .map(|video|
                     client.lookup_video(video,
-                                        m.iter().map(|mm| mm.name.clone()).collect(),
+                                        m.iter().map(|mm| mm.id.clone()).collect(),
                                         payload.tag.clone(),
                                         &mappings, payload.scope_tag.clone()));
 

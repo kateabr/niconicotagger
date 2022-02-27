@@ -279,7 +279,7 @@ impl<'a> Client<'a> {
         ).await;
     }
 
-    pub async fn lookup_video(&self, video: &NicoVideo, src_tags: Vec<String>, nico_tag: String, mappings: &Vec<String>, scope: String) -> Result<VideoWithEntry> {
+    pub async fn lookup_video(&self, video: &NicoVideo, src_tags: Vec<i32>, nico_tag: String, mappings: &Vec<String>, scope: String) -> Result<VideoWithEntry> {
         let response = self.get_song_by_nico_pv(&video.id).await?;
 
         let normalized_nico_tag = normalize(&nico_tag);
@@ -307,7 +307,7 @@ impl<'a> Client<'a> {
         }).collect();
 
         let entry = response.map(|res| {
-            let tag_in_tags = src_tags.iter().all(|tag| res.tags.iter().any(|t| &t.tag.name == tag));
+            let tag_in_tags = src_tags.iter().all(|tag_id| res.tags.iter().any(|t| &t.tag.id == tag_id));
 
             SongForApiContractSimplified {
                 id: res.id,
