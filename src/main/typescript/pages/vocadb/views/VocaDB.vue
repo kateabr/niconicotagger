@@ -1101,7 +1101,7 @@ export default class extends Vue {
   private songTypeToTag = {
     Unspecified: [],
     Original: [6479],
-    Remaster: [1519, 391, 371, 74],
+    Remaster: [1519, 391, 371, 392, 74],
     Remix: [371, 74, 391],
     Cover: [74, 371, 392],
     Instrumental: [208],
