@@ -376,8 +376,15 @@
                                     Needs to be tagged with
                                     <b-link
                                       target="_blank"
-                                      :to="'https://vocadb.net/T/7446/niconico-community-exclusive'"
-                                      >niconico community exclusive</b-link
+                                      :to="
+                                        'https://vocadb.net/T/' +
+                                        niconicoCommunityExclusive.id +
+                                        '/' +
+                                        niconicoCommunityExclusive.urlSlug
+                                      "
+                                      >{{
+                                        niconicoCommunityExclusive.name
+                                      }}</b-link
                                     ></b-badge
                                   >
                                   <b-badge
@@ -388,11 +395,18 @@
                                     variant="success"
                                     class="m-1"
                                   >
-                                    Already tagged with
+                                    Tagged with
                                     <b-link
                                       target="_blank"
-                                      :to="'https://vocadb.net/T/7446/niconico-community-exclusive'"
-                                      >niconico community exclusive</b-link
+                                      :to="
+                                        'https://vocadb.net/T/' +
+                                        niconicoCommunityExclusive.id +
+                                        '/' +
+                                        niconicoCommunityExclusive.urlSlug
+                                      "
+                                      >{{
+                                        niconicoCommunityExclusive.name
+                                      }}</b-link
                                     ></b-badge
                                   >
                                   <b-badge v-else variant="warning" class="m-1">
@@ -908,8 +922,15 @@
                                     Needs to be tagged with
                                     <b-link
                                       target="_blank"
-                                      :to="'https://vocadb.net/T/7446/niconico-community-exclusive'"
-                                      >niconico community exclusive</b-link
+                                      :to="
+                                        'https://vocadb.net/T/' +
+                                        niconicoCommunityExclusive.id +
+                                        '/' +
+                                        niconicoCommunityExclusive.urlSlug
+                                      "
+                                      >{{
+                                        niconicoCommunityExclusive.name
+                                      }}</b-link
                                     ></b-badge
                                   >
                                   <b-badge
@@ -920,11 +941,18 @@
                                     variant="success"
                                     class="m-1"
                                   >
-                                    Already tagged with
+                                    Tagged with
                                     <b-link
                                       target="_blank"
-                                      :to="'https://vocadb.net/T/7446/niconico-community-exclusive'"
-                                      >niconico community exclusive</b-link
+                                      :to="
+                                        'https://vocadb.net/T/' +
+                                        niconicoCommunityExclusive.id +
+                                        '/' +
+                                        niconicoCommunityExclusive.urlSlug
+                                      "
+                                      >{{
+                                        niconicoCommunityExclusive.name
+                                      }}</b-link
                                     ></b-badge
                                   >
                                   <b-badge v-else variant="warning" class="m-1">
@@ -932,6 +960,26 @@
                                   >
                                 </span>
                               </div>
+                            </b-col>
+                            <b-col
+                              v-if="
+                                thumbnail.code === 'COMMUNITY' &&
+                                !thumbnail.community
+                              "
+                              class="col-4"
+                            >
+                              <b-button
+                                size="sm"
+                                class="m-1"
+                                disabled
+                                variant="warning"
+                              >
+                                <font-awesome-icon
+                                  :icon="['fas', 'fa-minus']"
+                                  class="sm mr-sm-1"
+                                />
+                                {{ niconicoCommunityExclusive.name }}
+                              </b-button>
                             </b-col>
                           </b-row>
                           <b-row
@@ -1167,6 +1215,11 @@ export default class extends Vue {
     Other: []
   };
   private distinct_song_count: number = 0;
+  private niconicoCommunityExclusive: MinimalTag = {
+    id: 7446,
+    name: "niconico community exclusive",
+    urlSlug: "niconico-community-exclusive"
+  };
 
   async fetch0(newStartOffset: number, newPage: number): Promise<void> {
     this.fetching = true;
@@ -1183,9 +1236,13 @@ export default class extends Vue {
         });
         end = response.items.length < 10;
         let videos_temp = response.items.map(entry => {
+          let commEx: boolean =
+            entry.thumbnailsErr.filter(
+              thumb => thumb.code == "COMMUNITY" && !thumb.community
+            ).length > 0;
           return {
             song: entry.song,
-            toAssign: false,
+            toAssign: commEx,
             visible: true,
             thumbnailsOk: entry.thumbnailsOk.map(t => {
               return {
@@ -1202,7 +1259,7 @@ export default class extends Vue {
               };
             }),
             thumbnailsErr: entry.thumbnailsErr,
-            tagsToAssign: []
+            tagsToAssign: commEx ? [this.niconicoCommunityExclusive] : []
           };
         });
 
@@ -1263,9 +1320,13 @@ export default class extends Vue {
         });
         let videos_temp: EntryWithVideosAndVisibility[] = response.items.map(
           entry => {
+            let commEx: boolean =
+              entry.thumbnailsErr.filter(
+                thumb => thumb.code == "COMMUNITY" && !thumb.community
+              ).length > 0;
             return {
               song: entry.song,
-              toAssign: false,
+              toAssign: commEx,
               visible: true,
               thumbnailsOk: entry.thumbnailsOk.map(t => {
                 return {
@@ -1282,7 +1343,7 @@ export default class extends Vue {
                 };
               }),
               thumbnailsErr: entry.thumbnailsErr,
-              tagsToAssign: []
+              tagsToAssign: commEx ? [this.niconicoCommunityExclusive] : []
             };
           }
         );
@@ -1457,6 +1518,16 @@ export default class extends Vue {
             if (assigned_ids.find(id => id == t.tag.id) != undefined) {
               t.toAssign = false;
               t.assigned = true;
+            }
+          });
+        }
+        if (
+          assigned_ids.find(id => id == this.niconicoCommunityExclusive.id) !=
+          undefined
+        ) {
+          song.thumbnailsErr.forEach(thumbnailErr => {
+            if (thumbnailErr.code == "COMMUNITY") {
+              thumbnailErr.community = true;
             }
           });
         }

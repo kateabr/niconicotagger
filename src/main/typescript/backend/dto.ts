@@ -73,6 +73,7 @@ export interface AssignableTag {
 export interface MinimalTag {
   id: number;
   name: string;
+  urlSlug: string;
 }
 
 export interface VideosWithEntries {
