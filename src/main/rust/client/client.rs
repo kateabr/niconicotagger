@@ -440,7 +440,7 @@ impl<'a> Client<'a> {
     }
 
     pub async fn process_mapped_response(&self, songs: Vec<SongForApiContract>) -> Result<Vec<SongForApiContractWithThumbnails>> {
-        pub fn parse_thumbnail(xml: &str, thumnail_id: &str, pv: &PVContract) -> Result<ThumbnailOk, ThumbnailError> {
+        pub fn parse_thumbnail(xml: &str, thumnail_id: &str, pv: &PVContract, community: bool) -> Result<ThumbnailOk, ThumbnailError> {
             let doc = roxmltree::Document::parse(xml).unwrap();
             let status = doc.descendants()
                 .find(|node| node.has_tag_name("nicovideo_thumb_response"))
@@ -466,6 +466,7 @@ impl<'a> Client<'a> {
                     description: get_text(&doc, "description"),
                     disabled: pv.disabled,
                     title: String::from(&pv.name),
+                    community
                 };
                 Err(err)
             };
@@ -511,7 +512,7 @@ impl<'a> Client<'a> {
 
                             let thumnail_id = pv.pv_id.as_ref().unwrap();
                             let thumbnail = self.get_thumbinfo(thumnail_id).await?;
-                            let thumbnail_parse_result = parse_thumbnail(String::from_utf8(thumbnail).unwrap().as_str(), thumnail_id, pv);
+                            let thumbnail_parse_result = parse_thumbnail(String::from_utf8(thumbnail).unwrap().as_str(), thumnail_id, pv, song.tags.iter().map(|tag| tag.tag.id).any(|tag_id| tag_id == 7446));
 
                             match thumbnail_parse_result {
                                 Ok(thumb) => ok.push(thumb),
@@ -624,4 +625,3 @@ impl<'a> Client<'a> {
         return res;
     }
 }
-

@@ -10,6 +10,7 @@ pub struct ThumbnailError {
     pub description: String,
     pub title: String,
     pub disabled: bool,
+    pub community: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]

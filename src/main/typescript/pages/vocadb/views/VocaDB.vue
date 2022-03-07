@@ -366,11 +366,29 @@
                                     Needs to be disabled</b-badge
                                   >
                                   <b-badge
-                                    v-else-if="thumbnail.code === 'COMMUNITY'"
+                                    v-else-if="
+                                      thumbnail.code === 'COMMUNITY' &&
+                                      !thumbnail.community
+                                    "
                                     variant="warning"
                                     class="m-1"
                                   >
                                     Needs to be tagged with
+                                    <b-link
+                                      target="_blank"
+                                      :to="'https://vocadb.net/T/7446/niconico-community-exclusive'"
+                                      >niconico community exclusive</b-link
+                                    ></b-badge
+                                  >
+                                  <b-badge
+                                    v-else-if="
+                                      thumbnail.code === 'COMMUNITY' &&
+                                      thumbnail.community
+                                    "
+                                    variant="success"
+                                    class="m-1"
+                                  >
+                                    Already tagged with
                                     <b-link
                                       target="_blank"
                                       :to="'https://vocadb.net/T/7446/niconico-community-exclusive'"
@@ -880,11 +898,29 @@
                                     Needs to be disabled</b-badge
                                   >
                                   <b-badge
-                                    v-else-if="thumbnail.code === 'COMMUNITY'"
+                                    v-else-if="
+                                      thumbnail.code === 'COMMUNITY' &&
+                                      !thumbnail.community
+                                    "
                                     variant="warning"
                                     class="m-1"
                                   >
                                     Needs to be tagged with
+                                    <b-link
+                                      target="_blank"
+                                      :to="'https://vocadb.net/T/7446/niconico-community-exclusive'"
+                                      >niconico community exclusive</b-link
+                                    ></b-badge
+                                  >
+                                  <b-badge
+                                    v-else-if="
+                                      thumbnail.code === 'COMMUNITY' &&
+                                      thumbnail.community
+                                    "
+                                    variant="success"
+                                    class="m-1"
+                                  >
+                                    Already tagged with
                                     <b-link
                                       target="_blank"
                                       :to="'https://vocadb.net/T/7446/niconico-community-exclusive'"
@@ -1512,7 +1548,8 @@ export default class extends Vue {
             .map(t => t.name)
             .includes(video.song.songType)) &&
           (!this.hideEntriesWithNoTags || assignable_mapped_tags_cnt > 0)) ||
-        (this.showEntriesWithErrors && video.thumbnailsErr.length > 0);
+        (this.showEntriesWithErrors &&
+          video.thumbnailsErr.filter(thumb => !thumb.community).length > 0);
     }
   }
 

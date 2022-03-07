@@ -138,4 +138,5 @@ export interface NicoVideoWithError {
   description: string;
   title: string;
   disabled: boolean;
+  community: boolean;
 }
