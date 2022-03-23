@@ -18,6 +18,16 @@
               class="b-toaster-top-center"
               name="toaster-2"
             ></b-toaster>
+            <b-toast
+              id="error"
+              title="Error"
+              no-auto-hide
+              variant="danger"
+              class="m-0 rounded-0"
+              toaster="toaster-2"
+            >
+              {{ alertMessage }}
+            </b-toast>
             <b-tabs v-model="browseMode" class="mt-3" content-class="mt-3">
               <b-tab title="Browse via song entries" active>
                 <b-row>
@@ -474,16 +484,6 @@
                       </div>
                     </template>
                   </b-row>
-                  <b-toast
-                    id="error"
-                    title="Error"
-                    no-auto-hide
-                    variant="danger"
-                    class="m-0 rounded-0"
-                    toaster="toaster-2"
-                  >
-                    {{ alertMessage }}
-                  </b-toast>
                 </b-row>
               </b-tab>
               <b-tab title="Browse via activity entries">
@@ -1083,16 +1083,6 @@
                       </b-button-group>
                     </div>
                   </b-row>
-                  <b-toast
-                    id="error"
-                    title="Error"
-                    no-auto-hide
-                    variant="danger"
-                    class="m-0 rounded-0"
-                    toaster="toaster-2"
-                  >
-                    {{ alertMessage }}
-                  </b-toast>
                 </b-row>
               </b-tab>
             </b-tabs>
@@ -1228,6 +1218,7 @@ export default class extends Vue {
       this.distinct_song_count = 0;
       let end = false;
       let response;
+      this.pageToJump = newPage;
       while (this.distinct_song_count < this.maxResults && !end) {
         response = await api.fetchVideosFromDb({
           startOffset: newStartOffset + this.distinct_song_count,
@@ -1296,7 +1287,6 @@ export default class extends Vue {
     } finally {
       this.maxPage = Math.ceil(this.totalVideoCount / this.maxResults);
       this.fetching = false;
-      this.pageToJump = newPage;
       this.page = newPage;
     }
   }
