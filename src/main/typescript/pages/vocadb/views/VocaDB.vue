@@ -36,7 +36,10 @@
                   >
                     <b-col class="my-auto">
                       <b-dropdown
-                        :disabled="defaultDisableCondition()"
+                        :disabled="
+                          defaultDisableCondition() ||
+                          (browseMode === 0 && session0)
+                        "
                         block
                         :text="getResultNumberStr()"
                         class="my-auto"
@@ -67,7 +70,10 @@
                     <b-col class="my-auto">
                       <b-dropdown
                         block
-                        :disabled="defaultDisableCondition()"
+                        :disabled="
+                          defaultDisableCondition() ||
+                          (browseMode === 0 && session0)
+                        "
                         :text="getOrderingCondition()"
                         variant="primary"
                       >
@@ -135,6 +141,7 @@
                     </b-col>
                     <b-col v-else class="m-auto">
                       <b-button
+                        v-if="!session0 || videos.length > 0"
                         variant="primary"
                         block
                         :disabled="defaultDisableCondition()"
@@ -142,6 +149,26 @@
                         ><span v-if="fetching"><b-spinner small /></span>
                         <span v-else>Load</span>
                       </b-button>
+                      <b-button-group v-else class="btn-group-justified w-100">
+                        <b-button
+                          block
+                          variant="success"
+                          :disabled="defaultDisableCondition()"
+                          @click="
+                            fetch0(startOffset, startOffset / maxResults + 1)
+                          "
+                          ><span v-if="fetching"><b-spinner small /></span>
+                          <span v-else>Restore page {{ startOffset / maxResults + 1 }}</span>
+                        </b-button>
+                        <b-button
+                          style="width: 80px"
+                          variant="danger"
+                          :disabled="defaultDisableCondition()"
+                          @click="clearSession(0)"
+                        >
+                          Clear
+                        </b-button>
+                      </b-button-group>
                     </b-col>
                     <b-col class="my-auto">
                       <b-button
@@ -494,7 +521,10 @@
                     <b-row>
                       <b-col class="my-auto">
                         <b-dropdown
-                          :disabled="defaultDisableCondition()"
+                          :disabled="
+                            defaultDisableCondition() ||
+                            (browseMode === 1 && session1)
+                          "
                           block
                           :text="getResultNumberStr()"
                           class="my-auto"
@@ -525,7 +555,11 @@
                       <b-col class="my-auto">
                         <b-dropdown
                           block
-                          :disabled="defaultDisableCondition() || showTable1"
+                          :disabled="
+                            defaultDisableCondition() ||
+                            showTable1 ||
+                            (browseMode === 1 && session1)
+                          "
                           :text="getSortingCondition()"
                           variant="primary"
                         >
@@ -541,6 +575,7 @@
                       </b-col>
                       <b-col class="m-auto">
                         <b-button
+                          v-if="!session1 || videos.length > 0"
                           variant="primary"
                           block
                           :disabled="
@@ -561,6 +596,38 @@
                             <span v-else>Reload</span>
                           </span>
                         </b-button>
+                        <b-button-group
+                          v-else
+                          class="btn-group-justified w-100"
+                        >
+                          <b-button
+                            block
+                            variant="success"
+                            :disabled="defaultDisableCondition()"
+                            @click="
+                              fetch1('right', {
+                                mode: addedMode,
+                                createDate: timestamp,
+                                id: addedMode === 'since' ? 0 : 10000000,
+                                sortRule: sortBy,
+                                reverse: false
+                              })
+                            "
+                            ><span v-if="fetching"><b-spinner small /></span>
+                            <span v-else
+                              >Restore ({{ addedMode }}
+                              {{ timestamp.split("T")[0] }})</span
+                            >
+                          </b-button>
+                          <b-button
+                            style="width: 80px"
+                            variant="danger"
+                            :disabled="defaultDisableCondition()"
+                            @click="clearSession(1)"
+                          >
+                            Clear
+                          </b-button>
+                        </b-button-group>
                       </b-col>
                       <b-col class="my-auto">
                         <b-button
@@ -589,7 +656,9 @@
                           <b-input-group inline>
                             <b-form-input
                               v-model="timestamp"
-                              :readonly="fetching"
+                              :readonly="
+                                fetching || (browseMode === 1 && session1)
+                              "
                               type="text"
                               placeholder="Specify timestamp"
                               :state="validateDateTime()"
@@ -603,7 +672,11 @@
                                 :initial-date="now"
                                 locale="en"
                                 button-only
-                                :disabled="fetching || disableDateTimePicker"
+                                :disabled="
+                                  fetching ||
+                                  disableDateTimePicker ||
+                                  (browseMode === 1 && session1)
+                                "
                                 hide-header
                                 style="width: 80px"
                                 @input="refreshTimestamp()"
@@ -618,7 +691,8 @@
                                 :disabled="
                                   fetching ||
                                   dateBound === '' ||
-                                  disableDateTimePicker
+                                  disableDateTimePicker ||
+                                  (browseMode === 1 && session1)
                                 "
                                 @input="refreshTimestamp()"
                               />
@@ -627,7 +701,11 @@
                               <b-button
                                 style="width: 80px"
                                 variant="danger"
-                                :disabled="timestamp === '' || fetching"
+                                :disabled="
+                                  timestamp === '' ||
+                                  fetching ||
+                                  (browseMode === 1 && session1)
+                                "
                                 @click="clearDateTimeBoundData"
                               >
                                 Clear
@@ -639,7 +717,11 @@
                       <b-col class="my-auto text-left align-middle">
                         <b-dropdown
                           block
-                          :disabled="defaultDisableCondition() || showTable1"
+                          :disabled="
+                            defaultDisableCondition() ||
+                            showTable1 ||
+                            (browseMode === 1 && session1)
+                          "
                           :text="getAddedModeCondition()"
                           variant="primary"
                         >
@@ -1210,9 +1292,14 @@ export default class extends Vue {
     name: "niconico community exclusive",
     urlSlug: "niconico-community-exclusive"
   };
+  private session0: boolean = false;
+  private session1: boolean = false;
 
   async fetch0(newStartOffset: number, newPage: number): Promise<void> {
     this.fetching = true;
+    localStorage.setItem("max_results", this.maxResults.toString());
+    localStorage.setItem("start_offset", newStartOffset.toString());
+    localStorage.setItem("order_by", this.orderBy);
     try {
       let videos: EntryWithVideosAndVisibility[] = [];
       this.distinct_song_count = 0;
@@ -1295,6 +1382,10 @@ export default class extends Vue {
     this.fetching = true;
     this.timestamp = payload.createDate;
     this.addedMode = payload.mode;
+    localStorage.setItem("max_results", this.maxResults.toString());
+    localStorage.setItem("timestamp", this.timestamp);
+    localStorage.setItem("sort_by", this.sortBy);
+    localStorage.setItem("added_mode", this.addedMode);
     const reverse = payload.reverse;
     try {
       let videos: EntryWithVideosAndVisibility[] = [];
@@ -1746,6 +1837,64 @@ export default class extends Vue {
       .split("+")[0];
     if (this.timestamp !== temp) {
       this.timestamp = temp;
+    }
+  }
+
+  private clearSession(sessionId: number): void {
+    if (sessionId == 0) {
+      localStorage.removeItem("start_offset");
+      localStorage.removeItem("order_by");
+      if (!this.session1) {
+        localStorage.removeItem("max_results");
+      }
+      this.session0 = false;
+    } else if (sessionId == 1) {
+      localStorage.removeItem("timestamp");
+      localStorage.removeItem("sort_by");
+      localStorage.removeItem("added_mode");
+      this.timestamp = "";
+      if (!this.session0) {
+        localStorage.removeItem("max_results");
+      }
+      this.session1 = false;
+    }
+  }
+
+  created(): void {
+    let max_results = localStorage.getItem("max_results");
+    if (max_results != null) {
+      this.maxResults = parseInt(max_results);
+    }
+    let start_offset = localStorage.getItem("start_offset");
+    if (start_offset != null) {
+      this.startOffset = parseInt(start_offset);
+    }
+    let order_by = localStorage.getItem("order_by");
+    if (order_by != null) {
+      this.orderBy = order_by;
+    }
+    if (max_results != null && start_offset != null && order_by != null) {
+      this.session0 = true;
+    }
+    let timestamp = localStorage.getItem("timestamp");
+    if (timestamp != null) {
+      this.timestamp = timestamp;
+    }
+    let sort_by = localStorage.getItem("sort_by");
+    if (sort_by != null) {
+      this.sortBy = sort_by;
+    }
+    let added_mode = localStorage.getItem("added_mode");
+    if (added_mode != null) {
+      this.addedMode = added_mode;
+    }
+    if (
+      max_results != null &&
+      timestamp != null &&
+      sort_by != null &&
+      added_mode != null
+    ) {
+      this.session1 = true;
     }
   }
 }
