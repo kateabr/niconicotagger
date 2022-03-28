@@ -16,7 +16,7 @@ pub enum ActivityEditEvent {
 pub struct ActivityEntryForApiContract {
     #[serde(rename = "archivedVersion")]
     pub archived_version: Option<ArchivedObjectVersionForApiContract>,
-    pub author: UserForApiContract,
+    pub author: Option<UserForApiContract>,
     #[serde(rename = "createDate")]
     pub create_date: String,
     #[serde(rename = "editEvent")]
