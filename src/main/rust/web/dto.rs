@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use crate::client::models::activity::{ActivityEditEvent, ActivityEntryForApiContract};
 use crate::client::models::archived::ArchivedObjectVersionForApiContract;
+use crate::client::models::artist::NicoPublisher;
 
 use crate::client::models::song::SongForApiContract;
 use crate::client::models::tag::{AssignableTag};
@@ -84,6 +85,7 @@ pub struct VideoWithEntry {
     pub video: NicoVideoWithTidyTags,
     #[serde(rename = "songEntry")]
     pub song_entry: Option<SongForApiContractSimplified>,
+    pub publisher: Option<NicoPublisher>,
 }
 
 #[derive(Serialize)]
@@ -111,6 +113,8 @@ pub struct NicoVideo {
     pub id: String,
     pub title: String,
     pub tags: String,
+    #[serde(rename = "userId")]
+    pub user_id: Option<i32>,
 }
 
 #[derive(Serialize, Deserialize)]

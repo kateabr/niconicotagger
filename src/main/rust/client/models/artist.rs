@@ -210,3 +210,28 @@ pub enum ArtistLinkType {
     Manager,
     VoiceProvider,
 }
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct NicoArtistDuplicateResult {
+    #[serde(rename = "matchProperty")]
+    match_property: String,
+    pub entry: NicoPublisher,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct NicoPublisher {
+    #[serde(rename = "entryTypeName")]
+    pub entry_type_name: String,
+    pub name: NicoPublisherNames,
+    pub id: i32,
+    #[serde(rename = "artistString")]
+    artist_string: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct NicoPublisherNames {
+    #[serde(rename = "additionalNames")]
+    additional_names: String,
+    #[serde(rename = "displayName")]
+    display_name: String,
+}

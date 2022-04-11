@@ -54,6 +54,18 @@ export interface SongForApiContractSimplified {
 export interface VideoWithEntry {
   video: NicoVideoWithTidyTags;
   songEntry: SongForApiContractSimplified | null;
+  publisher: Publisher | null;
+}
+
+export interface Publisher {
+  entryTypeName: string;
+  name: PublisherNames;
+  id: number;
+}
+
+export interface PublisherNames {
+  additionalNames: string;
+  displayName: string;
 }
 
 export interface AssignableTag {

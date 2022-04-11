@@ -1,31 +1,28 @@
 extern crate kana;
 
 use std::cmp::min;
+use std::ptr::null;
 use std::str::FromStr;
 use std::time::Duration;
 
 use actix_web::cookie::Cookie;
 use actix_web::http::Method;
-
-
-
 use anyhow::Context;
 use log::{debug, info};
 use roxmltree::Document;
 use serde::de::DeserializeOwned;
-
-
 use serde::Serialize;
 
 use crate::client::errors::Result;
 use crate::client::errors::VocadbClientError;
 use crate::client::jputils::normalize;
 use crate::client::models::activity::{ActivityEditEvent, ActivityEntryForApiContract};
-use crate::client::models::entrythumb::{EntryType};
+use crate::client::models::artist::{NicoArtistDuplicateResult, NicoPublisher};
+use crate::client::models::entrythumb::EntryType;
 use crate::client::models::misc::PartialFindResult;
 use crate::client::models::pv::{PVContract, PvService, PvType};
 use crate::client::models::query::OptionalFields;
-use crate::client::models::song::{SongForApiContract};
+use crate::client::models::song::SongForApiContract;
 use crate::client::models::tag::{AssignableTag, SelectedTag, TagBaseContract, TagForApiContract, TagUsageForApiContract};
 use crate::client::models::user::UserForApiContract;
 use crate::client::nicomodels::{NicoTagWithVariant, SongForApiContractWithThumbnails, SongForApiContractWithThumbnailsAndMappedTags, SongsForApiContractWithThumbnailsAndTimestamp, Tag, TagBaseContractSimplified, ThumbnailError, ThumbnailOk, ThumbnailOkWithMappedTags, ThumbnailTagMappedWithAssignAndLockInfo};
@@ -115,6 +112,50 @@ impl<'a> Client<'a> {
         return Ok(json);
     }
 
+    async fn http_post_nullable<T, R>(&self, url: &String, query: &T) -> Result<Option<R>>
+        where
+            R: DeserializeOwned,
+            T: Serialize,
+    {
+        let request = self.create_request(url, Method::POST);
+        debug!("Sending POST request {:?}", request);
+        let body = request
+            .query(query)
+            .context("Unable to construct a query")?
+            .send()
+            .await?
+            .body()
+            .await?;
+
+        if body.is_empty() {
+            return Ok(Option::None);
+        }
+
+        let body_string = String::from_utf8(body.to_vec()).unwrap();
+        let json = serde_json::from_slice(&body).context(format!("Unable to deserialize a payload: {}", body_string))?;
+        return Ok(json);
+    }
+
+    async fn http_post<T, R>(&self, url: &String, query: &T) -> Result<R>
+        where
+            R: DeserializeOwned,
+            T: Serialize,
+    {
+        let request = self.create_request(url, Method::POST);
+        debug!("Sending POST request {:?}", request);
+        let body = request
+            .query(query)
+            .context("Unable to construct a query")?
+            .send()
+            .await?
+            .body()
+            .await?;
+
+        let body_string = String::from_utf8(body.to_vec()).unwrap();
+        let json = serde_json::from_slice(&body).context(format!("Unable to deserialize a payload: {}", body_string))?;
+        return Ok(json);
+    }
+
     async fn http_get_raw(&self, url: &String, query: &Vec<(&str, String)>) -> Result<Vec<u8>>
     {
         let request = self.create_request(url, Method::GET);
@@ -161,7 +202,7 @@ impl<'a> Client<'a> {
         let cookies = response.cookies().context("Unable to parse a cookie")?;
         let auth_cookie = cookies.iter().find(|c| c.name() == ".AspNetCore.Cookies");
         return match auth_cookie {
-            None => Err(VocadbClientError::BadCredentialsError),
+            Option::None => Err(VocadbClientError::BadCredentialsError),
             Some(cookie) => {
                 self.clear_cookie();
                 self.add_cookie(cookie);
@@ -191,7 +232,7 @@ impl<'a> Client<'a> {
         loop {
             match safe_scope.trim_start().strip_prefix("OR") {
                 Some(trimmed) => safe_scope = String::from(trimmed),
-                None => break
+                Option::None => break
             }
         }
 
@@ -205,7 +246,7 @@ impl<'a> Client<'a> {
                 ("_limit", max_results.to_string()),
                 ("_sort", order_by),
                 ("targets", String::from("tagsExact")),
-                ("fields", String::from("contentId,title,tags")),
+                ("fields", String::from("contentId,title,tags,userId")),
             ],
         )
             .await?;
@@ -246,7 +287,7 @@ impl<'a> Client<'a> {
         let tags: Vec<TagBaseContractSimplified> = mappings.into_iter()
             .filter(|t| t.source_tag == normalized_tag)
             .map(|t| t.tag).collect();
-        return if tags.is_empty() { Ok(None) } else { Ok(Some(tags)) };
+        return if tags.is_empty() { Ok(Option::None) } else { Ok(Some(tags)) };
     }
 
     pub async fn get_mapped_tags(&self) -> Result<Vec<String>> {
@@ -279,12 +320,31 @@ impl<'a> Client<'a> {
         ).await;
     }
 
+    pub async fn lookup_artist_by_nico_account_id(&self, user_id: i32) -> Result<Option<NicoPublisher>> {
+        let lookup_result: Vec<NicoArtistDuplicateResult> = self.http_post(
+            &String::from("https://vocadb.net/Artist/FindDuplicate"),
+            &vec![
+                ("term1", ""),
+                ("term2", ""),
+                ("term3", ""),
+                ("linkUrl", &format!("https://www.nicovideo.jp/user/{}", &user_id.to_string())),
+            ],
+        ).await?;
+
+        return if lookup_result.is_empty() { Ok(Option::None) } else { Ok(Some(lookup_result[0].entry.clone())) };
+    }
+
     pub async fn lookup_video(&self, video: &NicoVideo, src_tags: Vec<i32>, nico_tag: String, mappings: &Vec<String>, scope: String) -> Result<VideoWithEntry> {
         let response = self.get_song_by_nico_pv(&video.id).await?;
 
         let normalized_nico_tag = normalize(&nico_tag);
         let normalized_scope = normalize(&scope.replace(" OR ", " "));
         let normalized_scope_tags = normalized_scope.split(" ").map(|s| String::from(s)).collect::<Vec<_>>();
+
+        let publisher: Option<NicoPublisher> = match video.user_id {
+            Some(id) => self.lookup_artist_by_nico_account_id(id.clone()).await?,
+            Option::None => Option::None
+        };
 
         let nico_tags = video.tags.split(" ").map(|s| String::from(s)).collect::<Vec<_>>();
 
@@ -325,6 +385,7 @@ impl<'a> Client<'a> {
                 tags,
             },
             song_entry: entry,
+            publisher,
         });
     }
 
@@ -483,7 +544,7 @@ impl<'a> Client<'a> {
                 .map(|node| {
                     match node.text() {
                         Some(text) => text.trim(),
-                        None => ""
+                        Option::None => ""
                     }
                 }).collect::<Vec<_>>().first()
                 .unwrap()
@@ -522,7 +583,7 @@ impl<'a> Client<'a> {
                     }
                     new_pvs
                 }
-                None => vec![]
+                Option::None => vec![]
             };
 
             mapped_response.push(SongForApiContractWithThumbnails {

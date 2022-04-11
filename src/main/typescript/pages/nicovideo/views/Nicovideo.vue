@@ -386,6 +386,9 @@
                     target="_blank"
                     >Add to the database
                   </b-button>
+                  <div class="small text-secondary" v-if="value.publisher !== null">
+                    Published by <a target="_blank" :href="getArtistUrl(value.publisher)">{{ value.publisher.name.displayName }}</a>
+                  </div>
                 </div>
               </b-td>
               <b-td>
@@ -491,6 +494,7 @@ import { Component } from "vue-property-decorator";
 import {
   AssignableTag,
   NicoVideoWithTidyTags,
+  Publisher,
   SongForApiContractSimplified
 } from "@/backend/dto";
 import { api } from "@/backend";
@@ -567,7 +571,8 @@ export default class extends Vue {
           video: vid.video,
           songEntry: vid.songEntry,
           visible: false,
-          toAssign: false
+          toAssign: false,
+          publisher: vid.publisher
         };
       });
       this.filter();
@@ -600,6 +605,10 @@ export default class extends Vue {
 
   getEntryUrl(songEntry: SongForApiContractSimplified): string {
     return "https://vocadb.net/S/" + songEntry.id;
+  }
+
+  getArtistUrl(artist: Publisher): string {
+    return "https://vocadb.net/Ar/" + artist.id;
   }
 
   getVideoUrl(video: NicoVideoWithTidyTags): string {
@@ -771,6 +780,7 @@ export interface VideoWithEntryAndVisibility {
   songEntry: SongForApiContractSimplified | null;
   visible: boolean;
   toAssign: boolean;
+  publisher: Publisher | null;
 }
 
 export interface SongType {
