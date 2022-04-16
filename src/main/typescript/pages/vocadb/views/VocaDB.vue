@@ -452,6 +452,26 @@
                                 </span>
                               </div>
                             </b-col>
+                            <b-col
+                              v-if="
+                                thumbnail.code === 'COMMUNITY' &&
+                                !thumbnail.community
+                              "
+                              class="col-4"
+                            >
+                              <b-button
+                                size="sm"
+                                class="m-1"
+                                disabled
+                                variant="warning"
+                              >
+                                <font-awesome-icon
+                                  :icon="['fas', 'fa-minus']"
+                                  class="sm mr-sm-1"
+                                />
+                                {{ niconicoCommunityExclusive.name }}
+                              </b-button>
+                            </b-col>
                           </b-row>
                         </td>
                       </tr>
