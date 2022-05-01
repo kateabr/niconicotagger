@@ -773,6 +773,13 @@ export default class extends Vue {
       ")"
     );
   }
+
+  created(): void {
+    let max_results = localStorage.getItem("max_results");
+    if (max_results != null) {
+      this.maxResults = parseInt(max_results);
+    }
+  }
 }
 
 export interface VideoWithEntryAndVisibility {
