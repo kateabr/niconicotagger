@@ -1,3 +1,4 @@
+use std::borrow::Borrow;
 use actix_web::{get, post, Responder, web};
 use actix_web::http::header::Header;
 use actix_web::HttpRequest;
@@ -5,7 +6,8 @@ use actix_web::web::Json;
 use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use anyhow::Context;
 use futures::future;
-
+use log::{debug, info};
+use serde::de::Unexpected::Str;
 
 
 use crate::client::client::Client;
@@ -14,7 +16,7 @@ use crate::client::errors::VocadbClientError;
 
 use crate::client::models::tag::{AssignableTag, TagBaseContract};
 
-use crate::web::dto::{AssignTagRequest, LookupAndAssignTagRequest, Database, DBFetchRequest, DBBeforeSinceFetchRequest, LoginRequest, LoginResponse, TagFetchRequest, Token, VideosWithEntries};
+use crate::web::dto::{AssignTagRequest, LookupAndAssignTagRequest, Database, DBFetchRequest, DBBeforeSinceFetchRequest, LoginRequest, LoginResponse, TagFetchRequest, Token, VideosWithEntries, VideosWithEntriesByVocaDbTag};
 use crate::web::errors::AppResponseError;
 use crate::web::middleware::auth_token;
 
@@ -47,7 +49,7 @@ pub async fn fetch_videos(_req: HttpRequest, payload: Json<TagFetchRequest>) -> 
     let token = extract_token(&_req)?;
     let client = client_from_token(&token)?;
 
-    let mapping = client.get_mapping(payload.tag.clone()).await?;
+    let mapping = client.get_vocadb_mapping(payload.tag.clone()).await?;
     match mapping {
         Some(m) => {
             let mappings = client.get_mapped_tags().await?;
@@ -65,7 +67,7 @@ pub async fn fetch_videos(_req: HttpRequest, payload: Json<TagFetchRequest>) -> 
                 .map(|video|
                     client.lookup_video(video,
                                         m.iter().map(|mm| mm.id.clone()).collect(),
-                                        payload.tag.clone(),
+                                        vec![payload.tag.clone()],
                                         &mappings, payload.scope_tag.clone()));
 
             let video_entries = future::try_join_all(futures).await?;
@@ -77,6 +79,46 @@ pub async fn fetch_videos(_req: HttpRequest, payload: Json<TagFetchRequest>) -> 
                 tags: tag_information,
                 tag_mappings: mappings,
                 safe_scope: response.safe_scope,
+            }));
+        }
+        None => Err(AppResponseError::NotFoundError)
+    }
+}
+
+#[post("/fetch_by_tag")]
+pub async fn fetch_videos_by_tag(_req: HttpRequest, payload: Json<TagFetchRequest>) -> Result<impl Responder> {
+    if payload.start_offset < 0 || payload.max_results < 0 || payload.max_results > 100 {
+        return Err(AppResponseError::ConstraintViolationError(String::from("Invalid ")));
+    }
+
+    let token = extract_token(&_req)?;
+    let client = client_from_token(&token)?;
+
+    let vocadb_tag = client.lookup_tag_by_name(payload.tag.clone()).await?;
+    let tag_nico_mappings = client.get_nico_mappings(vocadb_tag.id.clone()).await?;
+    match tag_nico_mappings {
+        Some(nico_mappings) => {
+            let scope_tag = nico_mappings.join(" OR ");
+            let response = client
+                .get_videos(scope_tag.clone(), payload.scope_tag.clone(), payload.start_offset, payload.max_results, payload.order_by.clone()).await?;
+
+            let mappings = client.get_mapped_tags().await?;
+
+            let futures = response.data.iter()
+                .map(|video|
+                    client.lookup_video(video,
+                                        Vec::from(vec![vocadb_tag.id.clone()]),
+                                        nico_mappings.clone(),
+                                        &mappings, payload.scope_tag.clone()));
+
+            let video_entries = future::try_join_all(futures).await?;
+
+            return Ok(Json(VideosWithEntriesByVocaDbTag {
+                items: video_entries,
+                total_video_count: response.meta.total_count,
+                tags: vec![vocadb_tag.clone()],
+                tag_mappings: nico_mappings.clone(),
+                safe_scope: payload.scope_tag.clone(),
             }));
         }
         None => Err(AppResponseError::NotFoundError)

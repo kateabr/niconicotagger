@@ -158,7 +158,10 @@
                             fetch0(startOffset, startOffset / maxResults + 1)
                           "
                           ><span v-if="fetching"><b-spinner small /></span>
-                          <span v-else>Restore page {{ startOffset / maxResults + 1 }}</span>
+                          <span v-else
+                            >Restore page
+                            {{ startOffset / maxResults + 1 }}</span
+                          >
                         </b-button>
                         <b-button
                           style="width: 80px"

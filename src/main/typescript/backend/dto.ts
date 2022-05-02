@@ -30,12 +30,6 @@ export interface FetchVideosFromDbBeforeSincePayload {
   sortRule: string;
 }
 
-export interface NicoVideo {
-  contentId: string;
-  title: string;
-  tags: string;
-}
-
 export interface NicoVideoWithTidyTags {
   contentId: string;
   title: string;
@@ -89,6 +83,14 @@ export interface MinimalTag {
 }
 
 export interface VideosWithEntries {
+  items: VideoWithEntry[];
+  totalVideoCount: number;
+  tags: AssignableTag[];
+  tagMappings: string[];
+  safeScope: string;
+}
+
+export interface VideosWithEntriesByVocaDbTag {
   items: VideoWithEntry[];
   totalVideoCount: number;
   tags: AssignableTag[];

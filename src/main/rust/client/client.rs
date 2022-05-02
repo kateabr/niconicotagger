@@ -11,6 +11,7 @@ use anyhow::Context;
 use log::{debug, info};
 use roxmltree::Document;
 use serde::de::DeserializeOwned;
+use serde::de::Unexpected::Str;
 use serde::Serialize;
 
 use crate::client::errors::Result;
@@ -23,7 +24,7 @@ use crate::client::models::misc::PartialFindResult;
 use crate::client::models::pv::{PVContract, PvService, PvType};
 use crate::client::models::query::OptionalFields;
 use crate::client::models::song::SongForApiContract;
-use crate::client::models::tag::{AssignableTag, SelectedTag, TagBaseContract, TagForApiContract, TagUsageForApiContract};
+use crate::client::models::tag::{AssignableTag, SelectedTag, TagBaseContract, TagForApiContract, TagSearchResult, TagUsageForApiContract};
 use crate::client::models::user::UserForApiContract;
 use crate::client::nicomodels::{NicoTagWithVariant, SongForApiContractWithThumbnails, SongForApiContractWithThumbnailsAndMappedTags, SongsForApiContractWithThumbnailsAndTimestamp, Tag, TagBaseContractSimplified, ThumbnailError, ThumbnailOk, ThumbnailOkWithMappedTags, ThumbnailTagMappedWithAssignAndLockInfo};
 use crate::web::dto::{DBFetchResponseWithTimestamps, DisplayableTag, NicoResponse, NicoResponseWithScope, NicoVideo, NicoVideoWithTidyTags, SongForApiContractSimplified, TagMappingContract, VideoWithEntry};
@@ -228,20 +229,21 @@ impl<'a> Client<'a> {
         max_results: i32,
         order_by: String,
     ) -> Result<NicoResponseWithScope> {
-        let mut safe_scope = scope_tag.clone();
+        let mut new_scope = scope_tag.clone();
         loop {
-            match safe_scope.trim_start().strip_prefix("OR") {
-                Some(trimmed) => safe_scope = String::from(trimmed),
+            match new_scope.trim_start().strip_prefix("OR") {
+                Some(trimmed) => new_scope = String::from(trimmed),
                 Option::None => break
             }
         }
 
-        safe_scope = String::from(safe_scope.trim_start());
+        new_scope = String::from(new_scope.trim_start());
 
+        let q = if scope_tag != "" { format!("{} {}", tag, new_scope) } else { tag };
         let response: NicoResponse = self.http_get(
             &String::from("https://api.search.nicovideo.jp/api/v2/snapshot/video/contents/search"),
             &vec![
-                ("q", if scope_tag != "" { format!("{} {}", tag, safe_scope) } else { tag }),
+                ("q", q),
                 ("_offset", start_offset.to_string()),
                 ("_limit", max_results.to_string()),
                 ("_sort", order_by),
@@ -252,7 +254,7 @@ impl<'a> Client<'a> {
             .await?;
 
         Ok(NicoResponseWithScope {
-            safe_scope,
+            safe_scope: new_scope,
             data: response.data,
             meta: response.meta,
         })
@@ -280,14 +282,23 @@ impl<'a> Client<'a> {
         return Ok(normalized);
     }
 
-    pub async fn get_mapping(&self, tag: String) -> Result<Option<Vec<TagBaseContractSimplified>>> {
-        let mappings = self.get_mappings_raw().await?;
+    pub async fn get_vocadb_mapping(&self, tag: String) -> Result<Option<Vec<TagBaseContractSimplified>>> {
         let normalized_tag = normalize(&tag);
+        let mappings = self.get_mappings_raw().await?;
 
         let tags: Vec<TagBaseContractSimplified> = mappings.into_iter()
             .filter(|t| t.source_tag == normalized_tag)
             .map(|t| t.tag).collect();
         return if tags.is_empty() { Ok(Option::None) } else { Ok(Some(tags)) };
+    }
+
+    pub async fn get_nico_mappings(&self, tag_id: i32) -> Result<Option<Vec<String>>> {
+        let mappings = self.get_mappings_raw().await?;
+
+        let tags: Vec<String> = mappings.into_iter()
+            .filter(|t| t.tag.id == tag_id)
+            .map(|t| t.source_tag).collect();
+        return if tags.is_empty() { Ok(Option::None)} else { Ok(Some(tags)) };
     }
 
     pub async fn get_mapped_tags(&self) -> Result<Vec<String>> {
@@ -334,10 +345,10 @@ impl<'a> Client<'a> {
         return if lookup_result.is_empty() { Ok(Option::None) } else { Ok(Some(lookup_result[0].entry.clone())) };
     }
 
-    pub async fn lookup_video(&self, video: &NicoVideo, src_tags: Vec<i32>, nico_tag: String, mappings: &Vec<String>, scope: String) -> Result<VideoWithEntry> {
+    pub async fn lookup_video(&self, video: &NicoVideo, src_tags: Vec<i32>, nico_tags: Vec<String>, mappings: &Vec<String>, scope: String) -> Result<VideoWithEntry> {
         let response = self.get_song_by_nico_pv(&video.id).await?;
 
-        let normalized_nico_tag = normalize(&nico_tag);
+        let normalized_nico_tags: Vec<String> = nico_tags.into_iter().map(|t| normalize(&t)).collect();
         let normalized_scope = normalize(&scope.replace(" OR ", " "));
         let normalized_scope_tags = normalized_scope.split(" ").map(|s| String::from(s)).collect::<Vec<_>>();
 
@@ -350,7 +361,7 @@ impl<'a> Client<'a> {
 
         let tags = nico_tags.iter().map(|t| {
             let normalized_t: String = normalize(t);
-            let variant = if normalized_t == normalized_nico_tag {
+            let variant = if normalized_nico_tags.contains(&normalized_t) {
                 String::from("primary")
             } else if normalized_scope_tags.iter().any(|s| s == &normalized_t) {
                 String::from("info")
@@ -414,6 +425,35 @@ impl<'a> Client<'a> {
                 });
             }
             _ => Err(VocadbClientError::NotFoundError)
+        }
+    }
+
+    pub async fn lookup_tag_by_name(&self, tag_name: String) -> Result<AssignableTag> {
+        let response: TagSearchResult = self.http_get(
+            &String::from("https://vocadb.net/api/tags/"),
+            &vec![
+                ("fields", String::from("AdditionalNames")),
+                ("query", tag_name),
+                ("maxResults", String::from("1"))
+            ],
+        ).await?;
+
+        if !response.items.is_empty() {
+            return Ok(AssignableTag {
+                version: response.items[0].version.clone(),
+                usage_count: response.items[0].usage_count.clone(),
+                url_slug: response.items[0].url_slug.clone(),
+                targets: response.items[0].targets.clone(),
+                status: response.items[0].status.to_string(),
+                name: response.items[0].name.clone(),
+                id: response.items[0].id.clone(),
+                additional_names: response.items[0].additional_names.clone(),
+                category_name: response.items[0].category_name.clone(),
+                create_date: response.items[0].create_date.clone(),
+                default_name_language: response.items[0].default_name_language.to_string(),
+            })
+        } else {
+            return Err(VocadbClientError::NotFoundError);
         }
     }
 

@@ -8,7 +8,8 @@ import {
   FetchVideosFromDbPayload,
   EntriesWithVideos,
   LookupAndAssignTagPayload,
-  FetchVideosFromDbBeforeSincePayload
+  FetchVideosFromDbBeforeSincePayload,
+  VideosWithEntriesByVocaDbTag
 } from "@/backend/dto";
 import { AxiosResponse } from "axios";
 
@@ -32,5 +33,8 @@ export const api = {
   },
   async lookUpAndAssignTag(payload: LookupAndAssignTagPayload): Promise<number> {
     return axios.post("/api/lookup_and_assign", payload).then(value => value.data);
+  },
+  async fetchVideosByTag(payload: FetchVideosPayload): Promise<VideosWithEntriesByVocaDbTag> {
+    return axios.post("/api/fetch_by_tag", payload).then(value => value.data);
   }
 };

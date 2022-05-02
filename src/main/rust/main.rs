@@ -25,6 +25,7 @@ async fn main() -> std::io::Result<()> {
                         web::middleware::auth_token::validate,
                     ))
                     .service(web::controller::fetch_videos)
+                    .service(web::controller::fetch_videos_by_tag)
                     .service(web::controller::fetch_videos_from_db)
                     .service(web::controller::fetch_videos_from_db_before_since)
                     .service(web::controller::assign_tag)

@@ -81,5 +81,13 @@ pub struct TagUsageForApiContract {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SelectedTag {
     pub tag: TagBaseContract,
-    pub selected: bool
+    pub selected: bool,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct TagSearchResult {
+    pub items: Vec<TagForApiContract>,
+    pub term: String,
+    #[serde(rename = "totalCount")]
+    pub total_count: i32,
 }

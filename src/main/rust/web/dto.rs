@@ -101,6 +101,18 @@ pub struct VideosWithEntries {
 }
 
 #[derive(Serialize)]
+pub struct VideosWithEntriesByVocaDbTag {
+    pub items: Vec<VideoWithEntry>,
+    #[serde(rename = "totalVideoCount")]
+    pub total_video_count: i32,
+    pub tags: Vec<AssignableTag>,
+    #[serde(rename = "tagMappings")]
+    pub tag_mappings: Vec<String>,
+    #[serde(rename = "safeScope")]
+    pub safe_scope: String,
+}
+
+#[derive(Serialize)]
 pub struct TagFetchResponse {
     pub videos: Vec<Option<SongForApiContract>>,
     #[serde(rename = "totalCount")]

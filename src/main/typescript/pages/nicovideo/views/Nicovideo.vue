@@ -1,487 +1,969 @@
 <template>
   <div style="display: flex; align-items: center">
     <b-container class="col-lg-11">
-      <b-row>
-        <b-toaster class="b-toaster-top-center" name="toaster-2"></b-toaster>
-        <span class="m-auto col-lg-5">
-          <b-input-group inline class="mt-lg-3">
-            <template #prepend>
-              <b-button
-                v-b-toggle.scope-collapse
-                variant="primary"
-                style="width: 80px"
-                :disabled="defaultDisableCondition()"
-                ><font-awesome-icon
-                  class="mr-sm-1"
-                  icon="fas fa-angle-down"
-                />More</b-button
-              >
-            </template>
-            <b-form-input
-              id="tag-form"
-              v-model.trim="tag"
-              :disabled="defaultDisableCondition()"
-              placeholder="Tag"
-              @keydown.enter.native="fetch(tag, 0, 1)"
-            >
-            </b-form-input>
-            <template #append>
-              <b-button
-                v-if="!fetching"
-                variant="primary"
-                style="width: 80px"
-                :disabled="tag === '' || defaultDisableCondition()"
-                @click="fetch(tag.trim(), 0, 1)"
-                >Load</b-button
-              >
-              <b-button v-else variant="primary" style="width: 80px" disabled
-                ><b-spinner small></b-spinner
-              ></b-button>
-            </template>
-          </b-input-group>
-          <b-collapse id="scope-collapse" v-model="showCollapse" class="mt-2">
-            <b-row>
-              <b-col>
-                <b-input-group inline>
-                  <b-form-input
-                    id="scope-tag-form"
-                    v-model="scopeTag"
-                    placeholder="Specify tag scope"
+      <b-toaster class="b-toaster-top-center" name="toaster-2"></b-toaster>
+      <b-toast
+        id="error"
+        title="Error"
+        no-auto-hide
+        variant="danger"
+        class="m-0 rounded-0"
+        toaster="toaster-2"
+      >
+        {{ alertMessage }}
+      </b-toast>
+      <b-tabs v-model="browseMode" class="mt-3" content-class="mt-3">
+        <b-tab title="Browse by NicoNicoDouga tag" active>
+          <b-row>
+            <span class="m-auto col-lg-5">
+              <b-input-group inline class="mt-lg-3">
+                <template #prepend>
+                  <b-button
+                    v-b-toggle.scope-collapse
+                    variant="primary"
+                    style="width: 80px"
                     :disabled="defaultDisableCondition()"
-                    @keydown.enter.native="fetch(tag.trim(), 0, 1)"
+                    ><font-awesome-icon
+                      class="mr-sm-1"
+                      icon="fas fa-angle-down"
+                    />More</b-button
                   >
-                  </b-form-input>
-                  <template #prepend>
-                    <b-button
-                      variant="secondary"
-                      style="width: 80px"
-                      @click="
-                        scopeTag =
-                          '-歌ってみた VOCALOID OR UTAU OR CEVIO OR SYNTHV OR SYNTHESIZERV OR neutrino(歌声合成エンジン) OR DeepVocal OR Alter/Ego OR AlterEgo OR AquesTalk OR AquesTone OR AquesTone2 OR ボカロ OR ボーカロイド OR 合成音声 OR 歌唱合成 OR coefont OR coefont_studio OR VOICELOID OR VOICEROID OR ENUNU'
-                      "
-                    >
-                      <font-awesome-icon icon="fa-solid fa-paste" />
-                    </b-button>
-                  </template>
-                  <template #append>
-                    <b-button
-                      variant="danger"
-                      style="width: 80px"
-                      :disabled="scopeTag === ''"
-                      @click="scopeTag = ''"
-                      >Clear</b-button
-                    >
-                  </template>
-                </b-input-group>
-              </b-col>
-            </b-row>
-            <b-row v-if="tagFrozen !== ''" class="mt-2">
-              <b-col>
-                <b-dropdown
-                  block
+                </template>
+                <b-form-input
+                  id="tag-form"
+                  v-model.trim="tag"
                   :disabled="defaultDisableCondition()"
-                  :text="getOrderingCondition()"
-                  variant="primary"
+                  placeholder="NicoNicoDouga tag"
+                  @keydown.enter.native="initPageClicked"
                 >
-                  <b-dropdown-item
-                    v-for="(key, value) in orderOptions"
-                    :key="key"
-                    :disabled="orderBy === value"
-                    @click="setOrderBy(value)"
+                </b-form-input>
+                <template #append>
+                  <b-button
+                    v-if="!fetching"
+                    variant="primary"
+                    style="width: 80px"
+                    :disabled="tag === '' || defaultDisableCondition()"
+                    @click="initPageClicked"
+                    >Load</b-button
                   >
-                    {{ orderOptions[value] }}
-                  </b-dropdown-item>
-                </b-dropdown>
-              </b-col>
-              <b-col>
-                <template>
-                  <b-input-group
-                    inline
-                    :state="pageState"
-                    invalid-feedback="Wrong page number"
-                  >
-                    <template #prepend>
-                      <b-input-group-text
-                        class="justify-content-center"
-                        style="width: 80px"
-                        >Page:</b-input-group-text
-                      >
-                    </template>
-                    <template>
+                  <b-button
+                    v-else
+                    variant="primary"
+                    style="width: 80px"
+                    disabled
+                    ><b-spinner small></b-spinner
+                  ></b-button>
+                </template>
+              </b-input-group>
+              <b-collapse
+                id="scope-collapse"
+                v-model="showCollapse"
+                class="mt-2"
+              >
+                <b-row>
+                  <b-col>
+                    <b-input-group inline>
                       <b-form-input
-                        id="page-jump-form"
-                        v-model.number="pageToJump"
-                        type="number"
+                        id="scope-tag-form"
+                        v-model="scopeTag"
+                        placeholder="Specify tag scope (NND)"
                         :disabled="defaultDisableCondition()"
-                        aria-describedby="input-live-help input-live-feedback"
-                        :state="pageState()"
-                        @keydown.enter.native="
-                          pageState()
-                            ? fetch(
-                                tagFrozen,
-                                (pageToJump - 1) * maxResults,
-                                pageToJump
-                              )
-                            : null
-                        "
+                        @keydown.enter.native="initPageClicked"
                       >
                       </b-form-input>
-                    </template>
-                    <template #append>
-                      <b-button
-                        style="width: 80px"
-                        :variant="pageState() ? 'success' : 'danger'"
-                        :disabled="defaultDisableCondition() || !pageState()"
-                        @click="
-                          fetch(
-                            tagFrozen,
-                            (pageToJump - 1) * maxResults,
-                            pageToJump
-                          )
-                        "
-                        ><span v-if="pageToJump === page">Refresh</span
-                        ><span v-else>Jump</span></b-button
+                      <template #prepend>
+                        <b-button
+                          variant="secondary"
+                          style="width: 80px"
+                          @click="
+                            scopeTag =
+                              '-歌ってみた VOCALOID OR UTAU OR CEVIO OR SYNTHV OR SYNTHESIZERV OR neutrino(歌声合成エンジン) OR DeepVocal OR Alter/Ego OR AlterEgo OR AquesTalk OR AquesTone OR AquesTone2 OR ボカロ OR ボーカロイド OR 合成音声 OR 歌唱合成 OR coefont OR coefont_studio OR VOICELOID OR VOICEROID OR ENUNU'
+                          "
+                        >
+                          <font-awesome-icon icon="fa-solid fa-paste" />
+                        </b-button>
+                      </template>
+                      <template #append>
+                        <b-button
+                          variant="danger"
+                          style="width: 80px"
+                          :disabled="scopeTag === ''"
+                          @click="scopeTag = ''"
+                          >Clear</b-button
+                        >
+                      </template>
+                    </b-input-group>
+                  </b-col>
+                </b-row>
+                <b-row v-if="tagFrozen !== ''" class="mt-2">
+                  <b-col>
+                    <b-dropdown
+                      block
+                      :disabled="defaultDisableCondition()"
+                      :text="getOrderingCondition()"
+                      variant="primary"
+                    >
+                      <b-dropdown-item
+                        v-for="(key, value) in orderOptions"
+                        :key="key"
+                        :disabled="orderBy === value"
+                        @click="setOrderBy(value)"
                       >
+                        {{ orderOptions[value] }}
+                      </b-dropdown-item>
+                    </b-dropdown>
+                  </b-col>
+                  <b-col>
+                    <template>
+                      <b-input-group
+                        inline
+                        :state="pageState"
+                        invalid-feedback="Wrong page number"
+                      >
+                        <template #prepend>
+                          <b-input-group-text
+                            class="justify-content-center"
+                            style="width: 80px"
+                            >Page:</b-input-group-text
+                          >
+                        </template>
+                        <template>
+                          <b-form-input
+                            id="page-jump-form"
+                            v-model.number="pageToJump"
+                            type="number"
+                            :disabled="defaultDisableCondition()"
+                            aria-describedby="input-live-help input-live-feedback"
+                            :state="pageState()"
+                            @keydown.enter.native="
+                              pageState() ? pageClicked(pageToJump) : null
+                            "
+                          >
+                          </b-form-input>
+                        </template>
+                        <template #append>
+                          <b-button
+                            style="width: 80px"
+                            :variant="pageState() ? 'success' : 'danger'"
+                            :disabled="
+                              defaultDisableCondition() || !pageState()
+                            "
+                            @click="pageClicked(pageToJump)"
+                            ><span v-if="pageToJump === page">Refresh</span
+                            ><span v-else>Jump</span></b-button
+                          >
+                        </template>
+                      </b-input-group>
                     </template>
-                  </b-input-group>
-                </template>
-              </b-col>
-            </b-row>
-          </b-collapse>
-        </span>
-        <b-toast
-          id="error"
-          title="Error"
-          no-auto-hide
-          variant="danger"
-          class="m-0 rounded-0"
-          toaster="toaster-2"
-        >
-          {{ alertMessage }}
-        </b-toast>
-      </b-row>
-      <b-row
-        v-if="tagInfo.length !== 0"
-        class="mt-lg-3 pt-lg-3 pb-lg-3 col-lg-12 text-center m-auto alert-primary rounded p-sm-2 bg-light progress-bar-striped"
-      >
-        <b-col class="my-auto"
-          >Tag:<br /><strong>
-            <a
-              v-if="tagInfo.length !== 0"
-              target="_blank"
-              :href="getNicoTag(tagFrozen, scopeTagFrozen !== '')"
-              >{{ tagFrozen }}</a
-            >
-          </strong></b-col
-        >
-        <b-col class="my-auto"
-          >Mapped to:<br />
-          <strong v-for="(tag, key) in tagMappings" :key="key">
-            <a target="_blank" :href="getVocaDBTag(tagInfo[key])">{{ tag }}</a
-            ><span v-if="tagMappings.length - key > 1">, </span>
-          </strong>
-        </b-col>
-        <b-col class="my-auto"
-          >Videos found:<br /><strong>{{ totalVideoCount }}</strong></b-col
-        >
-        <b-col class="my-auto">
-          <b-dropdown
-            block
-            :disabled="defaultDisableCondition()"
-            :text="getResultNumberStr()"
-            class="my-auto"
-            variant="primary"
+                  </b-col>
+                </b-row>
+              </b-collapse>
+            </span>
+          </b-row>
+          <b-row
+            v-if="tagInfo.length !== 0 && videos1.length === 0"
+            class="mt-lg-3 pt-lg-3 pb-lg-3 col-lg-12 text-center m-auto alert-primary rounded p-sm-2 bg-light progress-bar-striped"
           >
-            <b-dropdown-item
-              :disabled="maxResults === 10"
-              @click="setMaxResults(10)"
-              >10
-            </b-dropdown-item>
-            <b-dropdown-item
-              :disabled="maxResults === 25"
-              @click="setMaxResults(25)"
-              >25
-            </b-dropdown-item>
-            <b-dropdown-item
-              :disabled="maxResults === 50"
-              @click="setMaxResults(50)"
-              >50
-            </b-dropdown-item>
-            <b-dropdown-item
-              :disabled="maxResults === 100"
-              @click="setMaxResults(100)"
-              >100
-            </b-dropdown-item>
-          </b-dropdown>
-        </b-col>
-        <b-col class="my-auto">
-          <b-button
-            :disabled="defaultDisableCondition()"
-            variant="primary"
-            block
-            :pressed.sync="noEntry"
-            @click="filter"
-            >Videos without entries
-          </b-button>
-        </b-col>
-        <b-col class="my-auto">
-          <b-button
-            :disabled="defaultDisableCondition()"
-            variant="primary"
-            block
-            :pressed.sync="tagged"
-            @click="filter"
-            >Tagged songs
-          </b-button>
-        </b-col>
-      </b-row>
-      <b-row v-if="tagInfo.length > 0">
-        <b-col class="col-12">
-          <div class="text-center pt-sm-3">
-            <b-button-group>
-              <b-button
-                v-for="(type, key) in songTypes"
-                :key="key"
-                class="pl-4 pr-4"
-                :disabled="defaultDisableCondition()"
-                :variant="
-                  (type.show ? '' : 'outline-') + getSongTypeVariant(type.name)
-                "
-                @click="
-                  type.show = !type.show;
-                  filter();
-                "
-                >{{ getTypeInfo(type.name) }}
-              </b-button>
-            </b-button-group>
-          </div>
-        </b-col>
-      </b-row>
-      <b-row v-if="tagInfo.length !== 0">
-        <template>
-          <div class="overflow-auto m-auto mt-lg-3">
-            <b-pagination
-              v-model="page"
-              align="center"
-              :total-rows="totalVideoCount"
-              :per-page="maxResults"
-              use-router
-              first-number
-              last-number
-              limit="10"
-              :disabled="defaultDisableCondition()"
-              @change="pageClicked"
-            ></b-pagination>
-          </div>
-        </template>
-      </b-row>
-      <b-row v-if="tagInfo.length !== 0">
-        <b-table-simple
-          hover
-          :disabled="defaultDisableCondition()"
-          class="mt-1 col-lg-12"
-        >
-          <b-thead>
-            <b-th>
-              <b-form-checkbox
-                v-model="allChecked"
-                size="lg"
-                :disabled="defaultDisableCondition()"
-                @change="checkAll"
-              ></b-form-checkbox>
-            </b-th>
-            <b-th class="col-8 align-middle">Video</b-th>
-            <b-th class="col-3 align-middle">Entry</b-th>
-            <b-th class="col-1 align-middle">Tag</b-th>
-          </b-thead>
-          <b-tbody v-if="videosToDisplay.length > 0">
-            <b-tr
-              v-for="(value, key) in videosToDisplay"
-              :id="value.video.contentId"
-              :key="key"
-            >
-              <b-td>
-                <div
-                  v-if="value.songEntry != null && !value.songEntry.tagInTags"
+            <b-col class="my-auto"
+              >Tag:<br /><strong>
+                <a
+                  v-if="tagInfo.length !== 0"
+                  target="_blank"
+                  :href="getNicoTag(tagFrozen, scopeTagFrozen !== '')"
+                  >{{ tagFrozen }}</a
                 >
+              </strong></b-col
+            >
+            <b-col class="my-auto"
+              >Mapped to:<br />
+              <strong v-for="(tag, key) in tagMappings" :key="key">
+                <a target="_blank" :href="getVocaDBTag(tagInfo[key])">{{
+                  tag
+                }}</a
+                ><span v-if="tagMappings.length - key > 1">, </span>
+              </strong>
+            </b-col>
+            <b-col class="my-auto"
+              >Videos found:<br /><strong>{{ totalVideoCount }}</strong></b-col
+            >
+            <b-col class="my-auto">
+              <b-dropdown
+                block
+                :disabled="defaultDisableCondition()"
+                :text="getResultNumberStr()"
+                class="my-auto"
+                variant="primary"
+              >
+                <b-dropdown-item
+                  :disabled="maxResults === 10"
+                  @click="setMaxResults(10)"
+                  >10
+                </b-dropdown-item>
+                <b-dropdown-item
+                  :disabled="maxResults === 25"
+                  @click="setMaxResults(25)"
+                  >25
+                </b-dropdown-item>
+                <b-dropdown-item
+                  :disabled="maxResults === 50"
+                  @click="setMaxResults(50)"
+                  >50
+                </b-dropdown-item>
+                <b-dropdown-item
+                  :disabled="maxResults === 100"
+                  @click="setMaxResults(100)"
+                  >100
+                </b-dropdown-item>
+              </b-dropdown>
+            </b-col>
+            <b-col class="my-auto">
+              <b-button
+                :disabled="defaultDisableCondition()"
+                variant="primary"
+                block
+                :pressed.sync="noEntry"
+                @click="filter"
+                >Videos without entries
+              </b-button>
+            </b-col>
+            <b-col class="my-auto">
+              <b-button
+                :disabled="defaultDisableCondition()"
+                variant="primary"
+                block
+                :pressed.sync="tagged"
+                @click="filter"
+                >Tagged songs
+              </b-button>
+            </b-col>
+          </b-row>
+          <b-row v-if="tagInfo.length > 0 && videos1.length === 0">
+            <b-col class="col-12">
+              <div class="text-center pt-sm-3">
+                <b-button-group>
+                  <b-button
+                    v-for="(type, key) in songTypes"
+                    :key="key"
+                    class="pl-4 pr-4"
+                    :disabled="defaultDisableCondition()"
+                    :variant="
+                      (type.show ? '' : 'outline-') +
+                      getSongTypeVariant(type.name)
+                    "
+                    @click="
+                      type.show = !type.show;
+                      filter();
+                    "
+                    >{{ getTypeInfo(type.name) }}
+                  </b-button>
+                </b-button-group>
+              </div>
+            </b-col>
+          </b-row>
+          <b-row v-if="tagInfo.length !== 0 && videos1.length === 0">
+            <template>
+              <div class="overflow-auto m-auto mt-lg-3">
+                <b-pagination
+                  v-model="page"
+                  align="center"
+                  :total-rows="totalVideoCount"
+                  :per-page="maxResults"
+                  use-router
+                  first-number
+                  last-number
+                  limit="10"
+                  :disabled="defaultDisableCondition()"
+                  @change="pageClicked"
+                ></b-pagination>
+              </div>
+            </template>
+          </b-row>
+          <b-row v-if="tagInfo.length !== 0 && videos1.length === 0">
+            <b-table-simple hover class="mt-1 col-lg-12">
+              <b-thead>
+                <b-th>
                   <b-form-checkbox
-                    v-model="value.toAssign"
+                    v-model="allChecked"
                     size="lg"
                     :disabled="defaultDisableCondition()"
+                    @change="checkAll"
                   ></b-form-checkbox>
-                </div>
-              </b-td>
-              <b-td>
-                <b-button
-                  :disabled="defaultDisableCondition()"
-                  size="sm"
-                  variant="primary-outline"
-                  class="mr-2"
-                  @click="value.visible = !value.visible"
+                </b-th>
+                <b-th class="col-8 align-middle">Video</b-th>
+                <b-th class="col-3 align-middle">Entry</b-th>
+                <b-th class="col-1 align-middle">Tag</b-th>
+              </b-thead>
+              <b-tbody v-if="videosToDisplay0.length > 0">
+                <b-tr
+                  v-for="(value, key) in videosToDisplay0"
+                  :id="value.video.contentId"
+                  :key="key"
                 >
-                  <font-awesome-icon icon="fas fa-play"
-                /></b-button>
-                <a
-                  target="_blank"
-                  :href="getVideoUrl(value.video)"
-                  v-html="value.video.title"
-                ></a>
-                <div>
-                  <b-badge
-                    v-for="(value1, key1) in value.video.tags"
-                    :key="key1"
-                    v-clipboard:copy="value1.name"
-                    class="m-sm-1"
-                    :variant="value1.variant"
-                    href="#"
-                    ><font-awesome-icon icon="fas fa-tag" class="mr-1" />{{
-                      value1.name
-                    }}
-                  </b-badge>
-                </div>
-                <b-collapse
-                  :id="getCollapseId(value.video.contentId)"
-                  :visible="value.visible && !fetching"
-                  class="mt-2 collapsed"
-                >
-                  <b-card
-                    v-cloak
-                    :id="'embed_' + value.video.contentId"
-                    class="embed-responsive embed-responsive-16by9"
-                  >
-                    <iframe
-                      v-if="value.visible && !fetching"
-                      class="embed-responsive-item"
-                      allowfullscreen="allowfullscreen"
-                      style="border: none"
-                      :src="getEmbedAddr(value.video.contentId)"
-                    ></iframe>
-                  </b-card>
-                </b-collapse>
-              </b-td>
-              <b-td>
-                <div v-if="value.songEntry != null">
-                  <a
-                    target="_blank"
-                    :href="getEntryUrl(value.songEntry)"
-                    v-html="value.songEntry.name"
-                  ></a>
-                  <a target="_blank" :href="getEntryUrl(value.songEntry)">
-                    <b-badge
-                      class="badge text-center ml-2"
-                      :variant="getSongTypeVariant(value.songEntry.songType)"
+                  <b-td>
+                    <div
+                      v-if="
+                        value.songEntry != null && !value.songEntry.tagInTags
+                      "
                     >
-                      {{ getSongType(value.songEntry.songType) }}
-                    </b-badge>
-                  </a>
-                  <div class="text-muted">
-                    {{ value.songEntry.artistString }}
-                  </div>
-                </div>
-                <div v-else>
-                  <b-button
-                    size="sm"
-                    :disabled="fetching"
-                    :href="getAddSongUrl(value.video.contentId)"
-                    target="_blank"
-                    >Add to the database
-                  </b-button>
-                  <div class="small text-secondary" v-if="value.publisher !== null">
-                    Published by <a target="_blank" :href="getArtistUrl(value.publisher)">{{ value.publisher.name.displayName }}</a>
-                  </div>
-                </div>
-              </b-td>
-              <b-td>
-                <div v-if="value.songEntry != null">
-                  <b-button-toolbar key-nav>
+                      <b-form-checkbox
+                        v-model="value.toAssign"
+                        size="lg"
+                        :disabled="defaultDisableCondition()"
+                      ></b-form-checkbox>
+                    </div>
+                  </b-td>
+                  <b-td>
                     <b-button
-                      v-if="value.songEntry.tagInTags"
-                      style="pointer-events: none"
-                      class="btn disabled"
-                      variant="success"
-                    >
-                      <font-awesome-icon icon="fas fa-check" />
-                    </b-button>
-                    <b-button
-                      v-else
-                      :id="getButtonId(value.songEntry)"
                       :disabled="defaultDisableCondition()"
-                      class="btn"
-                      variant="outline-success"
-                      @click="assign(value.songEntry.id)"
+                      size="sm"
+                      variant="primary-outline"
+                      class="mr-2"
+                      @click="value.visible = !value.visible"
                     >
-                      <font-awesome-icon icon="fas fa-plus" />
+                      <font-awesome-icon icon="fas fa-play" />
                     </b-button>
-                  </b-button-toolbar>
-                </div>
-              </b-td>
-            </b-tr>
-          </b-tbody>
-          <b-tbody v-else>
-            <b-tr>
-              <b-td colspan="4" class="text-center text-muted">
-                <small>No items to display</small>
-              </b-td>
-            </b-tr>
-          </b-tbody>
-          <b-tfoot>
-            <b-th>
-              <b-form-checkbox
-                v-model="allChecked"
-                size="lg"
-                :disabled="defaultDisableCondition()"
-                @change="checkAll"
-              ></b-form-checkbox>
-            </b-th>
-            <b-th class="col-8 align-middle">Video</b-th>
-            <b-th class="col-3 align-middle">Entry</b-th>
-            <b-th class="col-1 align-middle">Tag</b-th>
-          </b-tfoot>
-        </b-table-simple>
-      </b-row>
-      <b-row
-        v-if="tagInfo.length !== 0"
-        class="mt-lg-1 col-lg-12 text-center m-auto alert-primary rounded p-sm-2 bg-light progress-bar-striped"
-      >
-        <b-col class="col-lg-3 m-auto">
-          <b-button
-            block
-            variant="primary"
-            :disabled="countChecked() === 0 || massAssigning || fetching"
-            @click="assignMultiple"
+                    <a
+                      target="_blank"
+                      :href="getVideoUrl(value.video)"
+                      v-html="value.video.title"
+                    ></a>
+                    <div>
+                      <b-badge
+                        v-for="(value1, key1) in value.video.tags"
+                        :key="key1"
+                        v-clipboard:copy="value1.name"
+                        class="m-sm-1"
+                        :variant="value1.variant"
+                        href="#"
+                      >
+                        <font-awesome-icon icon="fas fa-tag" class="mr-1" />
+                        {{ value1.name }}
+                      </b-badge>
+                    </div>
+                    <b-collapse
+                      :id="getCollapseId(value.video.contentId)"
+                      :visible="value.visible && !fetching"
+                      class="mt-2 collapsed"
+                    >
+                      <b-card
+                        v-cloak
+                        :id="'embed_' + value.video.contentId"
+                        class="embed-responsive embed-responsive-16by9"
+                      >
+                        <iframe
+                          v-if="value.visible && !fetching"
+                          class="embed-responsive-item"
+                          allowfullscreen="allowfullscreen"
+                          style="border: none"
+                          :src="getEmbedAddr(value.video.contentId)"
+                        ></iframe>
+                      </b-card>
+                    </b-collapse>
+                  </b-td>
+                  <b-td>
+                    <div v-if="value.songEntry != null">
+                      <a
+                        target="_blank"
+                        :href="getEntryUrl(value.songEntry)"
+                        v-html="value.songEntry.name"
+                      ></a>
+                      <a target="_blank" :href="getEntryUrl(value.songEntry)">
+                        <b-badge
+                          class="badge text-center ml-2"
+                          :variant="
+                            getSongTypeVariant(value.songEntry.songType)
+                          "
+                        >
+                          {{ getSongType(value.songEntry.songType) }}
+                        </b-badge>
+                      </a>
+                      <div class="text-muted">
+                        {{ value.songEntry.artistString }}
+                      </div>
+                    </div>
+                    <div v-else>
+                      <b-button
+                        size="sm"
+                        :disabled="fetching"
+                        :href="getAddSongUrl(value.video.contentId)"
+                        target="_blank"
+                        >Add to the database
+                      </b-button>
+                      <div
+                        v-if="value.publisher !== null"
+                        class="small text-secondary"
+                      >
+                        Published by
+                        <a
+                          target="_blank"
+                          :href="getArtistUrl(value.publisher)"
+                          >{{ value.publisher.name.displayName }}</a
+                        >
+                      </div>
+                    </div>
+                  </b-td>
+                  <b-td>
+                    <div v-if="value.songEntry != null">
+                      <b-button-toolbar key-nav>
+                        <b-button
+                          v-if="value.songEntry.tagInTags"
+                          style="pointer-events: none"
+                          class="btn disabled"
+                          variant="success"
+                        >
+                          <font-awesome-icon icon="fas fa-check" />
+                        </b-button>
+                        <b-button
+                          v-else
+                          :id="getButtonId(value.songEntry)"
+                          :disabled="defaultDisableCondition()"
+                          class="btn"
+                          variant="outline-success"
+                          @click="assign(value.songEntry.id)"
+                        >
+                          <font-awesome-icon icon="fas fa-plus" />
+                        </b-button>
+                      </b-button-toolbar>
+                    </div>
+                  </b-td>
+                </b-tr>
+              </b-tbody>
+              <b-tbody v-else>
+                <b-tr>
+                  <b-td colspan="4" class="text-center text-muted">
+                    <small>No items to display</small>
+                  </b-td>
+                </b-tr>
+              </b-tbody>
+              <b-tfoot>
+                <b-th>
+                  <b-form-checkbox
+                    v-model="allChecked"
+                    size="lg"
+                    :disabled="defaultDisableCondition()"
+                    @change="checkAll"
+                  ></b-form-checkbox>
+                </b-th>
+                <b-th class="col-8 align-middle">Video</b-th>
+                <b-th class="col-3 align-middle">Entry</b-th>
+                <b-th class="col-1 align-middle">Tag</b-th>
+              </b-tfoot>
+            </b-table-simple>
+          </b-row>
+          <b-row
+            v-if="tagInfo.length !== 0 && videos1.length === 0"
+            class="mt-lg-1 col-lg-12 text-center m-auto alert-primary rounded p-sm-2 bg-light progress-bar-striped"
           >
-            <div v-if="massAssigning">
-              <b-spinner small class="mr-1"></b-spinner>
-              Assigning...
+            <b-col class="col-lg-3 m-auto">
+              <b-button
+                block
+                variant="primary"
+                :disabled="countChecked() === 0 || massAssigning || fetching"
+                @click="assignMultiple"
+              >
+                <div v-if="massAssigning">
+                  <b-spinner small class="mr-1"></b-spinner>
+                  Assigning...
+                </div>
+                <div v-else>Batch assign ({{ countChecked() }} selected)</div>
+              </b-button>
+            </b-col>
+          </b-row>
+          <b-row v-if="tagInfo.length !== 0 && videos1.length === 0">
+            <div class="overflow-auto m-auto mt-lg-4">
+              <b-pagination
+                v-model="page"
+                class="mb-5"
+                align="center"
+                :total-rows="totalVideoCount"
+                :per-page="maxResults"
+                use-router
+                first-number
+                last-number
+                limit="10"
+                :disabled="defaultDisableCondition()"
+                @change="pageClicked"
+              ></b-pagination>
             </div>
-            <div v-else>Batch assign ({{ countChecked() }} selected)</div>
-          </b-button>
-        </b-col>
-      </b-row>
-      <b-row v-if="tagInfo.length !== 0">
-        <div class="overflow-auto m-auto mt-lg-4">
-          <b-pagination
-            v-model="page"
-            class="mb-5"
-            align="center"
-            :total-rows="totalVideoCount"
-            :per-page="maxResults"
-            use-router
-            first-number
-            last-number
-            limit="10"
-            :disabled="defaultDisableCondition()"
-            @change="pageClicked"
-          ></b-pagination>
-        </div>
-      </b-row>
+          </b-row>
+        </b-tab>
+        <b-tab title="Browse by VocaDB tag">
+          <b-row>
+            <span class="m-auto col-lg-5">
+              <b-input-group inline class="mt-lg-3">
+                <template #prepend>
+                  <b-button
+                    v-b-toggle.scope-collapse
+                    variant="primary"
+                    style="width: 80px"
+                    :disabled="defaultDisableCondition()"
+                    ><font-awesome-icon
+                      class="mr-sm-1"
+                      icon="fas fa-angle-down"
+                    />More</b-button
+                  >
+                </template>
+                <b-form-input
+                  id="tag-form"
+                  v-model.trim="tag"
+                  :disabled="defaultDisableCondition()"
+                  placeholder="VocaDB tag"
+                  @keydown.enter.native="initPageClicked"
+                >
+                </b-form-input>
+                <template #append>
+                  <b-button
+                    v-if="!fetching"
+                    variant="primary"
+                    style="width: 80px"
+                    :disabled="tag === '' || defaultDisableCondition()"
+                    @click="initPageClicked"
+                    >Load</b-button
+                  >
+                  <b-button
+                    v-else
+                    variant="primary"
+                    style="width: 80px"
+                    disabled
+                    ><b-spinner small></b-spinner
+                  ></b-button>
+                </template>
+              </b-input-group>
+              <b-collapse
+                id="scope-collapse"
+                v-model="showCollapse"
+                class="mt-2"
+              >
+                <b-row>
+                  <b-col>
+                    <b-input-group inline>
+                      <b-form-input
+                        id="scope-tag-form"
+                        v-model="scopeTag"
+                        placeholder="Specify tag scope (NND)"
+                        :disabled="defaultDisableCondition()"
+                        @keydown.enter.native="initPageClicked"
+                      >
+                      </b-form-input>
+                      <template #prepend>
+                        <b-button
+                          variant="secondary"
+                          style="width: 80px"
+                          @click="
+                            scopeTag =
+                              '-歌ってみた VOCALOID OR UTAU OR CEVIO OR SYNTHV OR SYNTHESIZERV OR neutrino(歌声合成エンジン) OR DeepVocal OR Alter/Ego OR AlterEgo OR AquesTalk OR AquesTone OR AquesTone2 OR ボカロ OR ボーカロイド OR 合成音声 OR 歌唱合成 OR coefont OR coefont_studio OR VOICELOID OR VOICEROID OR ENUNU'
+                          "
+                        >
+                          <font-awesome-icon icon="fa-solid fa-paste" />
+                        </b-button>
+                      </template>
+                      <template #append>
+                        <b-button
+                          variant="danger"
+                          style="width: 80px"
+                          :disabled="scopeTag === ''"
+                          @click="scopeTag = ''"
+                          >Clear</b-button
+                        >
+                      </template>
+                    </b-input-group>
+                  </b-col>
+                </b-row>
+                <b-row v-if="tagFrozen !== ''" class="mt-2">
+                  <b-col>
+                    <b-dropdown
+                      block
+                      :disabled="defaultDisableCondition()"
+                      :text="getOrderingCondition()"
+                      variant="primary"
+                    >
+                      <b-dropdown-item
+                        v-for="(key, value) in orderOptions"
+                        :key="key"
+                        :disabled="orderBy === value"
+                        @click="setOrderBy(value)"
+                      >
+                        {{ orderOptions[value] }}
+                      </b-dropdown-item>
+                    </b-dropdown>
+                  </b-col>
+                  <b-col>
+                    <template>
+                      <b-input-group
+                        inline
+                        :state="pageState"
+                        invalid-feedback="Wrong page number"
+                      >
+                        <template #prepend>
+                          <b-input-group-text
+                            class="justify-content-center"
+                            style="width: 80px"
+                            >Page:</b-input-group-text
+                          >
+                        </template>
+                        <template>
+                          <b-form-input
+                            id="page-jump-form"
+                            v-model.number="pageToJump"
+                            type="number"
+                            :disabled="defaultDisableCondition()"
+                            aria-describedby="input-live-help input-live-feedback"
+                            :state="pageState()"
+                            @keydown.enter.native="
+                              pageState() ? pageClicked(pageToJump) : null
+                            "
+                          >
+                          </b-form-input>
+                        </template>
+                        <template #append>
+                          <b-button
+                            style="width: 80px"
+                            :variant="pageState() ? 'success' : 'danger'"
+                            :disabled="
+                              defaultDisableCondition() || !pageState()
+                            "
+                            @click="pageClicked(pageToJump)"
+                            ><span v-if="pageToJump === page">Refresh</span
+                            ><span v-else>Jump</span></b-button
+                          >
+                        </template>
+                      </b-input-group>
+                    </template>
+                  </b-col>
+                </b-row>
+              </b-collapse>
+            </span>
+          </b-row>
+          <b-row
+            v-if="tagInfo.length !== 0 && videos0.length === 0"
+            class="mt-lg-3 pt-lg-3 pb-lg-3 col-lg-12 text-center m-auto alert-primary rounded p-sm-2 bg-light progress-bar-striped"
+          >
+            <b-col class="my-auto"
+              >Tag:<br /><strong>
+                <a
+                  v-if="tagInfo.length !== 0"
+                  target="_blank"
+                  :href="getVocaDBTag(tagInfo[0])"
+                  >{{ tagFrozen }}</a
+                >
+              </strong></b-col
+            >
+            <b-col class="my-auto"
+              >Videos found:<br /><strong>{{ totalVideoCount }}</strong></b-col
+            >
+            <b-col class="my-auto">
+              <b-dropdown
+                block
+                :disabled="defaultDisableCondition()"
+                :text="getResultNumberStr()"
+                class="my-auto"
+                variant="primary"
+              >
+                <b-dropdown-item
+                  :disabled="maxResults === 10"
+                  @click="setMaxResults(10)"
+                  >10
+                </b-dropdown-item>
+                <b-dropdown-item
+                  :disabled="maxResults === 25"
+                  @click="setMaxResults(25)"
+                  >25
+                </b-dropdown-item>
+                <b-dropdown-item
+                  :disabled="maxResults === 50"
+                  @click="setMaxResults(50)"
+                  >50
+                </b-dropdown-item>
+                <b-dropdown-item
+                  :disabled="maxResults === 100"
+                  @click="setMaxResults(100)"
+                  >100
+                </b-dropdown-item>
+              </b-dropdown>
+            </b-col>
+            <b-col class="my-auto">
+              <b-button
+                :disabled="defaultDisableCondition()"
+                variant="primary"
+                block
+                :pressed.sync="noEntry"
+                @click="filter"
+                >Videos without entries
+              </b-button>
+            </b-col>
+            <b-col class="my-auto">
+              <b-button
+                :disabled="defaultDisableCondition()"
+                variant="primary"
+                block
+                :pressed.sync="tagged"
+                @click="filter"
+                >Tagged songs
+              </b-button>
+            </b-col>
+          </b-row>
+          <b-row v-if="tagInfo.length > 0 && videos0.length === 0">
+            <b-col class="col-12">
+              <div class="text-center pt-sm-3">
+                <b-button-group>
+                  <b-button
+                    v-for="(type, key) in songTypes"
+                    :key="key"
+                    class="pl-4 pr-4"
+                    :disabled="defaultDisableCondition()"
+                    :variant="
+                      (type.show ? '' : 'outline-') +
+                      getSongTypeVariant(type.name)
+                    "
+                    @click="
+                      type.show = !type.show;
+                      filter();
+                    "
+                    >{{ getTypeInfo(type.name) }}
+                  </b-button>
+                </b-button-group>
+              </div>
+            </b-col>
+          </b-row>
+          <b-row v-if="tagInfo.length !== 0 && videos0.length === 0">
+            <template>
+              <div class="overflow-auto m-auto mt-lg-3">
+                <b-pagination
+                  v-model="page"
+                  align="center"
+                  :total-rows="totalVideoCount"
+                  :per-page="maxResults"
+                  use-router
+                  first-number
+                  last-number
+                  limit="10"
+                  :disabled="defaultDisableCondition()"
+                  @change="pageClicked"
+                ></b-pagination>
+              </div>
+            </template>
+          </b-row>
+          <b-row v-if="tagInfo.length !== 0 && videos0.length === 0">
+            <b-table-simple hover class="mt-1 col-lg-12">
+              <b-thead>
+                <b-th>
+                  <b-form-checkbox
+                    v-model="allChecked"
+                    size="lg"
+                    :disabled="
+                      defaultDisableCondition() || videos1.length === 0
+                    "
+                    @change="checkAll"
+                  ></b-form-checkbox>
+                </b-th>
+                <b-th class="col-8 align-middle">Video</b-th>
+                <b-th class="col-3 align-middle">Entry</b-th>
+                <b-th class="col-1 align-middle">Tag</b-th>
+              </b-thead>
+              <b-tbody v-if="videosToDisplay1.length > 0">
+                <b-tr
+                  v-for="(value, key) in videosToDisplay1"
+                  :id="value.video.contentId"
+                  :key="key"
+                >
+                  <b-td>
+                    <div
+                      v-if="
+                        value.songEntry != null && !value.songEntry.tagInTags
+                      "
+                    >
+                      <b-form-checkbox
+                        v-model="value.toAssign"
+                        size="lg"
+                        :disabled="defaultDisableCondition()"
+                      ></b-form-checkbox>
+                    </div>
+                  </b-td>
+                  <b-td>
+                    <b-button
+                      :disabled="defaultDisableCondition()"
+                      size="sm"
+                      variant="primary-outline"
+                      class="mr-2"
+                      @click="value.visible = !value.visible"
+                    >
+                      <font-awesome-icon icon="fas fa-play" />
+                    </b-button>
+                    <a
+                      target="_blank"
+                      :href="getVideoUrl(value.video)"
+                      v-html="value.video.title"
+                    ></a>
+                    <div>
+                      <b-badge
+                        v-for="(value1, key1) in value.video.tags"
+                        :key="key1"
+                        v-clipboard:copy="value1.name"
+                        class="m-sm-1"
+                        :variant="value1.variant"
+                        href="#"
+                      >
+                        <font-awesome-icon icon="fas fa-tag" class="mr-1" />
+                        {{ value1.name }}
+                      </b-badge>
+                    </div>
+                    <b-collapse
+                      :id="getCollapseId(value.video.contentId)"
+                      :visible="value.visible && !fetching"
+                      class="mt-2 collapsed"
+                    >
+                      <b-card
+                        v-cloak
+                        :id="'embed_' + value.video.contentId"
+                        class="embed-responsive embed-responsive-16by9"
+                      >
+                        <iframe
+                          v-if="value.visible && !fetching"
+                          class="embed-responsive-item"
+                          allowfullscreen="allowfullscreen"
+                          style="border: none"
+                          :src="getEmbedAddr(value.video.contentId)"
+                        ></iframe>
+                      </b-card>
+                    </b-collapse>
+                  </b-td>
+                  <b-td>
+                    <div v-if="value.songEntry != null">
+                      <a
+                        target="_blank"
+                        :href="getEntryUrl(value.songEntry)"
+                        v-html="value.songEntry.name"
+                      ></a>
+                      <a target="_blank" :href="getEntryUrl(value.songEntry)">
+                        <b-badge
+                          class="badge text-center ml-2"
+                          :variant="
+                            getSongTypeVariant(value.songEntry.songType)
+                          "
+                        >
+                          {{ getSongType(value.songEntry.songType) }}
+                        </b-badge>
+                      </a>
+                      <div class="text-muted">
+                        {{ value.songEntry.artistString }}
+                      </div>
+                    </div>
+                    <div v-else>
+                      <b-button
+                        size="sm"
+                        :disabled="fetching"
+                        :href="getAddSongUrl(value.video.contentId)"
+                        target="_blank"
+                        >Add to the database
+                      </b-button>
+                      <div
+                        v-if="value.publisher !== null"
+                        class="small text-secondary"
+                      >
+                        Published by
+                        <a
+                          target="_blank"
+                          :href="getArtistUrl(value.publisher)"
+                          >{{ value.publisher.name.displayName }}</a
+                        >
+                      </div>
+                    </div>
+                  </b-td>
+                  <b-td>
+                    <div v-if="value.songEntry != null">
+                      <b-button-toolbar key-nav>
+                        <b-button
+                          v-if="value.songEntry.tagInTags"
+                          style="pointer-events: none"
+                          class="btn disabled"
+                          variant="success"
+                        >
+                          <font-awesome-icon icon="fas fa-check" />
+                        </b-button>
+                        <b-button
+                          v-else
+                          :id="getButtonId(value.songEntry)"
+                          :disabled="defaultDisableCondition()"
+                          class="btn"
+                          variant="outline-success"
+                          @click="assign(value.songEntry.id)"
+                        >
+                          <font-awesome-icon icon="fas fa-plus" />
+                        </b-button>
+                      </b-button-toolbar>
+                    </div>
+                  </b-td>
+                </b-tr>
+              </b-tbody>
+              <b-tbody v-else>
+                <b-tr>
+                  <b-td colspan="4" class="text-center text-muted">
+                    <small>No items to display</small>
+                  </b-td>
+                </b-tr>
+              </b-tbody>
+              <b-tfoot>
+                <b-th>
+                  <b-form-checkbox
+                    v-model="allChecked"
+                    size="lg"
+                    :disabled="
+                      defaultDisableCondition() || videos1.length === 0
+                    "
+                    @change="checkAll"
+                  ></b-form-checkbox>
+                </b-th>
+                <b-th class="col-8 align-middle">Video</b-th>
+                <b-th class="col-3 align-middle">Entry</b-th>
+                <b-th class="col-1 align-middle">Tag</b-th>
+              </b-tfoot>
+            </b-table-simple>
+          </b-row>
+          <b-row
+            v-if="tagInfo.length !== 0 && videos0.length === 0"
+            class="mt-lg-1 col-lg-12 text-center m-auto alert-primary rounded p-sm-2 bg-light progress-bar-striped"
+          >
+            <b-col class="col-lg-3 m-auto">
+              <b-button
+                block
+                variant="primary"
+                :disabled="countChecked() === 0 || massAssigning || fetching"
+                @click="assignMultiple"
+              >
+                <div v-if="massAssigning">
+                  <b-spinner small class="mr-1"></b-spinner>
+                  Assigning...
+                </div>
+                <div v-else>Batch assign ({{ countChecked() }} selected)</div>
+              </b-button>
+            </b-col>
+          </b-row>
+          <b-row v-if="tagInfo.length !== 0 && videos0.length === 0">
+            <div class="overflow-auto m-auto mt-lg-4">
+              <b-pagination
+                v-model="page"
+                class="mb-5"
+                align="center"
+                :total-rows="totalVideoCount"
+                :per-page="maxResults"
+                use-router
+                first-number
+                last-number
+                limit="10"
+                :disabled="defaultDisableCondition()"
+                @change="pageClicked"
+              ></b-pagination>
+            </div>
+          </b-row>
+        </b-tab>
+      </b-tabs>
     </b-container>
     <b-row class="fixed-top m-1" style="z-index: 1; max-width: min-content">
       <b-col class="p-0">
         <b-link to="vocadb" target="_blank">
           <b-button size="sm" style="width: 60px" variant="dark" squared
-            >Toggle<br />mode</b-button
-          >
+            >Toggle<br />mode
+          </b-button>
         </b-link>
       </b-col>
     </b-row>
@@ -529,8 +1011,10 @@ export default class extends Vue {
     { name: "DramaPV", show: true },
     { name: "Other", show: true }
   ];
-  private videos: VideoWithEntryAndVisibility[] = [];
-  private videosToDisplay: VideoWithEntryAndVisibility[] = [];
+  private videos0: VideoWithEntryAndVisibility[] = [];
+  private videos1: VideoWithEntryAndVisibility[] = [];
+  private videosToDisplay0: VideoWithEntryAndVisibility[] = [];
+  private videosToDisplay1: VideoWithEntryAndVisibility[] = [];
   private totalVideoCount: number = 0;
   private fetching: boolean = false;
   private showTable: boolean = false;
@@ -547,8 +1031,9 @@ export default class extends Vue {
   private showCollapse: boolean = false;
   private pageToJump: number = this.page;
   private maxPage = Math.ceil(this.totalVideoCount / this.maxResults);
+  private browseMode = 0;
 
-  async fetch(
+  async fetch0(
     targetTag: string,
     newStartOffset: number,
     newPage: number
@@ -566,7 +1051,7 @@ export default class extends Vue {
         maxResults: this.maxResults,
         orderBy: this.orderBy
       });
-      this.videos = response.items.map(vid => {
+      this.videos0 = response.items.map(vid => {
         return {
           video: vid.video,
           songEntry: vid.songEntry,
@@ -583,7 +1068,7 @@ export default class extends Vue {
       this.tagInfo = response.tags;
       this.tagFrozen = targetTag;
       this.tag = targetTag;
-      this.showTable = this.videos.length > 0;
+      this.showTable = this.videos0.length > 0;
       this.page = newStartOffset / this.maxResults + 1;
       this.numOfPages = this.totalVideoCount / this.maxResults + 1;
       this.startOffset = newStartOffset;
@@ -600,6 +1085,65 @@ export default class extends Vue {
       this.fetching = false;
       this.pageToJump = newPage;
       this.page = newPage;
+      this.videos1 = [];
+      this.videosToDisplay1 = [];
+    }
+  }
+
+  async fetch1(
+    targetTag: string,
+    newStartOffset: number,
+    newPage: number
+  ): Promise<void> {
+    if (this.tag == "") {
+      return;
+    }
+    this.showCollapse = false;
+    this.fetching = true;
+    try {
+      let response = await api.fetchVideosByTag({
+        tag: targetTag,
+        scopeTag: this.scopeTag,
+        startOffset: newStartOffset,
+        maxResults: this.maxResults,
+        orderBy: this.orderBy
+      });
+      this.videos1 = response.items.map(vid => {
+        return {
+          video: vid.video,
+          songEntry: vid.songEntry,
+          visible: false,
+          toAssign: false,
+          publisher: vid.publisher
+        };
+      });
+      this.filter();
+      this.tagMappings = response.tagMappings;
+      this.totalVideoCount = response.totalVideoCount;
+      this.scopeTagFrozen = response.safeScope;
+      this.scopeTag = response.safeScope;
+      this.tagInfo = response.tags;
+      this.tagFrozen = response.tags[0].name;
+      this.tag = response.tags[0].name;
+      this.showTable = this.videos1.length > 0;
+      this.page = newStartOffset / this.maxResults + 1;
+      this.numOfPages = this.totalVideoCount / this.maxResults + 1;
+      this.startOffset = newStartOffset;
+      this.allChecked = false;
+    } catch (err) {
+      this.$bvToast.show("error");
+      if (err.response == undefined) {
+        this.alertMessage = err.message;
+      } else {
+        this.alertMessage = err.response.data.message;
+      }
+    } finally {
+      this.maxPage = Math.ceil(this.totalVideoCount / this.maxResults);
+      this.fetching = false;
+      this.pageToJump = newPage;
+      this.page = newPage;
+      this.videos0 = [];
+      this.videosToDisplay0 = [];
     }
   }
 
@@ -630,8 +1174,20 @@ export default class extends Vue {
     return "https://vocadb.net/T/" + tag.id + "/" + tag.urlSlug;
   }
 
+  initPageClicked(): void {
+    if (this.browseMode == 0) {
+      this.fetch0(this.tag.trim(), 0, 1);
+    } else if (this.browseMode == 1) {
+      this.fetch1(this.tag.trim(), 0, 1);
+    }
+  }
+
   pageClicked(pgnum: number): void {
-    this.fetch(this.tagFrozen, (pgnum - 1) * this.maxResults, pgnum);
+    if (this.browseMode == 0) {
+      this.fetch0(this.tagFrozen, (pgnum - 1) * this.maxResults, pgnum);
+    } else if (this.browseMode == 1) {
+      this.fetch1(this.tagFrozen, (pgnum - 1) * this.maxResults, pgnum);
+    }
   }
 
   setMaxResults(mxres: number): void {
@@ -641,21 +1197,39 @@ export default class extends Vue {
   private async assign(id: number): Promise<void> {
     this.assigning = true;
     await api.assignTag({ tags: this.tagInfo, songId: id });
-    let songEntry = this.videosToDisplay.filter(video => {
-      if (video.songEntry == null) return false;
-      return video.songEntry.id == id;
-    })[0].songEntry as SongForApiContractSimplified;
+    let songEntry = null;
+    if (this.browseMode == 0) {
+      songEntry = this.videosToDisplay0.filter(video => {
+        if (video.songEntry == null) return false;
+        return video.songEntry.id == id;
+      })[0].songEntry as SongForApiContractSimplified;
+    } else if (this.browseMode == 1) {
+      songEntry = this.videosToDisplay1.filter(video => {
+        if (video.songEntry == null) return false;
+        return video.songEntry.id == id;
+      })[0].songEntry as SongForApiContractSimplified;
+    }
     this.assigning = false;
-    songEntry.tagInTags = true;
+    if (songEntry != null) {
+      songEntry.tagInTags = true;
+    }
   }
 
   private async assignMultiple(): Promise<void> {
     this.massAssigning = true;
     try {
-      for (const vid1 of this.videosToDisplay.filter(vid => vid.toAssign)) {
-        let songEntry = vid1.songEntry as SongForApiContractSimplified;
-        await this.assign(songEntry.id);
-        vid1.toAssign = false;
+      if (this.browseMode == 0) {
+        for (const vid1 of this.videosToDisplay0.filter(vid => vid.toAssign)) {
+          let songEntry = vid1.songEntry as SongForApiContractSimplified;
+          await this.assign(songEntry.id);
+          vid1.toAssign = false;
+        }
+      } else if (this.browseMode == 1) {
+        for (const vid1 of this.videosToDisplay1.filter(vid => vid.toAssign)) {
+          let songEntry = vid1.songEntry as SongForApiContractSimplified;
+          await this.assign(songEntry.id);
+          vid1.toAssign = false;
+        }
       }
     } finally {
       this.massAssigning = false;
@@ -679,14 +1253,25 @@ export default class extends Vue {
     );
   }
 
-  checkAll(): void {
-    this.videosToDisplay
-      .filter(video => video.songEntry != null && !video.songEntry.tagInTags)
-      .forEach(video => (video.toAssign = this.allChecked));
+  private checkAll(): void {
+    if (this.browseMode == 0) {
+      this.videosToDisplay0
+        .filter(video => video.songEntry != null && !video.songEntry.tagInTags)
+        .forEach(video => (video.toAssign = this.allChecked));
+    } else if (this.browseMode == 1) {
+      this.videosToDisplay1
+        .filter(video => video.songEntry != null && !video.songEntry.tagInTags)
+        .forEach(video => (video.toAssign = this.allChecked));
+    }
   }
 
-  countChecked(): number {
-    return this.videosToDisplay.filter(video => video.toAssign).length;
+  private countChecked(): number {
+    if (this.browseMode == 0) {
+      return this.videosToDisplay0.filter(video => video.toAssign).length;
+    } else if (this.browseMode == 1) {
+      return this.videosToDisplay1.filter(video => video.toAssign).length;
+    }
+    return -1;
   }
 
   getSongType(typeString: string): string {
@@ -730,20 +1315,42 @@ export default class extends Vue {
   }
 
   private filter(): void {
-    this.videosToDisplay = this.videos.filter(
-      vid =>
-        (vid.songEntry != null || this.noEntry) &&
-        (vid.songEntry == null || this.tagged || !vid.songEntry.tagInTags)
-    );
-    if (this.hiddenTypes() > 0) {
-      this.videosToDisplay = this.videosToDisplay.filter(vid => {
-        if (vid.songEntry != null)
-          return !this.songTypes
-            .filter(t => !t.show)
-            .map(t => t.name)
-            .includes(vid.songEntry.songType);
-        else return true;
-      });
+    if (this.browseMode == 0) {
+      this.videosToDisplay0 = this.videos0.filter(
+        vid =>
+          (vid.songEntry != null || this.noEntry) &&
+          (vid.songEntry == null || this.tagged || !vid.songEntry.tagInTags)
+      );
+      if (this.hiddenTypes() > 0) {
+        this.videosToDisplay0 = this.videosToDisplay0.filter(vid => {
+          if (vid.songEntry != null)
+            return !this.songTypes
+              .filter(t => !t.show)
+              .map(t => t.name)
+              .includes(vid.songEntry.songType);
+          else return true;
+        });
+      }
+    } else if (this.browseMode == 1) {
+      console.log(this.noEntry, this.tagged);
+      console.log(
+        this.videos1.filter(vid => vid.songEntry != null || this.noEntry).length
+      );
+      this.videosToDisplay1 = this.videos1.filter(
+        vid =>
+          (vid.songEntry != null || this.noEntry) &&
+          (vid.songEntry == null || this.tagged || !vid.songEntry.tagInTags)
+      );
+      if (this.hiddenTypes() > 0) {
+        this.videosToDisplay1 = this.videosToDisplay1.filter(vid => {
+          if (vid.songEntry != null)
+            return !this.songTypes
+              .filter(t => !t.show)
+              .map(t => t.name)
+              .includes(vid.songEntry.songType);
+          else return true;
+        });
+      }
     }
   }
 
@@ -764,14 +1371,26 @@ export default class extends Vue {
   }
 
   private getTypeInfo(type: string): string {
-    return (
-      type +
-      " (" +
-      this.videos.filter(
-        vid => vid.songEntry != null && vid.songEntry.songType == type
-      ).length +
-      ")"
-    );
+    if (this.browseMode == 0) {
+      return (
+        type +
+        " (" +
+        this.videos0.filter(
+          vid => vid.songEntry != null && vid.songEntry.songType == type
+        ).length +
+        ")"
+      );
+    } else if (this.browseMode == 1) {
+      return (
+        type +
+        " (" +
+        this.videos1.filter(
+          vid => vid.songEntry != null && vid.songEntry.songType == type
+        ).length +
+        ")"
+      );
+    }
+    return " (-1)";
   }
 
   created(): void {
