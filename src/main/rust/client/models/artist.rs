@@ -163,6 +163,7 @@ pub enum ArtistType {
     Vocaloid,
     UTAU,
     CeVIO,
+    SynthesizerV,
     OtherVoiceSynthesizer,
     OtherVocalist,
     OtherGroup,

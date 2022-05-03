@@ -785,7 +785,7 @@
                   </b-row>
                   <b-row v-if="showTable1" class="flex-fill text-center">
                     <div class="overflow-auto mx-auto flex-fill my-3">
-                      <b-button-group class="col-2">
+                      <b-button-group class="col-2 my-1">
                         <b-button
                           variant="link"
                           :disabled="
@@ -1139,7 +1139,7 @@
                   </b-row>
                   <b-row v-if="showTable1" class="flex-fill text-center mb-3">
                     <div class="overflow-auto mx-auto flex-fill my-3">
-                      <b-button-group class="col-2">
+                      <b-button-group class="col-2 my-1">
                         <b-button
                           variant="link"
                           :disabled="
