@@ -1,4 +1,3 @@
-use std::borrow::Borrow;
 use actix_web::{get, post, Responder, web};
 use actix_web::http::header::Header;
 use actix_web::HttpRequest;
@@ -6,9 +5,6 @@ use actix_web::web::Json;
 use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use anyhow::Context;
 use futures::future;
-use log::{debug, info};
-use serde::de::Unexpected::Str;
-
 
 use crate::client::client::Client;
 use crate::web::errors::Result;

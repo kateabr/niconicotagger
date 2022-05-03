@@ -75,10 +75,7 @@
                         <b-button
                           variant="secondary"
                           style="width: 80px"
-                          @click="
-                            scopeTag =
-                              '-歌ってみた VOCALOID OR UTAU OR CEVIO OR SYNTHV OR SYNTHESIZERV OR neutrino(歌声合成エンジン) OR DeepVocal OR Alter/Ego OR AlterEgo OR AquesTalk OR AquesTone OR AquesTone2 OR ボカロ OR ボーカロイド OR 合成音声 OR 歌唱合成 OR coefont OR coefont_studio OR VOICELOID OR VOICEROID OR ENUNU'
-                          "
+                          @click="scopeTag = getDefaultScopeTag()"
                         >
                           <font-awesome-icon icon="fa-solid fa-paste" />
                         </b-button>
@@ -95,7 +92,7 @@
                     </b-input-group>
                   </b-col>
                 </b-row>
-                <b-row v-if="tagFrozen !== ''" class="mt-2">
+                <b-row v-if="tagFrozen !== '' && activeMode(0)" class="mt-2">
                   <b-col>
                     <b-dropdown
                       block
@@ -157,27 +154,37 @@
                     </template>
                   </b-col>
                 </b-row>
+                <b-row v-if="tagFrozen !== '' && activeMode(0)" class="mt-2">
+                  <b-col>
+                    <b-form-checkbox
+                      v-model="showVideosWithUploaderEntry"
+                      @change="filter(false)"
+                    >
+                      Force show videos whose uploaders have entries at VocaDB
+                    </b-form-checkbox>
+                  </b-col>
+                </b-row>
               </b-collapse>
             </span>
           </b-row>
           <b-row
-            v-if="tagInfo.length !== 0 && videos1.length === 0"
+            v-if="notEmptyTagInfo() && activeMode(0)"
             class="mt-lg-3 pt-lg-3 pb-lg-3 col-lg-12 text-center m-auto alert-primary rounded p-sm-2 bg-light progress-bar-striped"
           >
             <b-col class="my-auto"
               >Tag:<br /><strong>
                 <a
-                  v-if="tagInfo.length !== 0"
+                  v-if="notEmptyTagInfo()"
                   target="_blank"
                   :href="getNicoTag(tagFrozen, scopeTagFrozen !== '')"
-                  >{{ tagFrozen }}</a
-                >
-              </strong></b-col
-            >
+                  >{{ tagFrozen
+                  }}<font-awesome-icon class="ml-1" icon="fas fa-external-link"
+                /></a> </strong
+            ></b-col>
             <b-col class="my-auto"
               >Mapped to:<br />
               <strong v-for="(tag, key) in tagMappings" :key="key">
-                <a target="_blank" :href="getVocaDBTag(tagInfo[key])">{{
+                <a target="_blank" :href="getVocaDBTag(tagInfo, key)">{{
                   tag
                 }}</a
                 ><span v-if="tagMappings.length - key > 1">, </span>
@@ -222,7 +229,7 @@
                 variant="primary"
                 block
                 :pressed.sync="noEntry"
-                @click="filter"
+                @click="filter(false)"
                 >Videos without entries
               </b-button>
             </b-col>
@@ -232,12 +239,12 @@
                 variant="primary"
                 block
                 :pressed.sync="tagged"
-                @click="filter"
+                @click="filter(false)"
                 >Tagged songs
               </b-button>
             </b-col>
           </b-row>
-          <b-row v-if="tagInfo.length > 0 && videos1.length === 0">
+          <b-row v-if="notEmptyTagInfo() && activeMode(0)">
             <b-col class="col-12">
               <div class="text-center pt-sm-3">
                 <b-button-group>
@@ -252,7 +259,7 @@
                     "
                     @click="
                       type.show = !type.show;
-                      filter();
+                      filter(false);
                     "
                     >{{ getTypeInfo(type.name) }}
                   </b-button>
@@ -260,7 +267,7 @@
               </div>
             </b-col>
           </b-row>
-          <b-row v-if="tagInfo.length !== 0 && videos1.length === 0">
+          <b-row v-if="notEmptyTagInfo() && activeMode(0)">
             <template>
               <div class="overflow-auto m-auto mt-lg-3">
                 <b-pagination
@@ -278,14 +285,16 @@
               </div>
             </template>
           </b-row>
-          <b-row v-if="tagInfo.length !== 0 && videos1.length === 0">
+          <b-row v-if="notEmptyTagInfo() && activeMode(0)">
             <b-table-simple hover class="mt-1 col-lg-12">
               <b-thead>
                 <b-th>
                   <b-form-checkbox
                     v-model="allChecked"
                     size="lg"
-                    :disabled="defaultDisableCondition()"
+                    :disabled="
+                      defaultDisableCondition() || noVideosWithEntries()
+                    "
                     @change="checkAll"
                   ></b-form-checkbox>
                 </b-th>
@@ -293,11 +302,12 @@
                 <b-th class="col-3 align-middle">Entry</b-th>
                 <b-th class="col-1 align-middle">Tag</b-th>
               </b-thead>
-              <b-tbody v-if="videosToDisplay0.length > 0">
+              <b-tbody v-if="!allInvisible(videosToDisplay0)">
                 <b-tr
                   v-for="(value, key) in videosToDisplay0"
                   :id="value.video.contentId"
                   :key="key"
+                  :style="value.rowVisible ? '' : 'display: none'"
                 >
                   <b-td>
                     <div
@@ -318,7 +328,7 @@
                       size="sm"
                       variant="primary-outline"
                       class="mr-2"
-                      @click="value.visible = !value.visible"
+                      @click="value.embedVisible = !value.embedVisible"
                     >
                       <font-awesome-icon icon="fas fa-play" />
                     </b-button>
@@ -342,7 +352,7 @@
                     </div>
                     <b-collapse
                       :id="getCollapseId(value.video.contentId)"
-                      :visible="value.visible && !fetching"
+                      :visible="value.embedVisible && !fetching"
                       class="mt-2 collapsed"
                     >
                       <b-card
@@ -351,7 +361,7 @@
                         class="embed-responsive embed-responsive-16by9"
                       >
                         <iframe
-                          v-if="value.visible && !fetching"
+                          v-if="value.embedVisible && !fetching"
                           class="embed-responsive-item"
                           allowfullscreen="allowfullscreen"
                           style="border: none"
@@ -440,7 +450,9 @@
                   <b-form-checkbox
                     v-model="allChecked"
                     size="lg"
-                    :disabled="defaultDisableCondition()"
+                    :disabled="
+                      defaultDisableCondition() || noVideosWithEntries()
+                    "
                     @change="checkAll"
                   ></b-form-checkbox>
                 </b-th>
@@ -451,7 +463,7 @@
             </b-table-simple>
           </b-row>
           <b-row
-            v-if="tagInfo.length !== 0 && videos1.length === 0"
+            v-if="notEmptyTagInfo() && activeMode(0)"
             class="mt-lg-1 col-lg-12 text-center m-auto alert-primary rounded p-sm-2 bg-light progress-bar-striped"
           >
             <b-col class="col-lg-3 m-auto">
@@ -469,7 +481,7 @@
               </b-button>
             </b-col>
           </b-row>
-          <b-row v-if="tagInfo.length !== 0 && videos1.length === 0">
+          <b-row v-if="notEmptyTagInfo() && activeMode(0)">
             <div class="overflow-auto m-auto mt-lg-4">
               <b-pagination
                 v-model="page"
@@ -549,10 +561,7 @@
                         <b-button
                           variant="secondary"
                           style="width: 80px"
-                          @click="
-                            scopeTag =
-                              '-歌ってみた VOCALOID OR UTAU OR CEVIO OR SYNTHV OR SYNTHESIZERV OR neutrino(歌声合成エンジン) OR DeepVocal OR Alter/Ego OR AlterEgo OR AquesTalk OR AquesTone OR AquesTone2 OR ボカロ OR ボーカロイド OR 合成音声 OR 歌唱合成 OR coefont OR coefont_studio OR VOICELOID OR VOICEROID OR ENUNU'
-                          "
+                          @click="scopeTag = getDefaultScopeTag()"
                         >
                           <font-awesome-icon icon="fa-solid fa-paste" />
                         </b-button>
@@ -569,7 +578,7 @@
                     </b-input-group>
                   </b-col>
                 </b-row>
-                <b-row v-if="tagFrozen !== ''" class="mt-2">
+                <b-row v-if="tagFrozen !== '' && activeMode(1)" class="mt-2">
                   <b-col>
                     <b-dropdown
                       block
@@ -631,23 +640,45 @@
                     </template>
                   </b-col>
                 </b-row>
+                <b-row v-if="tagFrozen !== '' && activeMode(1)" class="mt-2">
+                  <b-col>
+                    <b-form-checkbox
+                      v-model="showVideosWithUploaderEntry"
+                      @change="filter(false)"
+                    >
+                      Force show videos whose uploaders have entries at VocaDB
+                    </b-form-checkbox>
+                  </b-col>
+                </b-row>
               </b-collapse>
             </span>
           </b-row>
           <b-row
-            v-if="tagInfo.length !== 0 && videos0.length === 0"
+            v-if="notEmptyTagInfo() && activeMode(1)"
             class="mt-lg-3 pt-lg-3 pb-lg-3 col-lg-12 text-center m-auto alert-primary rounded p-sm-2 bg-light progress-bar-striped"
           >
             <b-col class="my-auto"
               >Tag:<br /><strong>
                 <a
-                  v-if="tagInfo.length !== 0"
+                  v-if="notEmptyTagInfo()"
                   target="_blank"
-                  :href="getVocaDBTag(tagInfo[0])"
+                  :href="getVocaDBTag(tagInfo, 0)"
                   >{{ tagFrozen }}</a
                 >
               </strong></b-col
             >
+            <b-col class="my-auto"
+              >Search expression:<br /><strong>
+                <a
+                  v-if="notEmptyTagInfo()"
+                  target="_blank"
+                  :href="
+                    getNicoTag(tagMappings.join(' OR '), scopeTagFrozen !== '')
+                  "
+                  >view at NND<font-awesome-icon
+                    class="ml-1"
+                    icon="fas fa-external-link" /></a></strong
+            ></b-col>
             <b-col class="my-auto"
               >Videos found:<br /><strong>{{ totalVideoCount }}</strong></b-col
             >
@@ -687,7 +718,7 @@
                 variant="primary"
                 block
                 :pressed.sync="noEntry"
-                @click="filter"
+                @click="filter(false)"
                 >Videos without entries
               </b-button>
             </b-col>
@@ -697,12 +728,12 @@
                 variant="primary"
                 block
                 :pressed.sync="tagged"
-                @click="filter"
+                @click="filter(false)"
                 >Tagged songs
               </b-button>
             </b-col>
           </b-row>
-          <b-row v-if="tagInfo.length > 0 && videos0.length === 0">
+          <b-row v-if="notEmptyTagInfo() && activeMode(1)">
             <b-col class="col-12">
               <div class="text-center pt-sm-3">
                 <b-button-group>
@@ -717,7 +748,7 @@
                     "
                     @click="
                       type.show = !type.show;
-                      filter();
+                      filter(false);
                     "
                     >{{ getTypeInfo(type.name) }}
                   </b-button>
@@ -725,7 +756,7 @@
               </div>
             </b-col>
           </b-row>
-          <b-row v-if="tagInfo.length !== 0 && videos0.length === 0">
+          <b-row v-if="notEmptyTagInfo() && activeMode(1)">
             <template>
               <div class="overflow-auto m-auto mt-lg-3">
                 <b-pagination
@@ -743,7 +774,7 @@
               </div>
             </template>
           </b-row>
-          <b-row v-if="tagInfo.length !== 0 && videos0.length === 0">
+          <b-row v-if="notEmptyTagInfo() && activeMode(1)">
             <b-table-simple hover class="mt-1 col-lg-12">
               <b-thead>
                 <b-th>
@@ -751,7 +782,7 @@
                     v-model="allChecked"
                     size="lg"
                     :disabled="
-                      defaultDisableCondition() || videos1.length === 0
+                      defaultDisableCondition() || noVideosWithEntries()
                     "
                     @change="checkAll"
                   ></b-form-checkbox>
@@ -760,11 +791,12 @@
                 <b-th class="col-3 align-middle">Entry</b-th>
                 <b-th class="col-1 align-middle">Tag</b-th>
               </b-thead>
-              <b-tbody v-if="videosToDisplay1.length > 0">
+              <b-tbody v-if="!allInvisible(videosToDisplay1)">
                 <b-tr
                   v-for="(value, key) in videosToDisplay1"
                   :id="value.video.contentId"
                   :key="key"
+                  :style="value.rowVisible ? '' : 'display: none'"
                 >
                   <b-td>
                     <div
@@ -785,7 +817,7 @@
                       size="sm"
                       variant="primary-outline"
                       class="mr-2"
-                      @click="value.visible = !value.visible"
+                      @click="value.embedVisible = !value.embedVisible"
                     >
                       <font-awesome-icon icon="fas fa-play" />
                     </b-button>
@@ -809,7 +841,7 @@
                     </div>
                     <b-collapse
                       :id="getCollapseId(value.video.contentId)"
-                      :visible="value.visible && !fetching"
+                      :visible="value.embedVisible && !fetching"
                       class="mt-2 collapsed"
                     >
                       <b-card
@@ -818,7 +850,7 @@
                         class="embed-responsive embed-responsive-16by9"
                       >
                         <iframe
-                          v-if="value.visible && !fetching"
+                          v-if="value.embedVisible && !fetching"
                           class="embed-responsive-item"
                           allowfullscreen="allowfullscreen"
                           style="border: none"
@@ -908,7 +940,7 @@
                     v-model="allChecked"
                     size="lg"
                     :disabled="
-                      defaultDisableCondition() || videos1.length === 0
+                      defaultDisableCondition() || noVideosWithEntries()
                     "
                     @change="checkAll"
                   ></b-form-checkbox>
@@ -920,7 +952,7 @@
             </b-table-simple>
           </b-row>
           <b-row
-            v-if="tagInfo.length !== 0 && videos0.length === 0"
+            v-if="notEmptyTagInfo() && activeMode(1)"
             class="mt-lg-1 col-lg-12 text-center m-auto alert-primary rounded p-sm-2 bg-light progress-bar-striped"
           >
             <b-col class="col-lg-3 m-auto">
@@ -938,7 +970,7 @@
               </b-button>
             </b-col>
           </b-row>
-          <b-row v-if="tagInfo.length !== 0 && videos0.length === 0">
+          <b-row v-if="notEmptyTagInfo() && activeMode(1)">
             <div class="overflow-auto m-auto mt-lg-4">
               <b-pagination
                 v-model="page"
@@ -1017,8 +1049,8 @@ export default class extends Vue {
   private videosToDisplay1: VideoWithEntryAndVisibility[] = [];
   private totalVideoCount: number = 0;
   private fetching: boolean = false;
-  private showTable: boolean = false;
   private noEntry: boolean = true;
+  private showVideosWithUploaderEntry: boolean = false;
   private tagged: boolean = true;
   private page: number = 1;
   private numOfPages: number = 1;
@@ -1055,12 +1087,13 @@ export default class extends Vue {
         return {
           video: vid.video,
           songEntry: vid.songEntry,
-          visible: false,
+          embedVisible: false,
+          rowVisible: true,
           toAssign: false,
           publisher: vid.publisher
         };
       });
-      this.filter();
+      this.filter(true);
       this.tagMappings = response.tagMappings;
       this.totalVideoCount = response.totalVideoCount;
       this.scopeTagFrozen = response.safeScope;
@@ -1068,7 +1101,6 @@ export default class extends Vue {
       this.tagInfo = response.tags;
       this.tagFrozen = targetTag;
       this.tag = targetTag;
-      this.showTable = this.videos0.length > 0;
       this.page = newStartOffset / this.maxResults + 1;
       this.numOfPages = this.totalVideoCount / this.maxResults + 1;
       this.startOffset = newStartOffset;
@@ -1112,12 +1144,13 @@ export default class extends Vue {
         return {
           video: vid.video,
           songEntry: vid.songEntry,
-          visible: false,
+          embedVisible: false,
+          rowVisible: true,
           toAssign: false,
           publisher: vid.publisher
         };
       });
-      this.filter();
+      this.filter(true);
       this.tagMappings = response.tagMappings;
       this.totalVideoCount = response.totalVideoCount;
       this.scopeTagFrozen = response.safeScope;
@@ -1125,7 +1158,6 @@ export default class extends Vue {
       this.tagInfo = response.tags;
       this.tagFrozen = response.tags[0].name;
       this.tag = response.tags[0].name;
-      this.showTable = this.videos1.length > 0;
       this.page = newStartOffset / this.maxResults + 1;
       this.numOfPages = this.totalVideoCount / this.maxResults + 1;
       this.startOffset = newStartOffset;
@@ -1170,8 +1202,8 @@ export default class extends Vue {
     return "https://nicovideo.jp/tag/" + tag;
   }
 
-  getVocaDBTag(tag: AssignableTag): string {
-    return "https://vocadb.net/T/" + tag.id + "/" + tag.urlSlug;
+  getVocaDBTag(tags: AssignableTag[], key: number): string {
+    return "https://vocadb.net/T/" + tags[key].id + "/" + tags[key].urlSlug;
   }
 
   initPageClicked(): void {
@@ -1314,44 +1346,48 @@ export default class extends Vue {
     this.orderBy = value;
   }
 
-  private filter(): void {
-    if (this.browseMode == 0) {
-      this.videosToDisplay0 = this.videos0.filter(
-        vid =>
-          (vid.songEntry != null || this.noEntry) &&
-          (vid.songEntry == null || this.tagged || !vid.songEntry.tagInTags)
-      );
-      if (this.hiddenTypes() > 0) {
-        this.videosToDisplay0 = this.videosToDisplay0.filter(vid => {
-          if (vid.songEntry != null)
-            return !this.songTypes
-              .filter(t => !t.show)
-              .map(t => t.name)
-              .includes(vid.songEntry.songType);
-          else return true;
-        });
+  private filter(init: boolean): void {
+    if (init) {
+      if (this.browseMode == 0) {
+        this.filterNested(this.videos0);
+        this.videosToDisplay0 = this.videos0;
+      } else if (this.browseMode == 1) {
+        this.filterNested(this.videos1);
+        this.videosToDisplay1 = this.videos1;
       }
-    } else if (this.browseMode == 1) {
-      console.log(this.noEntry, this.tagged);
-      console.log(
-        this.videos1.filter(vid => vid.songEntry != null || this.noEntry).length
-      );
-      this.videosToDisplay1 = this.videos1.filter(
-        vid =>
-          (vid.songEntry != null || this.noEntry) &&
-          (vid.songEntry == null || this.tagged || !vid.songEntry.tagInTags)
-      );
-      if (this.hiddenTypes() > 0) {
-        this.videosToDisplay1 = this.videosToDisplay1.filter(vid => {
-          if (vid.songEntry != null)
-            return !this.songTypes
-              .filter(t => !t.show)
-              .map(t => t.name)
-              .includes(vid.songEntry.songType);
-          else return true;
-        });
+    } else {
+      if (this.browseMode == 0) {
+        this.filterNested(this.videosToDisplay0);
+      } else if (this.browseMode == 1) {
+        this.filterNested(this.videosToDisplay1);
       }
     }
+  }
+
+  private filterNested(src: VideoWithEntryAndVisibility[]): void {
+    const hiddenTypes = this.hiddenTypes() > 0;
+    for (var i = 0; i < src.length; ++i) {
+      src[i].rowVisible =
+        (src[i].songEntry != null ||
+          this.noEntry ||
+          (src[i].publisher != null && this.showVideosWithUploaderEntry)) &&
+        (src[i].songEntry == null ||
+          this.tagged ||
+          !src[i].songEntry?.tagInTags);
+      if (hiddenTypes) {
+        const songEntryTemp = src[i].songEntry;
+        if (songEntryTemp != null) {
+          src[i].rowVisible = !this.songTypes
+            .filter(t => !t.show)
+            .map(t => t.name)
+            .includes(songEntryTemp.songType);
+        }
+      }
+    }
+  }
+
+  private allInvisible(list: VideoWithEntryAndVisibility[]): boolean {
+    return list.every(item => !item.rowVisible);
   }
 
   pageState(): boolean {
@@ -1393,6 +1429,34 @@ export default class extends Vue {
     return " (-1)";
   }
 
+  private getDefaultScopeTag(): string {
+    return "-歌ってみた VOCALOID OR UTAU OR CEVIO OR SYNTHV OR SYNTHESIZERV OR neutrino(歌声合成エンジン) OR DeepVocal OR Alter/Ego OR AlterEgo OR AquesTalk OR AquesTone OR AquesTone2 OR ボカロ OR ボーカロイド OR 合成音声 OR 歌唱合成 OR coefont OR coefont_studio OR VOICELOID OR VOICEROID OR ENUNU";
+  }
+
+  private activeMode(mode: number): boolean {
+    if (mode == 0) {
+      return this.videos1.length == 0;
+    } else if (mode == 1) {
+      return this.videos0.length == 0;
+    } else {
+      return false;
+    }
+  }
+
+  private notEmptyTagInfo(): boolean {
+    return this.tagInfo.length > 0;
+  }
+
+  private noVideosWithEntries(): boolean {
+    if (this.browseMode == 0) {
+      return this.videosToDisplay0.every(video => video.songEntry == null);
+    } else if (this.browseMode == 1) {
+      return this.videosToDisplay1.every(video => video.songEntry == null);
+    } else {
+      return false;
+    }
+  }
+
   created(): void {
     let max_results = localStorage.getItem("max_results");
     if (max_results != null) {
@@ -1404,7 +1468,8 @@ export default class extends Vue {
 export interface VideoWithEntryAndVisibility {
   video: NicoVideoWithTidyTags;
   songEntry: SongForApiContractSimplified | null;
-  visible: boolean;
+  embedVisible: boolean;
+  rowVisible: boolean;
   toAssign: boolean;
   publisher: Publisher | null;
 }
