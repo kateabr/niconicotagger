@@ -470,34 +470,37 @@ impl<'a> Client<'a> {
                 if (mode == String::from("since") && response_item.entry.id > song_id) || (mode == String::from("before") && response_item.entry.id < song_id) {
                     match response_item.entry.pvs {
                         Some(ref pvs) => {
-                            if pvs.iter().any(|pv| pv.service == PvService::NicoNicoDouga && !pv.disabled) {
-                                response_entries.push(SongForApiContract {
-                                    id: response_item.entry.id,
-                                    name: response_item.entry.name,
-                                    tags: match response_item.entry.tags {
-                                        Some(tags) => tags,
-                                        None => vec![]
-                                    },
-                                    song_type: response_item.entry.song_type.unwrap(),
-                                    artist_string: response_item.entry.artist_string.unwrap(),
-                                    create_date: response_item.entry.create_date,
-                                    pvs: response_item.entry.pvs,
-                                    rating_score: Some(0),
-                                });
-                            } else {
-                                response_entries.push(SongForApiContract {
-                                    id: response_item.entry.id,
-                                    name: response_item.entry.name,
-                                    tags: vec![],
-                                    song_type: response_item.entry.song_type.unwrap(),
-                                    artist_string: response_item.entry.artist_string.unwrap(),
-                                    create_date: response_item.entry.create_date,
-                                    pvs: Some(vec![]),
-                                    rating_score: Some(0),
-                                });
-                            };
+                            let nico_pvs: Vec<&PVContract> = pvs.iter().filter(|pv| pv.service == PvService::NicoNicoDouga).collect();
+                            if !nico_pvs.is_empty() {
+                                if nico_pvs.iter().any(|pv| !pv.disabled) {
+                                    response_entries.push(SongForApiContract {
+                                        id: response_item.entry.id,
+                                        name: response_item.entry.name,
+                                        tags: match response_item.entry.tags {
+                                            Some(tags) => tags,
+                                            None => vec![]
+                                        },
+                                        song_type: response_item.entry.song_type.unwrap(),
+                                        artist_string: response_item.entry.artist_string.unwrap(),
+                                        create_date: response_item.entry.create_date,
+                                        pvs: response_item.entry.pvs,
+                                        rating_score: Some(0),
+                                    });
+                                } else {
+                                    response_entries.push(SongForApiContract {
+                                        id: response_item.entry.id,
+                                        name: response_item.entry.name,
+                                        tags: vec![],
+                                        song_type: response_item.entry.song_type.unwrap(),
+                                        artist_string: response_item.entry.artist_string.unwrap(),
+                                        create_date: response_item.entry.create_date,
+                                        pvs: Some(vec![]),
+                                        rating_score: Some(0),
+                                    });
+                                };
+                            }
                         }
-                        None => {}
+                        _ => {}
                     }
                 }
             }
