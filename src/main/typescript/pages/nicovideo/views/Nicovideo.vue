@@ -1119,6 +1119,7 @@ export default class extends Vue {
       this.page = newPage;
       this.videos1 = [];
       this.videosToDisplay1 = [];
+      this.videos0 = [];
     }
   }
 
@@ -1176,6 +1177,7 @@ export default class extends Vue {
       this.page = newPage;
       this.videos0 = [];
       this.videosToDisplay0 = [];
+      this.videos1 = [];
     }
   }
 
@@ -1411,7 +1413,7 @@ export default class extends Vue {
       return (
         type +
         " (" +
-        this.videos0.filter(
+        this.videosToDisplay0.filter(
           vid => vid.songEntry != null && vid.songEntry.songType == type
         ).length +
         ")"
@@ -1420,7 +1422,7 @@ export default class extends Vue {
       return (
         type +
         " (" +
-        this.videos1.filter(
+        this.videosToDisplay1.filter(
           vid => vid.songEntry != null && vid.songEntry.songType == type
         ).length +
         ")"
@@ -1435,9 +1437,9 @@ export default class extends Vue {
 
   private activeMode(mode: number): boolean {
     if (mode == 0) {
-      return this.videos1.length == 0;
+      return this.videosToDisplay1.length == 0;
     } else if (mode == 1) {
-      return this.videos0.length == 0;
+      return this.videosToDisplay0.length == 0;
     } else {
       return false;
     }
