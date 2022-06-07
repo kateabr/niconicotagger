@@ -26,7 +26,17 @@
               class="m-0 rounded-0"
               toaster="toaster-2"
             >
-              {{ alertMessage }}
+              <span v-if="alertCode !== 401">
+                {{ alertMessage }}
+              </span>
+              <span v-else>
+                Access token has expired.
+                <b-link to="login" target="_blank">
+                  Relogin
+                  <font-awesome-icon class="ml-0" icon="fas fa-external-link" />
+                </b-link>
+                and try again
+              </span>
             </b-toast>
             <b-tabs v-model="browseMode" class="mt-3" content-class="mt-3">
               <b-tab title="Browse via song entries" active>
@@ -1273,6 +1283,7 @@ export default class extends Vue {
   private numOfPages: number = 1;
   private massAssigning: boolean = false;
   private alertMessage: string = "";
+  private alertCode: number = 0;
   private pageToJump: number = this.page;
   private maxPage = Math.ceil(this.totalVideoCount / this.maxResults);
   private hideEntriesWithNoTags: boolean = false;
@@ -1388,12 +1399,7 @@ export default class extends Vue {
       this.showTable0 = true;
       this.showTable1 = false;
     } catch (err) {
-      this.$bvToast.show("error");
-      if (err.response == undefined) {
-        this.alertMessage = err.message;
-      } else {
-        this.alertMessage = err.response.data.message;
-      }
+      this.processError(err);
     } finally {
       this.maxPage = Math.ceil(this.totalVideoCount / this.maxResults);
       this.fetching = false;
@@ -1523,12 +1529,7 @@ export default class extends Vue {
       this.showTable1 = true;
       this.showTable0 = false;
     } catch (err) {
-      this.$bvToast.show("error");
-      if (err.response == undefined) {
-        this.alertMessage = err.message;
-      } else {
-        this.alertMessage = err.response.data.message;
-      }
+      this.processError(err);
     } finally {
       this.maxPage = Math.ceil(this.totalVideoCount / this.maxResults);
       this.fetching = false;
@@ -1637,6 +1638,8 @@ export default class extends Vue {
         }
         song.tagsToAssign.splice(0, song.tagsToAssign.length);
       }
+    } catch (err) {
+      this.processError(err);
     } finally {
       this.massAssigning = false;
     }
@@ -1918,6 +1921,17 @@ export default class extends Vue {
       added_mode != null
     ) {
       this.session1 = true;
+    }
+  }
+
+  private processError(err: any): void {
+    this.$bvToast.show("error");
+    if (err.response == undefined) {
+      this.alertCode = 0;
+      this.alertMessage = err.message;
+    } else {
+      this.alertCode = err.response.data.code;
+      this.alertMessage = err.response.data.message;
     }
   }
 }

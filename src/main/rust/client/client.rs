@@ -77,7 +77,7 @@ impl<'a> Client<'a> {
         return self;
     }
 
-    fn create_request(&self, url: &String, method: actix_web::http::Method) -> awc::ClientRequest {
+    fn create_request(&self, url: &String, method: Method) -> awc::ClientRequest {
         let mut builder = match method {
             Method::GET => self.client.get(url),
             Method::POST => self.client.post(url),
@@ -107,6 +107,7 @@ impl<'a> Client<'a> {
             .body()
             .await?;
         let body_string = String::from_utf8(body.to_vec()).unwrap();
+        if body_string.is_empty() { return Err(VocadbClientError::BadCredentialsError); }
         let json = serde_json::from_slice(&body).context(format!("Unable to deserialize a payload: {}", body_string))?;
         return Ok(json);
     }
@@ -177,7 +178,7 @@ impl<'a> Client<'a> {
         let cookies = response.cookies().context("Unable to parse a cookie")?;
         let auth_cookie = cookies.iter().find(|c| c.name() == ".AspNetCore.Cookies");
         return match auth_cookie {
-            Option::None => Err(VocadbClientError::BadCredentialsError),
+            None => Err(VocadbClientError::BadCredentialsError),
             Some(cookie) => {
                 self.clear_cookie();
                 self.add_cookie(cookie);
@@ -207,7 +208,7 @@ impl<'a> Client<'a> {
         loop {
             match new_scope.trim_start().strip_prefix("OR") {
                 Some(trimmed) => new_scope = String::from(trimmed),
-                Option::None => break
+                None => break
             }
         }
 
@@ -261,7 +262,7 @@ impl<'a> Client<'a> {
             .map(|m|
                 TagMappingContract {
                     source_tag: normalize(&m.source_tag),
-                    tag: m.tag
+                    tag: m.tag,
                 })
             .collect();
 
@@ -275,7 +276,7 @@ impl<'a> Client<'a> {
         let tags: Vec<TagBaseContractSimplified> = mappings.into_iter()
             .filter(|t| t.source_tag == normalized_tag)
             .map(|t| t.tag).collect();
-        return if tags.is_empty() { Ok(Option::None) } else { Ok(Some(tags)) };
+        return if tags.is_empty() { Ok(None) } else { Ok(Some(tags)) };
     }
 
     pub async fn get_nico_mappings(&self, tag_id: i32) -> Result<Option<Vec<String>>> {
@@ -284,7 +285,7 @@ impl<'a> Client<'a> {
         let tags: Vec<String> = mappings.into_iter()
             .filter(|t| t.tag.id == tag_id)
             .map(|t| t.source_tag).collect();
-        return if tags.is_empty() { Ok(Option::None)} else { Ok(Some(tags)) };
+        return if tags.is_empty() { Ok(None) } else { Ok(Some(tags)) };
     }
 
     pub async fn get_mapped_tags(&self) -> Result<Vec<String>> {
@@ -328,7 +329,7 @@ impl<'a> Client<'a> {
             ],
         ).await?;
 
-        return if lookup_result.is_empty() { Ok(Option::None) } else { Ok(Some(lookup_result[0].entry.clone())) };
+        return if lookup_result.is_empty() { Ok(None) } else { Ok(Some(lookup_result[0].entry.clone())) };
     }
 
     pub async fn lookup_video(&self, video: &NicoVideo, src_tags: Vec<i32>, nico_tags: Vec<String>, mappings: &Vec<String>, scope: String) -> Result<VideoWithEntry> {
@@ -340,7 +341,7 @@ impl<'a> Client<'a> {
 
         let publisher: Option<NicoPublisher> = match video.user_id {
             Some(id) => self.lookup_artist_by_nico_account_id(id.clone()).await?,
-            Option::None => Option::None
+            None => None
         };
 
         let nico_tags = video.tags.split(" ").map(|s| String::from(s)).collect::<Vec<_>>();
@@ -420,7 +421,7 @@ impl<'a> Client<'a> {
             &vec![
                 ("fields", String::from("AdditionalNames")),
                 ("query", tag_name),
-                ("maxResults", String::from("1"))
+                ("maxResults", String::from("1")),
             ],
         ).await?;
 
@@ -437,7 +438,7 @@ impl<'a> Client<'a> {
                 category_name: response.items[0].category_name.clone(),
                 create_date: response.items[0].create_date.clone(),
                 default_name_language: response.items[0].default_name_language.to_string(),
-            })
+            });
         } else {
             return Err(VocadbClientError::NotFoundError);
         }
@@ -531,7 +532,7 @@ impl<'a> Client<'a> {
 
     pub async fn process_mapped_response(&self, songs: Vec<SongForApiContract>) -> Result<Vec<SongForApiContractWithThumbnails>> {
         pub fn parse_thumbnail(xml: &str, thumnail_id: &str, pv: &PVContract, community: bool) -> Result<ThumbnailOk, ThumbnailError> {
-            let doc = roxmltree::Document::parse(xml).unwrap();
+            let doc = Document::parse(xml).unwrap();
             let status = doc.descendants()
                 .find(|node| node.has_tag_name("nicovideo_thumb_response"))
                 .unwrap()
@@ -556,7 +557,7 @@ impl<'a> Client<'a> {
                     description: get_text(&doc, "description"),
                     disabled: pv.disabled,
                     title: String::from(&pv.name),
-                    community
+                    community,
                 };
                 Err(err)
             };
@@ -573,7 +574,7 @@ impl<'a> Client<'a> {
                 .map(|node| {
                     match node.text() {
                         Some(text) => text.trim(),
-                        Option::None => ""
+                        None => ""
                     }
                 }).collect::<Vec<_>>().first()
                 .unwrap()
@@ -612,7 +613,7 @@ impl<'a> Client<'a> {
                     }
                     new_pvs
                 }
-                Option::None => vec![]
+                None => vec![]
             };
 
             mapped_response.push(SongForApiContractWithThumbnails {

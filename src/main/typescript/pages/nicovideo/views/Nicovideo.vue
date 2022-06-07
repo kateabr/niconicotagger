@@ -10,7 +10,17 @@
         class="m-0 rounded-0"
         toaster="toaster-2"
       >
-        {{ alertMessage }}
+        <span v-if="alertCode !== 401">
+          {{ alertMessage }}
+        </span>
+        <span v-else>
+          Access token has expired.
+          <b-link to="login" target="_blank">
+            Relogin
+            <font-awesome-icon class="ml-0" icon="fas fa-external-link" />
+          </b-link>
+          and try again
+        </span>
       </b-toast>
       <b-tabs v-model="browseMode" class="mt-3" content-class="mt-3">
         <b-tab title="Browse by NicoNicoDouga tag" active>
@@ -1014,6 +1024,7 @@ import {
 import { api } from "@/backend";
 
 import VueClipboard from "vue-clipboard2";
+import { AxiosError } from "axios";
 
 Vue.use(VueClipboard);
 
@@ -1058,6 +1069,7 @@ export default class extends Vue {
   private massAssigning: boolean = false;
   private assigning: boolean = false;
   private alertMessage: string = "";
+  private alertCode: number = 0;
   private scopeTag: string = "";
   private scopeTagFrozen: string = "";
   private showCollapse: boolean = false;
@@ -1106,12 +1118,7 @@ export default class extends Vue {
       this.startOffset = newStartOffset;
       this.allChecked = false;
     } catch (err) {
-      this.$bvToast.show("error");
-      if (err.response == undefined) {
-        this.alertMessage = err.message;
-      } else {
-        this.alertMessage = err.response.data.message;
-      }
+      this.processError(err);
     } finally {
       this.maxPage = Math.ceil(this.totalVideoCount / this.maxResults);
       this.fetching = false;
@@ -1164,12 +1171,7 @@ export default class extends Vue {
       this.startOffset = newStartOffset;
       this.allChecked = false;
     } catch (err) {
-      this.$bvToast.show("error");
-      if (err.response == undefined) {
-        this.alertMessage = err.message;
-      } else {
-        this.alertMessage = err.response.data.message;
-      }
+      this.processError(err);
     } finally {
       this.maxPage = Math.ceil(this.totalVideoCount / this.maxResults);
       this.fetching = false;
@@ -1230,22 +1232,27 @@ export default class extends Vue {
 
   private async assign(id: number): Promise<void> {
     this.assigning = true;
-    await api.assignTag({ tags: this.tagInfo, songId: id });
-    let songEntry = null;
-    if (this.browseMode == 0) {
-      songEntry = this.videosToDisplay0.filter(video => {
-        if (video.songEntry == null) return false;
-        return video.songEntry.id == id;
-      })[0].songEntry as SongForApiContractSimplified;
-    } else if (this.browseMode == 1) {
-      songEntry = this.videosToDisplay1.filter(video => {
-        if (video.songEntry == null) return false;
-        return video.songEntry.id == id;
-      })[0].songEntry as SongForApiContractSimplified;
-    }
-    this.assigning = false;
-    if (songEntry != null) {
-      songEntry.tagInTags = true;
+    try {
+      await api.assignTag({ tags: this.tagInfo, songId: id });
+      let songEntry = null;
+      if (this.browseMode == 0) {
+        songEntry = this.videosToDisplay0.filter(video => {
+          if (video.songEntry == null) return false;
+          return video.songEntry.id == id;
+        })[0].songEntry as SongForApiContractSimplified;
+      } else if (this.browseMode == 1) {
+        songEntry = this.videosToDisplay1.filter(video => {
+          if (video.songEntry == null) return false;
+          return video.songEntry.id == id;
+        })[0].songEntry as SongForApiContractSimplified;
+      }
+      if (songEntry != null) {
+        songEntry.tagInTags = true;
+      }
+    } catch (err) {
+      this.processError(err);
+    } finally {
+      this.assigning = false;
     }
   }
 
@@ -1463,6 +1470,17 @@ export default class extends Vue {
     let max_results = localStorage.getItem("max_results");
     if (max_results != null) {
       this.maxResults = parseInt(max_results);
+    }
+  }
+
+  private processError(err: any): void {
+    this.$bvToast.show("error");
+    if (err.response == undefined) {
+      this.alertCode = 0;
+      this.alertMessage = err.message;
+    } else {
+      this.alertCode = err.response.data.code;
+      this.alertMessage = err.response.data.message;
     }
   }
 }
