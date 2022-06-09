@@ -90,6 +90,7 @@ pub enum EntryType {
     SongList,
     Tag,
     User,
+    Venue
 }
 
 #[derive(Serialize, Deserialize, Debug)]
