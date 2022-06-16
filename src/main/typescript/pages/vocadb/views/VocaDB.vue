@@ -3,7 +3,7 @@
     <div class="flex-fill fixed-top mb-3">
       <b-progress
         height="5px"
-        :value="distinct_song_count"
+        :value="distinctSongCount"
         :max="maxResults"
         :precision="0"
         :animated="fetching"
@@ -1321,7 +1321,7 @@ export default class extends Vue {
     ],
     Other: []
   };
-  private distinct_song_count: number = 0;
+  private distinctSongCount: number = 0;
   private niconicoCommunityExclusive: MinimalTag = {
     id: 7446,
     name: "niconico community exclusive",
@@ -1337,13 +1337,13 @@ export default class extends Vue {
     localStorage.setItem("order_by", this.orderBy);
     try {
       let videos: EntryWithVideosAndVisibility[] = [];
-      this.distinct_song_count = 0;
+      this.distinctSongCount = 0;
       let end = false;
       let response;
       this.pageToJump = newPage;
-      while (this.distinct_song_count < this.maxResults && !end) {
+      while (this.distinctSongCount < this.maxResults && !end) {
         response = await api.fetchVideosFromDb({
-          startOffset: newStartOffset + this.distinct_song_count,
+          startOffset: newStartOffset + this.distinctSongCount,
           maxResults: 10,
           orderBy: this.orderBy
         });
@@ -1376,7 +1376,7 @@ export default class extends Vue {
           };
         });
 
-        if (this.distinct_song_count > 0) {
+        if (this.distinctSongCount > 0) {
           const overlap = videos_temp.find(
             video => video.song.id == videos[videos.length - 1].song.id
           );
@@ -1384,7 +1384,7 @@ export default class extends Vue {
             videos_temp.splice(0, videos_temp.indexOf(overlap) + 1);
           }
         }
-        this.distinct_song_count += videos_temp.length;
+        this.distinctSongCount += videos_temp.length;
         videos = videos.concat(videos_temp);
 
         this.totalVideoCount = response.totalCount;
@@ -1393,7 +1393,7 @@ export default class extends Vue {
       this.videos = videos;
       this.postProcessVideos();
       this.filterVideos();
-      this.distinct_song_count = this.maxResults;
+      this.distinctSongCount = this.maxResults;
       this.page = newStartOffset / this.maxResults + 1;
       this.numOfPages = this.totalVideoCount / this.maxResults + 1;
       this.startOffset = newStartOffset;
@@ -1419,9 +1419,9 @@ export default class extends Vue {
     const reverse = payload.reverse;
     try {
       let videos: EntryWithVideosAndVisibility[] = [];
-      this.distinct_song_count = 0;
+      this.distinctSongCount = 0;
       let end = false;
-      while (this.distinct_song_count < this.maxResults && !end) {
+      while (this.distinctSongCount < this.maxResults && !end) {
         let response = await api.fetchVideosFromDbBeforeSince({
           maxResults: 10,
           mode: payload.mode,
@@ -1463,7 +1463,7 @@ export default class extends Vue {
           response.timestampFirst === response.timestampLast &&
           response.items.length === 1;
 
-        if (this.distinct_song_count > 0) {
+        if (this.distinctSongCount > 0) {
           const overlap = videos_temp.find(
             video => video.song.id == videos[videos.length - 1].song.id
           );
@@ -1474,7 +1474,7 @@ export default class extends Vue {
 
         this.totalVideoCount = response.totalCount;
 
-        this.distinct_song_count += videos_temp.length;
+        this.distinctSongCount += videos_temp.length;
 
         videos = videos.concat(videos_temp);
 
@@ -1525,7 +1525,7 @@ export default class extends Vue {
       this.videos = videos;
       this.postProcessVideos();
       this.filterVideos();
-      this.distinct_song_count = 100;
+      this.distinctSongCount = 100;
       this.numOfPages = this.totalVideoCount / this.maxResults + 1;
       this.showTable1 = true;
       this.showTable0 = false;

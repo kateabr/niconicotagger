@@ -16,6 +16,13 @@ export interface FetchVideosPayload {
   orderBy: string;
 }
 
+export interface FetchVideosByEventTagPayload {
+  tag: string;
+  startOffset: number;
+  maxResults: number;
+  orderBy: string;
+}
+
 export interface FetchVideosFromDbPayload {
   startOffset: number;
   maxResults: number;
@@ -43,6 +50,15 @@ export interface SongForApiContractSimplified {
   songType: string;
   artistString: string;
   createDate: string;
+}
+
+export interface SongForApiContractSimplifiedWithReleaseEvent {
+  id: number;
+  name: string;
+  songType: string;
+  artistString: string;
+  createDate: string;
+  releaseEvent: ReleaseEventForApiContractSimplified | null;
 }
 
 export interface VideoWithEntry {
@@ -154,4 +170,34 @@ export interface NicoVideoWithError {
   title: string;
   disabled: boolean;
   community: boolean;
+}
+
+export interface ReleaseEventForApiContractSimplified {
+  date: string;
+  end_date: string;
+  id: number;
+  name: string;
+  urlSlug: string;
+}
+
+export interface EntriesWithReleaseEventTag {
+  items: SongForApiContractSimplifiedWithReleaseEvent[];
+  totalCount: number;
+  releaseEvent: ReleaseEventForApiContractSimplified;
+  eventTag: AssignableTag;
+}
+
+export interface ReleaseEventForApiContractSimplified {
+  date: string;
+  end_date: string;
+  id: number;
+  name: string;
+  urlSlug: string;
+}
+
+export interface EntriesWithReleaseEventTag {
+  items: SongForApiContractSimplifiedWithReleaseEvent[];
+  totalCount: number;
+  releaseEvent: ReleaseEventForApiContractSimplified;
+  eventTag: AssignableTag;
 }

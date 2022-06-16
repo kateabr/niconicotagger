@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 
 use crate::client::models::language::Language;
+use crate::client::models::releaseevent::ReleaseEventForApiContract;
 use crate::client::models::status::Status;
 
 

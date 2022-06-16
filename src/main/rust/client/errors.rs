@@ -6,6 +6,8 @@ pub enum VocadbClientError {
     BadCredentialsError,
     #[error("Specified resource is not found")]
     NotFoundError,
+    #[error("Ambiguous response")]
+    AmbiguousResponseError,
     #[error(transparent)]
     SendRequestError(#[from] awc::error::SendRequestError),
     #[error(transparent)]

@@ -5,6 +5,7 @@ use actix_web::web::Json;
 use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use anyhow::Context;
 use futures::future;
+use log::debug;
 
 use crate::client::client::Client;
 use crate::web::errors::Result;
@@ -12,7 +13,7 @@ use crate::client::errors::VocadbClientError;
 
 use crate::client::models::tag::{AssignableTag, TagBaseContract};
 
-use crate::web::dto::{AssignTagRequest, LookupAndAssignTagRequest, Database, DBFetchRequest, DBBeforeSinceFetchRequest, LoginRequest, LoginResponse, TagFetchRequest, Token, VideosWithEntries, VideosWithEntriesByVocaDbTag};
+use crate::web::dto::{AssignTagRequest, LookupAndAssignTagRequest, Database, DBFetchRequest, DBBeforeSinceFetchRequest, LoginRequest, LoginResponse, TagFetchRequest, Token, VideosWithEntries, VideosWithEntriesByVocaDbTag, SongsByEventTagFetchRequest, SongsByEventTagFetchResponse};
 use crate::web::errors::AppResponseError;
 use crate::web::middleware::auth_token;
 
@@ -39,7 +40,7 @@ pub async fn login(payload: web::Json<LoginRequest>) -> Result<impl Responder> {
 #[post("/fetch")]
 pub async fn fetch_videos(_req: HttpRequest, payload: Json<TagFetchRequest>) -> Result<impl Responder> {
     if payload.start_offset < 0 || payload.max_results < 0 || payload.max_results > 100 {
-        return Err(AppResponseError::ConstraintViolationError(String::from("Invalid ")));
+        return Err(AppResponseError::ConstraintViolationError(String::from("Invalid arguments")));
     }
 
     let token = extract_token(&_req)?;
@@ -84,7 +85,7 @@ pub async fn fetch_videos(_req: HttpRequest, payload: Json<TagFetchRequest>) -> 
 #[post("/fetch_by_tag")]
 pub async fn fetch_videos_by_tag(_req: HttpRequest, payload: Json<TagFetchRequest>) -> Result<impl Responder> {
     if payload.start_offset < 0 || payload.max_results < 0 || payload.max_results > 100 {
-        return Err(AppResponseError::ConstraintViolationError(String::from("Invalid ")));
+        return Err(AppResponseError::ConstraintViolationError(String::from("Invalid arguments")));
     }
 
     let token = extract_token(&_req)?;
@@ -136,7 +137,6 @@ pub async fn fetch_videos_from_db_before_since(_req: HttpRequest, payload: Json<
     return Ok(Json(processed_entries));
 }
 
-
 #[post("/fetch_from_db")]
 pub async fn fetch_videos_from_db(_req: HttpRequest, payload: Json<DBFetchRequest>) -> Result<impl Responder> {
     if payload.start_offset < 0 || payload.max_results < 0 || payload.max_results > 100 {
@@ -151,6 +151,30 @@ pub async fn fetch_videos_from_db(_req: HttpRequest, payload: Json<DBFetchReques
     let processed_entries = client.process_songs_with_thumbnails(songs).await?;
 
     return Ok(Json(processed_entries));
+}
+
+#[post("/fetch_from_db_by_event_tag")]
+pub async fn fetch_from_db_by_event_tag(_req: HttpRequest, payload: Json<SongsByEventTagFetchRequest>) -> Result<impl Responder> {
+    if payload.start_offset < 0 || payload.max_results < 0 || payload.max_results > 100 {
+        return Err(AppResponseError::ConstraintViolationError(String::from("Invalid arguments")));
+    }
+
+    let token = extract_token(&_req)?;
+    let client = client_from_token(&token)?;
+
+    let vocadb_tag = client.lookup_tag_by_name(payload.tag.clone()).await?;
+    debug!("{}", vocadb_tag.id);
+    let vocadb_event = client.get_event_by_tag(vocadb_tag.id).await?;
+    debug!("got event");
+
+    let songs = client.get_songs_by_vocadb_event_tag(vocadb_tag.id, payload.start_offset, payload.max_results, payload.order_by.clone()).await?;
+
+    return Ok(Json(SongsByEventTagFetchResponse {
+        items: songs.items,
+        total_count: songs.total_count,
+        release_event: vocadb_event,
+        event_tag: vocadb_tag,
+    }));
 }
 
 #[post("/assign")]

@@ -10,7 +10,7 @@ mod web;
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     if let Err(_) = std::env::var("RUST_LOG") {
-        std::env::set_var("RUST_LOG", "info")
+        std::env::set_var("RUST_LOG", "debug")
     }
     env_logger::init();
 
@@ -31,6 +31,7 @@ async fn main() -> std::io::Result<()> {
                     .service(web::controller::assign_tag)
                     .service(web::controller::lookup_and_assign_tag)
                     .service(web::controller::get_mapped_tags)
+                    .service(web::controller::fetch_from_db_by_event_tag)
             )
     })
     .bind("127.0.0.1:8080")?

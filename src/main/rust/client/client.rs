@@ -21,7 +21,8 @@ use crate::client::models::entrythumb::EntryType;
 use crate::client::models::misc::PartialFindResult;
 use crate::client::models::pv::{PVContract, PvService, PvType};
 use crate::client::models::query::OptionalFields;
-use crate::client::models::song::SongForApiContract;
+use crate::client::models::releaseevent::{EventSearchResult, ReleaseEventForApiContract, ReleaseEventForApiContractSimplified};
+use crate::client::models::song::{SongForApiContract, SongSearchResult};
 use crate::client::models::tag::{AssignableTag, SelectedTag, TagBaseContract, TagForApiContract, TagSearchResult, TagUsageForApiContract};
 use crate::client::models::user::UserForApiContract;
 use crate::client::nicomodels::{NicoTagWithVariant, SongForApiContractWithThumbnails, SongForApiContractWithThumbnailsAndMappedTags, SongsForApiContractWithThumbnailsAndTimestamp, Tag, TagBaseContractSimplified, ThumbnailError, ThumbnailOk, ThumbnailOkWithMappedTags, ThumbnailTagMappedWithAssignAndLockInfo};
@@ -444,6 +445,102 @@ impl<'a> Client<'a> {
         }
     }
 
+    pub async fn get_event_by_tag(&self, tag_id: i32) -> Result<ReleaseEventForApiContractSimplified> {
+        let response: EventSearchResult = self.http_get(
+            &String::from("https://vocadb.net/api/releaseEvents"),
+            &vec![
+                ("tagId[]", tag_id.to_string()),
+                ("getTotalCount", String::from("true")),
+                ("maxResults", String::from("100")),
+                ("lang", String::from("Default")),
+            ],
+        ).await?;
+
+        return match response.total_count {
+            1 => Ok(ReleaseEventForApiContractSimplified {
+                date: response.items[0].date.clone(),
+                end_date: response.items[0].end_date.clone(),
+                id: response.items[0].id,
+                name: response.items[0].name.clone(),
+                url_slug: response.items[0].url_slug.clone()
+            }),
+            0 => Err(VocadbClientError::NotFoundError),
+            _ => Err(VocadbClientError::AmbiguousResponseError)
+        }
+    }
+
+    pub async fn get_songs_by_vocadb_event_tag(&self, tag_id: i32, start_offset: i32, max_results: i32, order_by: String) -> Result<SongSearchResult> {
+        let response: PartialFindResult<SongForApiContract> = self.http_get(
+            &String::from("https://vocadb.net/api/songs"),
+            &vec![
+                ("tagId[]", tag_id.to_string()),
+                ("start", start_offset.to_string()),
+                ("maxResults", max_results.to_string()),
+                ("sort", order_by),
+                ("getTotalCount", String::from("true")),
+                ("lang", String::from("Default")),
+                ("fields", String::from("ReleaseEvent,Tags")),
+            ],
+        ).await?;
+
+        return if response.total_count > 0 {
+            Ok(SongSearchResult {
+                items: response.items,
+                total_count: response.total_count
+            })
+        } else {
+            Err(VocadbClientError::NotFoundError)
+        }
+    }
+
+    pub async fn get_event_by_tag(&self, tag_id: i32) -> Result<ReleaseEventForApiContractSimplified> {
+        let response: EventSearchResult = self.http_get(
+            &String::from("https://vocadb.net/api/releaseEvents"),
+            &vec![
+                ("tagId[]", tag_id.to_string()),
+                ("getTotalCount", String::from("true")),
+                ("maxResults", String::from("100")),
+                ("lang", String::from("Default")),
+            ],
+        ).await?;
+
+        return match response.total_count {
+            1 => Ok(ReleaseEventForApiContractSimplified {
+                date: response.items[0].date.clone(),
+                end_date: response.items[0].end_date.clone(),
+                id: response.items[0].id,
+                name: response.items[0].name.clone(),
+                url_slug: response.items[0].url_slug.clone()
+            }),
+            0 => Err(VocadbClientError::NotFoundError),
+            _ => Err(VocadbClientError::AmbiguousResponseError)
+        }
+    }
+
+    pub async fn get_songs_by_vocadb_event_tag(&self, tag_id: i32, start_offset: i32, max_results: i32, order_by: String) -> Result<SongSearchResult> {
+        let response: PartialFindResult<SongForApiContract> = self.http_get(
+            &String::from("https://vocadb.net/api/songs"),
+            &vec![
+                ("tagId[]", tag_id.to_string()),
+                ("start", start_offset.to_string()),
+                ("maxResults", max_results.to_string()),
+                ("sort", order_by),
+                ("getTotalCount", String::from("true")),
+                ("lang", String::from("Default")),
+                ("fields", String::from("ReleaseEvent,Tags")),
+            ],
+        ).await?;
+
+        return if response.total_count > 0 {
+            Ok(SongSearchResult {
+                items: response.items,
+                total_count: response.total_count
+            })
+        } else {
+            Err(VocadbClientError::NotFoundError)
+        }
+    }
+
     pub async fn get_videos_from_db_before_since(&self, max_results: i32, mode: String, date_time: String, song_id: i32, sort_rule: String) -> Result<SongsForApiContractWithThumbnailsAndTimestamp> {
         let mut response_entries: Vec<SongForApiContract> = vec![];
         debug!("fetching...");
@@ -486,6 +583,7 @@ impl<'a> Client<'a> {
                                         create_date: response_item.entry.create_date,
                                         pvs: response_item.entry.pvs,
                                         rating_score: Some(0),
+                                        release_event: None,
                                     });
                                 } else {
                                     response_entries.push(SongForApiContract {
@@ -497,6 +595,7 @@ impl<'a> Client<'a> {
                                         create_date: response_item.entry.create_date,
                                         pvs: Some(vec![]),
                                         rating_score: Some(0),
+                                        release_event: None,
                                     });
                                 };
                             }
@@ -626,6 +725,7 @@ impl<'a> Client<'a> {
                     create_date: song.create_date,
                     rating_score: song.rating_score,
                     pvs: Some(nico_pvs),
+                    release_event: None
                 },
                 thumbnails_ok: ok,
                 thumbnails_error: err,

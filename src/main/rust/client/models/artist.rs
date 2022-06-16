@@ -10,7 +10,7 @@ use crate::client::models::status::Status;
 use crate::client::models::tag::TagUsageForApiContract;
 use crate::client::models::weblink::WebLinkForApiContract;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ArtistContract {
     #[serde(rename = "additionalNames")]
     additional_names: String,
@@ -85,7 +85,7 @@ pub struct ArtistForArtistForApiContract {
     link_type: ArtistLinkType,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ArtistForEventContract {
     artist: ArtistContract,
     #[serde(rename = "effectiveRoles")]
@@ -150,7 +150,7 @@ pub enum ArtistRoles {
     VocalDataProvider,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum ArtistType {
     Unknown,
     Circle,
@@ -188,7 +188,7 @@ pub enum ArtistCategories {
     Subject,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum ArtistEventRoles {
     Default,
     Dancer,
