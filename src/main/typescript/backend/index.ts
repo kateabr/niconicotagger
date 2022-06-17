@@ -9,7 +9,10 @@ import {
   EntriesWithVideos,
   LookupAndAssignTagPayload,
   FetchVideosFromDbBeforeSincePayload,
-  VideosWithEntriesByVocaDbTag, FetchVideosByEventTagPayload, EntriesWithReleaseEventTag
+  VideosWithEntriesByVocaDbTag,
+  FetchVideosByEventTagPayload,
+  EntriesWithReleaseEventTag,
+  AssignEventAndRemoveTagPayload
 } from "@/backend/dto";
 import { AxiosResponse } from "axios";
 
@@ -41,5 +44,10 @@ export const api = {
     payload: FetchVideosByEventTagPayload
   ): Promise<EntriesWithReleaseEventTag> {
     return axios.post("/api/fetch_from_db_by_event_tag", payload).then(value => value.data);
+  },
+  async assignEventAndRemoveTag(
+    payload: AssignEventAndRemoveTagPayload
+  ): Promise<EntriesWithReleaseEventTag> {
+    return axios.post("/api/assign_event_and_remove_tag", payload).then(value => value.data);
   }
 };

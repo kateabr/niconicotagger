@@ -1,3 +1,5 @@
+import {DateTime} from "luxon";
+
 export interface AuthenticationPayload {
   username: string;
   password: string;
@@ -59,6 +61,13 @@ export interface SongForApiContractSimplifiedWithReleaseEvent {
   artistString: string;
   createDate: string;
   releaseEvent: ReleaseEventForApiContractSimplified | null;
+  publishDate: string | null;
+  eventDateComparison: DateComparisonResult;
+}
+
+export interface DateComparisonResult {
+  dayDiff: number;
+  disposition: "perfect" | "late" | "early" | "unknown";
 }
 
 export interface VideoWithEntry {
@@ -173,11 +182,21 @@ export interface NicoVideoWithError {
 }
 
 export interface ReleaseEventForApiContractSimplified {
-  date: string;
-  end_date: string;
+  date: string | null;
+  endDate: string | null;
   id: number;
   name: string;
   urlSlug: string;
+  category: string;
+}
+
+export interface ReleaseEventForDisplay {
+  date: DateTime | null;
+  endDate: DateTime | null;
+  id: number;
+  name: string;
+  urlSlug: string;
+  category: string;
 }
 
 export interface EntriesWithReleaseEventTag {
@@ -187,17 +206,9 @@ export interface EntriesWithReleaseEventTag {
   eventTag: AssignableTag;
 }
 
-export interface ReleaseEventForApiContractSimplified {
-  date: string;
-  end_date: string;
-  id: number;
-  name: string;
-  urlSlug: string;
+export interface AssignEventAndRemoveTagPayload {
+  songIds: number[];
+  eventId: number;
+  tagId: number;
 }
-
-export interface EntriesWithReleaseEventTag {
-  items: SongForApiContractSimplifiedWithReleaseEvent[];
-  totalCount: number;
-  releaseEvent: ReleaseEventForApiContractSimplified;
-  eventTag: AssignableTag;
-}
+``

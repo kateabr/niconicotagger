@@ -61,17 +61,6 @@ pub struct SongsByEventTagFetchRequest {
 }
 
 #[derive(Deserialize, Debug)]
-pub struct SongsByEventTagFetchRequest {
-    #[serde(rename = "startOffset")]
-    pub start_offset: i32,
-    #[serde(rename = "maxResults")]
-    pub max_results: i32,
-    pub tag: String,
-    #[serde(rename = "orderBy")]
-    pub order_by: String,
-}
-
-#[derive(Deserialize, Debug)]
 pub struct AssignTagRequest {
     #[serde(rename = "songId")]
     pub song_id: i32,
@@ -274,12 +263,11 @@ pub struct SongsByEventTagFetchResponse {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct SongsByEventTagFetchResponse {
-    pub items: Vec<SongForApiContract>,
-    #[serde(rename = "totalCount")]
-    pub total_count: i32,
-    #[serde(rename = "releaseEvent")]
-    pub release_event: ReleaseEventForApiContractSimplified,
-    #[serde(rename = "eventTag")]
-    pub event_tag: AssignableTag,
+pub struct AssignEventAndRemoveTagPayload {
+    #[serde(rename = "songId")]
+    pub song_id: i32,
+    #[serde(rename = "eventId")]
+    pub event_id: i32,
+    #[serde(rename = "tagId")]
+    pub tag_id: i64,
 }

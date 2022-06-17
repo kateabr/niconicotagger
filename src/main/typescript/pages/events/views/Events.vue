@@ -172,7 +172,7 @@
                 </b-row>
                 <b-row class="mt-3">
                   <b-col class="my-auto">
-                    <template>
+                    <template v-if="event.id < 0">
                       <b-input-group inline>
                         <b-form-input
                           v-model="eventTagName"
@@ -193,6 +193,13 @@
                         </template>
                       </b-input-group>
                     </template>
+                    <b-row v-else>
+                      <b-col><b-link :to="getVocaDBEvent(event)" target="_blank">{{event.name}}</b-link> ({{event.category}})</b-col>
+                      <b-col><font-awesome-icon
+                        icon="fa-solid fa-calendar"
+                        class="mr-1"
+                      />{{event.date.toLocaleString()}} - {{event.endDate.toLocaleString()}}</b-col>
+                    </b-row>
                   </b-col>
                   <b-col class="my-auto text-left align-middle">
                     <template>
@@ -278,13 +285,15 @@
               <b-thead>
                 <b-th>
                   <b-form-checkbox
-                    class="invisible"
                     size="lg"
-                  ></b-form-checkbox>
+                    @change="checkAll"
+                    v-model="allChecked"
+                  />
                 </b-th>
                 <b-th class="col-3 align-middle">Entry</b-th>
-                <b-th class="col-5 align-middle">Release event</b-th>
-
+                <b-th class="col-2 align-middle">Current release event</b-th>
+                <b-th class="col-1 align-middle">Release date</b-th>
+                <b-th class="col-6 align-middle"></b-th>
               </b-thead>
               <b-tbody
                 v-if="videos.filter(video => video.rowVisible).length > 0"
@@ -294,7 +303,10 @@
                   :key="video.songEntry.id"
                 >
                   <td>
-
+                    <b-form-checkbox
+                      size="lg"
+                      v-model="video.toAssign"
+                    />
                   </td>
                   <td>
                     <b-link
@@ -316,9 +328,9 @@
                   </td>
                   <td>
                     <span v-if="video.songEntry.releaseEvent !== null" class="font-weight-bolder">
-                      <b-badge v-if="video.songEntry.releaseEvent.id === event.id"
+                      <b-badge
                         class="badge text-center"
-                          variant="success"
+                          :variant="video.songEntry.releaseEvent.id === event.id ? 'success' : 'warning'"
                                :to="getVocaDBEvent(video.songEntry.releaseEvent)"
                                target="_blank"
                       >
@@ -327,12 +339,45 @@
                     </span>
                     <span v-else class="text-muted">Unspecified</span>
                   </td>
-
+                  <td>
+                    <span v-if="video.publishDate !== null">
+                    <font-awesome-icon
+                    icon="fa-solid fa-calendar"
+                    class="mr-1"
+                  />{{ video.publishDate.toLocaleString() }}
+                      </span>
+                    <span v-else class="text-muted">Unspecified</span>
+                  </td>
+                  <td>
+                    <b-badge
+                      :variant="
+                        video.songEntry.eventDateComparison.disposition ===
+                        'perfect'
+                          ? 'success'
+                          : video.songEntry.eventDateComparison.disposition ===
+                            'unknown'
+                          ? 'secondary'
+                          : 'warning'
+                      "
+                      class="mr-1"
+                    >
+                    {{ video.songEntry.eventDateComparison.disposition }}
+                    </b-badge>
+                    <span
+                      v-if="
+                        video.songEntry.eventDateComparison.disposition !==
+                          'unknown' &&
+                        video.songEntry.eventDateComparison.disposition !==
+                          'perfect'
+                      "
+                    >(by {{ video.songEntry.eventDateComparison.dayDiff }} day(s))
+                    </span>
+                  </td>
                 </tr>
               </b-tbody>
               <b-tbody v-else>
                 <b-tr>
-                  <b-td colspan="4" class="text-center text-muted">
+                  <b-td colspan="5" class="text-center text-muted">
                     <small>No items to display</small>
                   </b-td>
                 </b-tr>
@@ -340,7 +385,9 @@
               <b-tfoot>
                 <b-th></b-th>
                 <b-th class="col-3 align-middle">Entry</b-th>
-                <b-th class="col-9 align-middle">Videos</b-th>
+                <b-th class="col-2 align-middle">Current release event</b-th>
+                <b-th class="col-1 align-middle">Release date</b-th>
+                <b-th class="col-6 align-middle"></b-th>
               </b-tfoot>
             </b-table-simple>
             <b-row
@@ -405,13 +452,14 @@
 import Vue from "vue";
 import {Component} from "vue-property-decorator";
 import {
-  AssignableTag, EntriesWithReleaseEventTag,
+  AssignableTag, DateComparisonResult, EntriesWithReleaseEventTag,
   NicoVideoWithTidyTags,
-  Publisher, ReleaseEventForApiContractSimplified,
+  Publisher, ReleaseEventForApiContractSimplified, ReleaseEventForDisplay,
   SongForApiContractSimplified, SongForApiContractSimplifiedWithReleaseEvent
 } from "@/backend/dto";
 import {api} from "@/backend";
 
+import { DateTime } from "luxon";
 import VueClipboard from "vue-clipboard2";
 
 Vue.use(VueClipboard);
@@ -468,12 +516,13 @@ export default class extends Vue {
   private eventTagNameFrozen: string = "";
   private timeDelta: number = 1;
   private timeDeltaEnabled: boolean = false;
-  private event: ReleaseEventForApiContractSimplified = {
+  private event: ReleaseEventForDisplay = {
     name: "",
     id: -1,
-    date: "",
-    end_date: "",
+    date: null,
+    endDate: null,
     urlSlug: "",
+    category: ""
   };
   private distinctSongCount: number = 0;
   private showEntriesMatchingEvents: boolean = true;
@@ -498,20 +547,26 @@ export default class extends Vue {
       while (this.distinctSongCount < this.maxResults && !end) {
         response = await api.fetchVideosFromDbByEventTag({
           tag: targetTag,
-          startOffset: newStartOffset,
+          startOffset: newStartOffset + this.distinctSongCount,
           maxResults: 10,
           orderBy: this.orderBy
         });
-        console.log(response.items);
+        if (response.releaseEvent.date == null) {
+          throw { response: undefined, message: "Invalid event date" };
+        }
         end = response.items.length < 10;
         let videos_temp = response.items.map(vid => {
           return {
             songEntry: vid,
             rowVisible: true,
-            toAssign: false
+            toAssign: false,
+            publishDate:
+              vid.publishDate !== null
+                ? DateTime.fromISO(vid.publishDate)
+                : null,
+            eventDateComparison: null
           };
         });
-        console.log(videos_temp);
 
         if (this.distinctSongCount > 0) {
           const overlap = videos_temp.find(
@@ -529,8 +584,28 @@ export default class extends Vue {
       }
       videos.splice(this.maxResults);
       this.videos = videos;
+      console.log(response.releaseEvent);
       this.tag = response.eventTag.name;
-      this.event = response.releaseEvent;
+      this.event.id = response.releaseEvent.id;
+      this.event.name = response.releaseEvent.name;
+      this.event.urlSlug = response.releaseEvent.urlSlug;
+      this.event.category = response.releaseEvent.category;
+      this.event.date =
+        response.releaseEvent.date == null
+          ? null
+          : DateTime.fromISO(response.releaseEvent.date);
+      this.event.endDate =
+        response.releaseEvent.endDate == null
+          ? null
+          : DateTime.fromISO(response.releaseEvent.endDate);
+      this.videos.forEach(
+        value =>
+          (value.songEntry.eventDateComparison = this.fitDate(
+            value.publishDate,
+            this.event.date!,
+            this.event.endDate
+          ))
+      );
       this.filterVideos();
       this.eventTagNameFrozen = this.event.name;
       this.page = newStartOffset / this.maxResults + 1;
@@ -576,7 +651,7 @@ export default class extends Vue {
     return "https://vocadb.net/T/" + tags[key].id + "/" + tags[key].urlSlug;
   }
 
-  getVocaDBEvent(event: ReleaseEventForApiContractSimplified): string {
+  getVocaDBEvent(event: ReleaseEventForApiContractSimplified | ReleaseEventForDisplay): string {
     return "https://vocadb.net/E/" + event.id + "/" + event.urlSlug;
   }
 
@@ -599,6 +674,10 @@ export default class extends Vue {
   setMaxResults(mxres: number): void {
     this.maxResults = mxres;
   }
+
+  // private async process() {
+  //
+  // }
 
   private async assign(id: number): Promise<void> {
     // this.assigning = true;
@@ -665,15 +744,16 @@ export default class extends Vue {
   }
 
   private checkAll(): void {
-    // if (this.browseMode == 0) {
-    //   this.videosToDisplay0
-    //     .filter(video => video.songEntry != null && !video.songEntry.tagInTags)
-    //     .forEach(video => (video.toAssign = this.allChecked));
-    // } else if (this.browseMode == 1) {
-    //   this.videosToDisplay1
-    //     .filter(video => video.songEntry != null && !video.songEntry.tagInTags)
-    //     .forEach(video => (video.toAssign = this.allChecked));
-    // }
+    console.log("checkAll");
+    if (this.browseMode == 0) {
+      for (const video of this.videos.filter(value => value.rowVisible)) {
+        video.toAssign = this.allChecked;
+      }
+    } else if (this.browseMode == 1) {
+      for (const video of this.videos.filter(value => value.rowVisible)) {
+        video.toAssign = this.allChecked;
+      }
+    }
   }
 
   private countChecked(): number {
@@ -729,11 +809,12 @@ export default class extends Vue {
     for (const video of this.videos) {
       video.rowVisible =
         ((this.hiddenTypes() == 0 ||
-            !this.songTypes
-              .filter(t => !t.show)
-              .map(t => t.name)
-              .includes(video.songEntry.songType)) &&
+          !this.songTypes
+            .filter(t => !t.show)
+            .map(t => t.name)
+            .includes(video.songEntry.songType)) &&
           (this.showEntriesWithNoTags));
+      video.toAssign = video.toAssign && video.rowVisible;
     }
   }
 
@@ -790,6 +871,48 @@ export default class extends Vue {
     }
   }
 
+  private fitDate(
+    date: DateTime | null,
+    dateStart: DateTime,
+    dateEnd: DateTime | null
+  ): DateComparisonResult {
+    if (date == null) {
+      return { disposition: "unknown", dayDiff: 0 };
+    }
+
+    let dayDiff = this.subDates(date, dateStart);
+    if (dateEnd === null) {
+      if (dayDiff === 0) {
+        return { dayDiff: 0, disposition: "perfect" };
+      } else {
+        return {
+          dayDiff: Math.abs(dayDiff),
+          disposition: dayDiff > 0 ? "late" : "early"
+        };
+      }
+    }
+
+    if (dateStart <= date) {
+      if (dateEnd >= date) {
+        return { dayDiff: 0, disposition: "perfect" };
+      } else {
+        return {
+          dayDiff: this.subDates(date, dateEnd),
+          disposition: "late"
+        };
+      }
+    } else {
+      return {
+        dayDiff: this.subDates(dateStart, date),
+        disposition: "early"
+      };
+    }
+  }
+
+  private subDates(date1: DateTime, date2: DateTime): number {
+    return date1.diff(date2).as("day");
+  }
+
   private notEmptyTagInfo(): boolean {
     return this.tagInfo.length > 0;
   }
@@ -822,6 +945,7 @@ export default class extends Vue {
 
 export interface EntryWithReleaseEventAndVisibility {
   songEntry: SongForApiContractSimplifiedWithReleaseEvent;
+  publishDate: DateTime | null;
   rowVisible: boolean;
   toAssign: boolean;
 }

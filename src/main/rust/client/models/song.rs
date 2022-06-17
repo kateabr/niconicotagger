@@ -110,6 +110,8 @@ pub struct SongForApiContract {
     pub release_event: Option<ReleaseEventForApiContractSimplified>,
     #[serde(rename = "ratingScore")]
     pub rating_score: Option<i32>,
+    #[serde(rename = "publishDate")]
+    pub publish_date: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -210,13 +212,6 @@ pub struct SongListForApiContract {
     featured_category: FeaturedCategory,
     id: i32,
     name: String,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct SongSearchResult {
-    pub items: Vec<SongForApiContract>,
-    #[serde(rename = "totalCount")]
-    pub total_count: i32,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

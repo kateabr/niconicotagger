@@ -24,7 +24,7 @@ pub struct ReleaseEventForApiContract {
     #[serde(rename = "additionalNames")]
     additional_names: Option<String>,
     artists: Option<Vec<ArtistForEventContract>>,
-    category: ReleaseEventCategory,
+    pub category: ReleaseEventCategory,
     pub date: Option<String>,
     description: Option<String>,
     #[serde(rename = "endDate")]
@@ -62,6 +62,7 @@ pub struct ReleaseEventForApiContractSimplified {
     pub name: String,
     #[serde(rename = "urlSlug")]
     pub url_slug: String,
+    pub category: ReleaseEventCategory,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -81,13 +82,6 @@ pub struct ReleaseEventSeriesContract {
     version: i32,
     #[serde(rename = "webLinks")]
     web_links: Vec<WebLinkContract>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct EventSearchResult {
-    pub items: Vec<ReleaseEventForApiContract>,
-    #[serde(rename = "totalCount")]
-    pub total_count: i32,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

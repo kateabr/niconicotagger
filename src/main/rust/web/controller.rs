@@ -1,4 +1,6 @@
-use actix_web::{get, post, Responder, web};
+use std::collections::HashMap;
+
+use actix_web::{get, HttpResponse, post, Responder, web};
 use actix_web::http::header::Header;
 use actix_web::HttpRequest;
 use actix_web::web::Json;
@@ -6,15 +8,15 @@ use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use anyhow::Context;
 use futures::future;
 use log::debug;
+use regex::Regex;
+use serde_json::{Map, Value};
 
 use crate::client::client::Client;
-use crate::web::errors::Result;
 use crate::client::errors::VocadbClientError;
-
 use crate::client::models::tag::{AssignableTag, TagBaseContract};
-
-use crate::web::dto::{AssignTagRequest, LookupAndAssignTagRequest, Database, DBFetchRequest, DBBeforeSinceFetchRequest, LoginRequest, LoginResponse, TagFetchRequest, Token, VideosWithEntries, VideosWithEntriesByVocaDbTag, SongsByEventTagFetchRequest, SongsByEventTagFetchResponse};
+use crate::web::dto::{AssignEventAndRemoveTagPayload, AssignTagRequest, Database, DBBeforeSinceFetchRequest, DBFetchRequest, LoginRequest, LoginResponse, LookupAndAssignTagRequest, SongsByEventTagFetchRequest, SongsByEventTagFetchResponse, TagFetchRequest, Token, VideosWithEntries, VideosWithEntriesByVocaDbTag};
 use crate::web::errors::AppResponseError;
+use crate::web::errors::Result;
 use crate::web::middleware::auth_token;
 
 #[post("/users/current")]
@@ -175,6 +177,38 @@ pub async fn fetch_from_db_by_event_tag(_req: HttpRequest, payload: Json<SongsBy
         release_event: vocadb_event,
         event_tag: vocadb_tag,
     }));
+}
+
+#[post("/assign_event_and_remove_tag")]
+pub async fn assign_event_and_remove_tag(_req: HttpRequest, payload: Json<AssignEventAndRemoveTagPayload>) -> Result<impl Responder> {
+    if payload.song_id < 0 || payload.event_id < 0 || payload.tag_id < 0 {
+        return Err(AppResponseError::ConstraintViolationError(String::from("Invalid arguments")));
+    }
+
+    let token = extract_token(&_req)?;
+    let client = client_from_token(&token)?;
+
+    debug!("Save edited song data");
+
+    let mut entry = client.get_song_for_edit(payload.song_id).await?;
+    let tag_array: Vec<i64> = entry.get("tags").unwrap().as_array().unwrap().iter().map(|v| v.as_i64().unwrap()).collect();
+    debug!("{:?}", tag_array);
+    let filtered_tags: Vec<i64> = tag_array.into_iter().filter(|tag_id| tag_id != &payload.tag_id).collect();
+    entry.insert(String::from("tags"), Value::from(filtered_tags));
+
+    debug!("Save edited song data");
+
+    let mut id_map = Map::new();
+    debug!("Save edited song data");
+    id_map.insert("id".to_string(), Value::from(payload.event_id));
+    entry.insert("releaseEvent".to_string(), Value::from(id_map));
+    entry.insert("updateNotes".to_string(), Value::from("testing tag replacing..."));
+
+    debug!("Save edited song data");
+
+
+
+    return Ok(client.save_edited_song_data(payload.song_id, entry).await?);
 }
 
 #[post("/assign")]

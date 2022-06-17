@@ -6,11 +6,14 @@ use std::time::Duration;
 
 use actix_web::cookie::Cookie;
 use actix_web::http::Method;
+use actix_web::web::Json;
 use anyhow::Context;
+use awc::body::MessageBody;
 use log::{debug, info};
 use roxmltree::Document;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
+use serde_json::{Map, Value};
 
 use crate::client::errors::Result;
 use crate::client::errors::VocadbClientError;
@@ -131,6 +134,24 @@ impl<'a> Client<'a> {
         let body_string = String::from_utf8(body.to_vec()).unwrap();
         let json = serde_json::from_slice(&body).context(format!("Unable to deserialize a payload: {}", body_string))?;
         return Ok(json);
+    }
+
+    async fn http_post_body_void<B, T>(&self, url: &String, query: &T, payload: &B) -> Result<()>
+        where
+            B: ?Sized + Serialize,
+            T: Serialize,
+    {
+        let request = self.create_request(url, Method::POST);
+        debug!("Sending POST request {:?}", request);
+
+        let payload_str = serde_json::to_string(payload).context("Unable to serialize a payload")?;
+        let body = request
+            .query(query)
+            .context("Unable to construct a query")?
+            .send_body(payload_str)
+            .await?;
+
+        return Ok(());
     }
 
     async fn http_get_raw(&self, url: &String, query: &Vec<(&str, String)>) -> Result<Vec<u8>>
@@ -462,11 +483,22 @@ impl<'a> Client<'a> {
                 end_date: response.items[0].end_date.clone(),
                 id: response.items[0].id,
                 name: response.items[0].name.clone(),
-                url_slug: response.items[0].url_slug.clone()
+                url_slug: response.items[0].url_slug.clone(),
+                category: response.items[0].category.clone(),
             }),
             0 => Err(VocadbClientError::NotFoundError),
             _ => Err(VocadbClientError::AmbiguousResponseError)
-        }
+        };
+    }
+
+    pub async fn save_edited_song_data(&self, song_id: i32, song_data: Map<String, Value>) -> Result<serde_json::Result<String>> {
+        debug!("Save edited song data");
+        let mut map: Map<String, Value> = Map::new();
+        map.insert("EditedSong".to_string(), Value::from(song_data));
+        let query: Vec<String> = vec![];
+        // let x = self.http_post_body_void(&format!("https://beta.vocadb.net/Song/Edit/{}", song_id), &query, &map).await?;
+
+        return Ok(serde_json::to_string(&map));
     }
 
     pub async fn get_songs_by_vocadb_event_tag(&self, tag_id: i32, start_offset: i32, max_results: i32, order_by: String) -> Result<SongSearchResult> {
@@ -486,59 +518,11 @@ impl<'a> Client<'a> {
         return if response.total_count > 0 {
             Ok(SongSearchResult {
                 items: response.items,
-                total_count: response.total_count
+                total_count: response.total_count,
             })
         } else {
             Err(VocadbClientError::NotFoundError)
-        }
-    }
-
-    pub async fn get_event_by_tag(&self, tag_id: i32) -> Result<ReleaseEventForApiContractSimplified> {
-        let response: EventSearchResult = self.http_get(
-            &String::from("https://vocadb.net/api/releaseEvents"),
-            &vec![
-                ("tagId[]", tag_id.to_string()),
-                ("getTotalCount", String::from("true")),
-                ("maxResults", String::from("100")),
-                ("lang", String::from("Default")),
-            ],
-        ).await?;
-
-        return match response.total_count {
-            1 => Ok(ReleaseEventForApiContractSimplified {
-                date: response.items[0].date.clone(),
-                end_date: response.items[0].end_date.clone(),
-                id: response.items[0].id,
-                name: response.items[0].name.clone(),
-                url_slug: response.items[0].url_slug.clone()
-            }),
-            0 => Err(VocadbClientError::NotFoundError),
-            _ => Err(VocadbClientError::AmbiguousResponseError)
-        }
-    }
-
-    pub async fn get_songs_by_vocadb_event_tag(&self, tag_id: i32, start_offset: i32, max_results: i32, order_by: String) -> Result<SongSearchResult> {
-        let response: PartialFindResult<SongForApiContract> = self.http_get(
-            &String::from("https://vocadb.net/api/songs"),
-            &vec![
-                ("tagId[]", tag_id.to_string()),
-                ("start", start_offset.to_string()),
-                ("maxResults", max_results.to_string()),
-                ("sort", order_by),
-                ("getTotalCount", String::from("true")),
-                ("lang", String::from("Default")),
-                ("fields", String::from("ReleaseEvent,Tags")),
-            ],
-        ).await?;
-
-        return if response.total_count > 0 {
-            Ok(SongSearchResult {
-                items: response.items,
-                total_count: response.total_count
-            })
-        } else {
-            Err(VocadbClientError::NotFoundError)
-        }
+        };
     }
 
     pub async fn get_videos_from_db_before_since(&self, max_results: i32, mode: String, date_time: String, song_id: i32, sort_rule: String) -> Result<SongsForApiContractWithThumbnailsAndTimestamp> {
@@ -584,6 +568,7 @@ impl<'a> Client<'a> {
                                         pvs: response_item.entry.pvs,
                                         rating_score: Some(0),
                                         release_event: None,
+                                        publish_date: None,
                                     });
                                 } else {
                                     response_entries.push(SongForApiContract {
@@ -596,6 +581,7 @@ impl<'a> Client<'a> {
                                         pvs: Some(vec![]),
                                         rating_score: Some(0),
                                         release_event: None,
+                                        publish_date: None,
                                     });
                                 };
                             }
@@ -725,7 +711,8 @@ impl<'a> Client<'a> {
                     create_date: song.create_date,
                     rating_score: song.rating_score,
                     pvs: Some(nico_pvs),
-                    release_event: None
+                    release_event: song.release_event,
+                    publish_date: song.publish_date,
                 },
                 thumbnails_ok: ok,
                 thumbnails_error: err,
@@ -814,5 +801,15 @@ impl<'a> Client<'a> {
         }
 
         return res;
+    }
+
+    pub async fn get_song_for_edit(&self, song_id: i32) -> Result<Map<String, Value>> {
+        let q: Vec<String> = vec![];
+        let response: Value = self.http_get(
+            &format!("https://beta.vocadb.net/api/songs/{}/for-edit", song_id), &q,
+        ).await?;
+        let map = response.as_object().context("Response is not a map")?;
+
+        return Ok(map.clone());
     }
 }
