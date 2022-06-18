@@ -6,10 +6,12 @@ use std::time::Duration;
 
 use actix_web::cookie::Cookie;
 use actix_web::http::Method;
+use actix_web::HttpResponse;
 use actix_web::web::Json;
 use anyhow::Context;
 use awc::body::MessageBody;
 use awc::error::HeaderValue;
+use awc::error::SendRequestError::Http;
 use log::{debug, info};
 use roxmltree::Document;
 use serde::de::DeserializeOwned;
@@ -31,6 +33,7 @@ use crate::client::models::song::{SongForApiContract, SongSearchResult};
 use crate::client::models::tag::{AssignableTag, SelectedTag, TagBaseContract, TagForApiContract, TagSearchResult, TagUsageForApiContract};
 use crate::client::models::user::UserForApiContract;
 use crate::client::nicomodels::{NicoTagWithVariant, SongForApiContractWithThumbnails, SongForApiContractWithThumbnailsAndMappedTags, SongsForApiContractWithThumbnailsAndTimestamp, Tag, TagBaseContractSimplified, ThumbnailError, ThumbnailOk, ThumbnailOkWithMappedTags, ThumbnailTagMappedWithAssignAndLockInfo};
+use crate::StatusCode;
 use crate::web::dto::{DBFetchResponseWithTimestamps, DisplayableTag, EventAssigningResult, MinimalEvent, NicoResponse, NicoResponseWithScope, NicoVideo, NicoVideoWithTidyTags, SongForApiContractSimplified, TagMappingContract, VideoWithEntry};
 
 pub struct Client<'a> {
@@ -306,11 +309,11 @@ impl<'a> Client<'a> {
         return Ok(result);
     }
 
-    pub async fn assign(&self, tags: Vec<TagBaseContract>, song_id: i32) -> Result<bool> {
+    pub async fn assign(&self, tags: Vec<TagBaseContract>, song_id: i32) -> Result<()> {
         let _response = self.http_put::<Vec<TagBaseContract>, Vec<TagUsageForApiContract>>(
             &format!("https://vocadb.net/api/users/current/songTags/{}", song_id), &vec![], tags)
             .await?;
-        return Ok(true);
+        return Ok(());
     }
 
     pub async fn get_song_by_nico_pv(&self, pv_id: &str) -> Result<Option<SongForApiContract>> {

@@ -8,6 +8,8 @@ pub enum VocadbClientError {
     NotFoundError,
     #[error("Ambiguous response")]
     AmbiguousResponseError,
+    #[error("{0}")]
+    SpecificResourceNotFoundError(String),
     #[error(transparent)]
     SendRequestError(#[from] awc::error::SendRequestError),
     #[error(transparent)]

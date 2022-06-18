@@ -14,7 +14,8 @@ use serde_json::{Map, Value};
 use crate::client::client::Client;
 use crate::client::errors::VocadbClientError;
 use crate::client::models::tag::{AssignableTag, TagBaseContract};
-use crate::web::dto::{AssignEventAndRemoveTagPayload, AssignTagRequest, Database, DBBeforeSinceFetchRequest, DBFetchRequest, LoginRequest, LoginResponse, LookupAndAssignTagRequest, SongsByEventTagFetchRequest, SongsByEventTagFetchResponse, TagFetchRequest, Token, VideosWithEntries, VideosWithEntriesByVocaDbTag};
+use crate::StatusCode;
+use crate::web::dto::{AssignEventAndRemoveTagPayload, AssignTagRequest, Database, DBBeforeSinceFetchRequest, DBFetchRequest, EventAssigningResult, LoginRequest, LoginResponse, LookupAndAssignTagRequest, SongsByEventTagFetchRequest, SongsByEventTagFetchResponse, TagFetchRequest, Token, VideosWithEntries, VideosWithEntriesByVocaDbTag};
 use crate::web::errors::AppResponseError;
 use crate::web::errors::Result;
 use crate::web::middleware::auth_token;
@@ -188,10 +189,34 @@ pub async fn assign_event_and_remove_tag(_req: HttpRequest, payload: Json<Assign
     let token = extract_token(&_req)?;
     let client = client_from_token(&token)?;
 
+    let result = client.fill_in_an_event(payload.song_id, payload.event.clone()).await?;
+    match result {
+        EventAssigningResult::MultipleEvents => {
+            let response_code = client.assign(vec![TagBaseContract {
+                id: 8275,
+                name: String::from("multiple events"),
+                category_name: Some(String::from("Editor notes")),
+                additional_names: Some(String::from("")),
+                url_slug: String::from("multiple-events")
+            }], payload.song_id).await;
+            if response_code.is_ok() {
+                return Err(AppResponseError::VocadbClientError(VocadbClientError::SpecificResourceNotFoundError(format!("Could not find tag \"{}\" (id={})", "multiple events", 8275))));
+            }
+        }
+        EventAssigningResult::AlreadyTaggedWithMultipleEvents => {
+            // did nothing, but need to tell the user to check whether song description mentions the event
+        }
+        _ => {
+            // EventAssigningResult::Assigned => filled the event
+            // EventAssigningResult::AlreadyAssigned => the event is already filled
+        }
+    }
+    // need to remove the tag in any case
+
     //client.fill_in_an_event(payload.song_id, payload.event_id);
     //client.remove_tag(payload.song_id, payload.tag_id);
 
-    return Ok(Json(client.fill_in_an_event(payload.song_id, payload.event.clone()).await?));
+    return Ok(Json(result));
 }
 
 #[post("/assign")]
@@ -215,9 +240,9 @@ pub async fn assign_tag(_req: HttpRequest, payload: Json<AssignTagRequest>) -> R
         }).collect();
     new_tags.extend(current_tags.iter().filter(|ct| ct.selected)
         .map(|ct| ct.tag.clone()));
-    let response = client.assign(new_tags, payload.song_id).await?;
+    let response = client.assign(new_tags, payload.song_id).await;
 
-    return if response {
+    return if response.is_ok() {
         Ok(Json(()))
     } else {
         Err(AppResponseError::VocadbClientError(VocadbClientError::NotFoundError))
@@ -251,9 +276,9 @@ pub async fn lookup_and_assign_tag(_req: HttpRequest, payload: Json<LookupAndAss
     new_tags.extend(current_tags.iter().filter(|ct| ct.selected)
         .map(|ct| ct.tag.clone()));
 
-    let response = client.assign(new_tags, payload.song_id).await?;
+    let response = client.assign(new_tags, payload.song_id).await;
 
-    return if response {
+    return if response.is_ok() {
         Ok(Json(()))
     } else {
         Err(AppResponseError::VocadbClientError(VocadbClientError::NotFoundError))

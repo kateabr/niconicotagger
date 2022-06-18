@@ -33,6 +33,8 @@ impl actix_web::ResponseError for AppResponseError {
             match e {
                 VocadbClientError::BadCredentialsError => StatusCode::UNAUTHORIZED,
                 VocadbClientError::NotFoundError => StatusCode::NOT_FOUND,
+                VocadbClientError::SpecificResourceNotFoundError(_) => StatusCode::NOT_FOUND,
+                VocadbClientError::AmbiguousResponseError => StatusCode::BAD_REQUEST,
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             }
         }
