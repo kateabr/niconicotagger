@@ -266,8 +266,23 @@ pub struct SongsByEventTagFetchResponse {
 pub struct AssignEventAndRemoveTagPayload {
     #[serde(rename = "songId")]
     pub song_id: i32,
-    #[serde(rename = "eventId")]
-    pub event_id: i32,
+    pub event: MinimalEvent,
     #[serde(rename = "tagId")]
     pub tag_id: i64,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct MinimalEvent {
+    pub id: i64,
+    pub name: String,
+    #[serde(rename = "urlSlug")]
+    pub url_slug: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub enum EventAssigningResult {
+    Assigned,
+    AlreadyAssigned,
+    MultipleEvents,
+    AlreadyTaggedWithMultipleEvents
 }

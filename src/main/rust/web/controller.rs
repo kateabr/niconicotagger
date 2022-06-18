@@ -181,34 +181,17 @@ pub async fn fetch_from_db_by_event_tag(_req: HttpRequest, payload: Json<SongsBy
 
 #[post("/assign_event_and_remove_tag")]
 pub async fn assign_event_and_remove_tag(_req: HttpRequest, payload: Json<AssignEventAndRemoveTagPayload>) -> Result<impl Responder> {
-    if payload.song_id < 0 || payload.event_id < 0 || payload.tag_id < 0 {
+    if payload.song_id < 0 || payload.event.id < 0 || payload.event.name.is_empty() || payload.event.url_slug.is_empty() || payload.tag_id < 0 {
         return Err(AppResponseError::ConstraintViolationError(String::from("Invalid arguments")));
     }
 
     let token = extract_token(&_req)?;
     let client = client_from_token(&token)?;
 
-    debug!("Save edited song data");
+    //client.fill_in_an_event(payload.song_id, payload.event_id);
+    //client.remove_tag(payload.song_id, payload.tag_id);
 
-    let mut entry = client.get_song_for_edit(payload.song_id).await?;
-    let tag_array: Vec<i64> = entry.get("tags").unwrap().as_array().unwrap().iter().map(|v| v.as_i64().unwrap()).collect();
-    debug!("{:?}", tag_array);
-    let filtered_tags: Vec<i64> = tag_array.into_iter().filter(|tag_id| tag_id != &payload.tag_id).collect();
-    entry.insert(String::from("tags"), Value::from(filtered_tags));
-
-    debug!("Save edited song data");
-
-    let mut id_map = Map::new();
-    debug!("Save edited song data");
-    id_map.insert("id".to_string(), Value::from(payload.event_id));
-    entry.insert("releaseEvent".to_string(), Value::from(id_map));
-    entry.insert("updateNotes".to_string(), Value::from("testing tag replacing..."));
-
-    debug!("Save edited song data");
-
-
-
-    return Ok(client.save_edited_song_data(payload.song_id, entry).await?);
+    return Ok(Json(client.fill_in_an_event(payload.song_id, payload.event.clone()).await?));
 }
 
 #[post("/assign")]

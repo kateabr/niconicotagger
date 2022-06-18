@@ -9,11 +9,13 @@ use actix_web::http::Method;
 use actix_web::web::Json;
 use anyhow::Context;
 use awc::body::MessageBody;
+use awc::error::HeaderValue;
 use log::{debug, info};
 use roxmltree::Document;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use serde_json::{Map, Value};
+use serde_urlencoded::ser::Error;
 
 use crate::client::errors::Result;
 use crate::client::errors::VocadbClientError;
@@ -29,7 +31,7 @@ use crate::client::models::song::{SongForApiContract, SongSearchResult};
 use crate::client::models::tag::{AssignableTag, SelectedTag, TagBaseContract, TagForApiContract, TagSearchResult, TagUsageForApiContract};
 use crate::client::models::user::UserForApiContract;
 use crate::client::nicomodels::{NicoTagWithVariant, SongForApiContractWithThumbnails, SongForApiContractWithThumbnailsAndMappedTags, SongsForApiContractWithThumbnailsAndTimestamp, Tag, TagBaseContractSimplified, ThumbnailError, ThumbnailOk, ThumbnailOkWithMappedTags, ThumbnailTagMappedWithAssignAndLockInfo};
-use crate::web::dto::{DBFetchResponseWithTimestamps, DisplayableTag, NicoResponse, NicoResponseWithScope, NicoVideo, NicoVideoWithTidyTags, SongForApiContractSimplified, TagMappingContract, VideoWithEntry};
+use crate::web::dto::{DBFetchResponseWithTimestamps, DisplayableTag, EventAssigningResult, MinimalEvent, NicoResponse, NicoResponseWithScope, NicoVideo, NicoVideoWithTidyTags, SongForApiContractSimplified, TagMappingContract, VideoWithEntry};
 
 pub struct Client<'a> {
     pub client: awc::Client,
@@ -134,24 +136,6 @@ impl<'a> Client<'a> {
         let body_string = String::from_utf8(body.to_vec()).unwrap();
         let json = serde_json::from_slice(&body).context(format!("Unable to deserialize a payload: {}", body_string))?;
         return Ok(json);
-    }
-
-    async fn http_post_body_void<B, T>(&self, url: &String, query: &T, payload: &B) -> Result<()>
-        where
-            B: ?Sized + Serialize,
-            T: Serialize,
-    {
-        let request = self.create_request(url, Method::POST);
-        debug!("Sending POST request {:?}", request);
-
-        let payload_str = serde_json::to_string(payload).context("Unable to serialize a payload")?;
-        let body = request
-            .query(query)
-            .context("Unable to construct a query")?
-            .send_body(payload_str)
-            .await?;
-
-        return Ok(());
     }
 
     async fn http_get_raw(&self, url: &String, query: &Vec<(&str, String)>) -> Result<Vec<u8>>
@@ -491,14 +475,73 @@ impl<'a> Client<'a> {
         };
     }
 
-    pub async fn save_edited_song_data(&self, song_id: i32, song_data: Map<String, Value>) -> Result<serde_json::Result<String>> {
-        debug!("Save edited song data");
-        let mut map: Map<String, Value> = Map::new();
-        map.insert("EditedSong".to_string(), Value::from(song_data));
-        let query: Vec<String> = vec![];
-        // let x = self.http_post_body_void(&format!("https://beta.vocadb.net/Song/Edit/{}", song_id), &query, &map).await?;
+    fn get_2nd_level_value(&self, data: &Map<String, Value>, primary_key: &str, secondary_key: &str) -> String {
+        return String::from(data.get(primary_key).unwrap().as_object().unwrap().get(secondary_key).unwrap().as_str().unwrap_or(""));
+    }
 
-        return Ok(serde_json::to_string(&map));
+    pub async fn fill_in_an_event(&self, song_id: i32, event: MinimalEvent) -> Result<EventAssigningResult> {
+        #[derive(Serialize, Debug)]
+        struct EditForm {
+            #[serde(rename = "EditedSong")]
+            edited_song: String,
+            #[serde(rename = "AlbumId")]
+            album_id: Option<String>,
+            #[serde(rename = "ko_unique_1")]
+            ko_unique_1: bool
+        }
+        let mut song_data: Map<String, Value> = self.get_song_for_edit(song_id).await?;
+        let mut final_result: EventAssigningResult = EventAssigningResult::Assigned;
+        if song_data.contains_key("releaseEvent") {
+            if song_data.get("releaseEvent").unwrap().as_object().unwrap().get("id").unwrap().as_i64().unwrap() != event.id {
+                if song_data.get("tags").unwrap().as_array().unwrap().contains(&Value::from(8275)) {
+                    return Ok(EventAssigningResult::AlreadyTaggedWithMultipleEvents);
+                }
+                let mut description_map = Map::new();
+                let src_description = self.get_2nd_level_value(&song_data, "notes", "original");
+                let additional_notes = Value::from(format!("Another event: [{}](https://vocadb.net/E/{}/{}).",
+                                                           event.name,
+                                                           event.id,
+                                                           event.url_slug))
+                    .as_str().unwrap().to_string();
+                if src_description.is_empty() {
+                    description_map.insert("original".to_string(), Value::from(additional_notes));
+                } else {
+                    let original_notes = self.get_2nd_level_value(&song_data, "notes", "original");
+                    if !original_notes.is_empty() {
+                        description_map.insert("original".to_string(),
+                                               Value::from(format!("{}\n\n{}", original_notes, additional_notes)));
+                    } else {
+                        description_map.insert("original".to_string(),
+                                               Value::from(additional_notes));
+                    }
+                }
+                let original_eng_notes = self.get_2nd_level_value(&song_data, "notes", "english");
+                if !original_eng_notes.is_empty() {
+                    description_map.insert("english".to_string(), Value::from(original_eng_notes));
+                }
+                song_data.insert(String::from("notes"), Value::from(description_map));
+                final_result = EventAssigningResult::MultipleEvents;
+            } else {
+                return Ok(EventAssigningResult::AlreadyAssigned);
+            }
+        } else {
+            let mut event_id_map = Map::new();
+            event_id_map.insert("id".to_string(), Value::from(event.id));
+            song_data.insert("releaseEvent".to_string(), Value::from(event_id_map));
+        }
+        song_data.insert("updateNotes".to_string(), Value::from("testing event filling..."));
+        let edited_song = serde_json::to_string(&song_data).context("Unable to serialize")?;
+
+        let request = self.create_request(&format!("https://vocadb.net/Song/Edit/{}", song_id), Method::POST);
+
+        let payload: EditForm = EditForm { edited_song, album_id: None, ko_unique_1: false };
+        let payload_str = serde_urlencoded::to_string(&payload).unwrap();
+
+        let response = request.content_type(HeaderValue::from_str("application/x-www-form-urlencoded").unwrap()).send_form(&payload).await?.body().await?;
+
+        let result = String::from_utf8(response.to_vec()).context("Response is not a UTF-8 string")?;
+        debug!("{}", result);
+        return Ok(final_result);
     }
 
     pub async fn get_songs_by_vocadb_event_tag(&self, tag_id: i32, start_offset: i32, max_results: i32, order_by: String) -> Result<SongSearchResult> {
@@ -806,7 +849,7 @@ impl<'a> Client<'a> {
     pub async fn get_song_for_edit(&self, song_id: i32) -> Result<Map<String, Value>> {
         let q: Vec<String> = vec![];
         let response: Value = self.http_get(
-            &format!("https://beta.vocadb.net/api/songs/{}/for-edit", song_id), &q,
+            &format!("https://vocadb.net/api/songs/{}/for-edit", song_id), &q,
         ).await?;
         let map = response.as_object().context("Response is not a map")?;
 
