@@ -7,13 +7,15 @@ use std::time::Duration;
 use actix_web::cookie::Cookie;
 use actix_web::http::Method;
 use actix_web::HttpResponse;
-use actix_web::web::Json;
+use actix_web::web::{Bytes, Json};
 use anyhow::Context;
 use awc::body::MessageBody;
 use awc::error::HeaderValue;
 use awc::error::SendRequestError::Http;
 use log::{debug, info};
 use roxmltree::Document;
+use scraper::{ElementRef, Node};
+use scraper::node::Element;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use serde_json::{Map, Value};
@@ -35,6 +37,7 @@ use crate::client::models::user::UserForApiContract;
 use crate::client::nicomodels::{NicoTagWithVariant, SongForApiContractWithThumbnails, SongForApiContractWithThumbnailsAndMappedTags, SongsForApiContractWithThumbnailsAndTimestamp, Tag, TagBaseContractSimplified, ThumbnailError, ThumbnailOk, ThumbnailOkWithMappedTags, ThumbnailTagMappedWithAssignAndLockInfo};
 use crate::StatusCode;
 use crate::web::dto::{DBFetchResponseWithTimestamps, DisplayableTag, EventAssigningResult, MinimalEvent, NicoResponse, NicoResponseWithScope, NicoVideo, NicoVideoWithTidyTags, SongForApiContractSimplified, TagMappingContract, VideoWithEntry};
+use crate::web::errors::AppResponseError;
 
 pub struct Client<'a> {
     pub client: awc::Client,
@@ -121,6 +124,20 @@ impl<'a> Client<'a> {
         return Ok(json);
     }
 
+    async fn http_get_no_return_value<T>(&self, url: &String, query: &T) -> Result<()>
+        where
+            T: Serialize,
+    {
+        let request = self.create_request(url, Method::GET);
+        debug!("Sending GET request {:?}", request);
+        let body = request
+            .query(query)
+            .context("Unable to construct a query")?
+            .send()
+            .await?;
+        return Ok(());
+    }
+
     async fn http_post<T, R>(&self, url: &String, query: &T) -> Result<R>
         where
             R: DeserializeOwned,
@@ -141,11 +158,11 @@ impl<'a> Client<'a> {
         return Ok(json);
     }
 
-    async fn http_get_raw(&self, url: &String, query: &Vec<(&str, String)>) -> Result<Vec<u8>>
+    async fn http_get_raw(&self, url: &String, query: &Vec<(&str, String)>) -> Result<Bytes>
     {
         let request = self.create_request(url, Method::GET);
         let body = request.query(query).context("Unable to construct a query")?.send().await?.body().await?;
-        return Ok(body.to_vec());
+        return Ok(body);
     }
 
     async fn http_put<U, T>(&self, url: &String, query: &Vec<(&str, String)>, json: U) -> Result<T>
@@ -482,7 +499,7 @@ impl<'a> Client<'a> {
         return String::from(data.get(primary_key).unwrap().as_object().unwrap().get(secondary_key).unwrap().as_str().unwrap_or(""));
     }
 
-    pub async fn fill_in_an_event(&self, song_id: i32, event: MinimalEvent) -> Result<EventAssigningResult> {
+    pub async fn fill_in_event(&self, song_id: i32, event: MinimalEvent) -> Result<EventAssigningResult> {
         #[derive(Serialize, Debug)]
         struct EditForm {
             #[serde(rename = "EditedSong")]
@@ -490,13 +507,13 @@ impl<'a> Client<'a> {
             #[serde(rename = "AlbumId")]
             album_id: Option<String>,
             #[serde(rename = "ko_unique_1")]
-            ko_unique_1: bool
+            ko_unique_1: bool,
         }
         let mut song_data: Map<String, Value> = self.get_song_for_edit(song_id).await?;
         let mut final_result: EventAssigningResult = EventAssigningResult::Assigned;
         if song_data.contains_key("releaseEvent") {
             if song_data.get("releaseEvent").unwrap().as_object().unwrap().get("id").unwrap().as_i64().unwrap() != event.id {
-                if song_data.get("tags").unwrap().as_array().unwrap().contains(&Value::from(8275)) {
+                if song_data.get("tags").unwrap().as_array().unwrap().contains(&Value::from(8275)) { // "multiple events"
                     return Ok(EventAssigningResult::AlreadyTaggedWithMultipleEvents);
                 }
                 let mut description_map = Map::new();
@@ -532,7 +549,7 @@ impl<'a> Client<'a> {
             event_id_map.insert("id".to_string(), Value::from(event.id));
             song_data.insert("releaseEvent".to_string(), Value::from(event_id_map));
         }
-        song_data.insert("updateNotes".to_string(), Value::from("testing event filling..."));
+        song_data.insert("updateNotes".to_string(), Value::from(format!("Added event \"{}\" (via NicoNicoTagger)", event.name)));
         let edited_song = serde_json::to_string(&song_data).context("Unable to serialize")?;
 
         let request = self.create_request(&format!("https://vocadb.net/Song/Edit/{}", song_id), Method::POST);
@@ -545,6 +562,85 @@ impl<'a> Client<'a> {
         let result = String::from_utf8(response.to_vec()).context("Response is not a UTF-8 string")?;
         debug!("{}", result);
         return Ok(final_result);
+    }
+
+    pub async fn remove_tag(&self, song_id: i32, tag_id: i64) -> Result<()> {
+        fn extract_href_link(e: &Element, pattern: &str) -> Option<String> {
+            if e.name() != "a" { return None; }
+
+            for (key, val) in e.attrs() {
+                if key != "href" || !val.contains(pattern) { continue; }
+                return Some(val.to_string());
+            }
+            return None;
+        }
+
+        fn find_tag_id(tag_id: i64, tr: &ElementRef) -> bool {
+            let id_str = format!("/T/{}/", tag_id).to_string();
+            for td in tr.children() {
+                for child in td.children() {
+                    match child.value() {
+                        Node::Element(e) => {
+                            let tag_link = extract_href_link(e, id_str.as_str());
+                            if tag_link.is_some() { return true; }
+                        }
+                        _ => continue
+                    }
+                }
+            }
+            return false;
+        }
+
+        fn process_row(tag_id: i64, tr: &ElementRef) -> Option<i64> {
+            if !find_tag_id(tag_id, tr) {
+                return None;
+            }
+
+            let link_pattern = "/Song/RemoveTagUsage/";
+            for td in tr.children() {
+                for child in td.children() {
+                    match child.value() {
+                        Node::Element(e) => match extract_href_link(e, &link_pattern) {
+                            Some(link) => {
+                                let id_str = link.trim_start_matches(&link_pattern);
+                                let id = id_str.parse().ok()?;
+                                return Some(id);
+                            }
+                            None => continue
+                        },
+                        _ => continue
+                    }
+                }
+            }
+            return None;
+        }
+
+        fn extract_tag_usage_id(html: &str, tag_id: i64) -> Option<i64> {
+            let document = scraper::Html::parse_document(html);
+            let selector = scraper::Selector::parse("table>tbody>tr").unwrap();
+
+            let mut tag_usage_id: Option<i64> = None;
+            for el in document.select(&selector) {
+                tag_usage_id = process_row(tag_id, &el);
+                if tag_usage_id.is_some() {
+                    break;
+                }
+            }
+            return tag_usage_id;
+        }
+
+        let query = vec![];
+        let response_bytes = self.http_get_raw(&format!("https://vocadb.net/Song/ManageTagUsages/{}", song_id), &query).await?;
+        let html = String::from_utf8(response_bytes.to_vec()).context("Response is not a UTF-8 string")?;
+
+        let tag_usage_id = extract_tag_usage_id(&html, tag_id)
+            .context(format!("Failed to extract tag usage id for tag (id={})", tag_id));
+        self.http_get_no_return_value(
+            &format!("https://vocadb.net/Song/RemoveTagUsage/{}", tag_usage_id.unwrap()),
+            &query
+        ).await?;
+
+        return Ok(());
     }
 
     pub async fn get_songs_by_vocadb_event_tag(&self, tag_id: i32, start_offset: i32, max_results: i32, order_by: String) -> Result<SongSearchResult> {
@@ -797,9 +893,11 @@ impl<'a> Client<'a> {
         &self,
         id: &String,
     ) -> Result<Vec<u8>> {
-        return self.http_get_raw(
+        let vec = self.http_get_raw(
             &format!("https://ext.nicovideo.jp/api/getthumbinfo/{}", id), &vec![])
-            .await;
+            .await?
+            .to_vec();
+        return Ok(vec);
     }
 
     pub async fn process_songs_with_thumbnails(&self, songs: SongsForApiContractWithThumbnailsAndTimestamp) -> Result<DBFetchResponseWithTimestamps> {

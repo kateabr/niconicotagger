@@ -7,7 +7,7 @@ use actix_web::web::Json;
 use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use anyhow::Context;
 use futures::future;
-use log::debug;
+use log::{debug, info};
 use regex::Regex;
 use serde_json::{Map, Value};
 
@@ -189,7 +189,8 @@ pub async fn assign_event_and_remove_tag(_req: HttpRequest, payload: Json<Assign
     let token = extract_token(&_req)?;
     let client = client_from_token(&token)?;
 
-    let result = client.fill_in_an_event(payload.song_id, payload.event.clone()).await?;
+    let result = client.fill_in_event(payload.song_id, payload.event.clone()).await?;
+    info!("{:?}", result);
     match result {
         EventAssigningResult::MultipleEvents => {
             let response_code = client.assign(vec![TagBaseContract {
@@ -199,8 +200,14 @@ pub async fn assign_event_and_remove_tag(_req: HttpRequest, payload: Json<Assign
                 additional_names: Some(String::from("")),
                 url_slug: String::from("multiple-events")
             }], payload.song_id).await;
-            if response_code.is_ok() {
-                return Err(AppResponseError::VocadbClientError(VocadbClientError::SpecificResourceNotFoundError(format!("Could not find tag \"{}\" (id={})", "multiple events", 8275))));
+            if response_code.is_err() {
+                return Err(
+                    AppResponseError::VocadbClientError(
+                        VocadbClientError::SpecificResourceNotFoundError(
+                            format!("Could not find tag \"multiple events\" (id={})", 8275)
+                        )
+                    )
+                );
             }
         }
         EventAssigningResult::AlreadyTaggedWithMultipleEvents => {
@@ -211,10 +218,7 @@ pub async fn assign_event_and_remove_tag(_req: HttpRequest, payload: Json<Assign
             // EventAssigningResult::AlreadyAssigned => the event is already filled
         }
     }
-    // need to remove the tag in any case
-
-    //client.fill_in_an_event(payload.song_id, payload.event_id);
-    //client.remove_tag(payload.song_id, payload.tag_id);
+    client.remove_tag(payload.song_id, payload.tag_id).await?;
 
     return Ok(Json(result));
 }
