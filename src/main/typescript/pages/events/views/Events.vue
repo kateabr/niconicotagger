@@ -49,7 +49,7 @@ import { api } from "@/backend";
 import { DateTime } from "luxon";
 import VueClipboard from "vue-clipboard2";
 import NavBarMenu from "@/components/NavBarMenu.vue";
-import EventByVocaDbTagTab from "@/components/EventByVocaDbTagTab.vue";
+import EventByVocaDbTagTab from "@/components/pages/EventByVocaDbTagTab.vue";
 
 Vue.use(VueClipboard);
 
@@ -58,18 +58,5 @@ export default class extends Vue {
   private alertMessage: string = "";
   private alertCode: number = 0;
   private browseMode = 0;
-}
-
-export interface EntryWithReleaseEventAndVisibility {
-  songEntry: SongForApiContractSimplifiedWithReleaseEvent;
-  publishDate: DateTime | null;
-  rowVisible: boolean;
-  toAssign: boolean;
-  processed: boolean;
-}
-
-export interface SongType {
-  name: string;
-  show: boolean;
 }
 </script>

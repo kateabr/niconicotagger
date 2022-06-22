@@ -123,7 +123,7 @@
         </b-collapse>
       </span>
     </b-row>
-    <b-row v-if="entriesLoaded() && isActiveMode()">
+    <b-row v-if="eventInfoLoaded() && isActiveMode()">
       <b-row
         class="mt-lg-3 pt-lg-3 pb-lg-3 col-lg-12 text-center m-auto alert-primary rounded p-sm-2 bg-light progress-bar-striped"
       >
@@ -213,7 +213,7 @@
           </b-row>
         </b-col>
       </b-row>
-      <b-row v-if="entriesLoaded()" class="col-12">
+      <b-row v-if="eventInfoLoaded()" class="col-12">
         <b-col class="my-auto">
           <div class="text-center pt-sm-3">
             <b-button-group>
@@ -236,7 +236,7 @@
           </div>
         </b-col>
       </b-row>
-      <b-row v-if="entriesLoaded" class="col-12">
+      <b-row v-if="eventInfoLoaded" class="col-12">
         <template>
           <div class="overflow-auto m-auto mt-lg-3">
             <b-pagination
@@ -255,7 +255,7 @@
         </template>
       </b-row>
       <b-table-simple
-        v-if="entriesLoaded() && isActiveMode()"
+        v-if="eventInfoLoaded() && isActiveMode()"
         hover
         class="mt-1 col-lg-12"
       >
@@ -273,7 +273,7 @@
           <b-th class="col-4 align-middle">Proposed actions</b-th>
           <b-th></b-th>
         </b-thead>
-        <b-tbody v-if="entriesLoaded">
+        <b-tbody v-if="eventInfoLoaded">
           <tr
             v-for="item in entries.filter(item => item.rowVisible)"
             :key="item.songEntry.id"
@@ -445,7 +445,7 @@
         </b-tfoot>
       </b-table-simple>
       <b-row
-        v-if="entriesLoaded()"
+        v-if="eventInfoLoaded()"
         class="mt-lg-1 col-lg-12 text-center m-auto alert-primary rounded p-sm-2 bg-light progress-bar-striped"
       >
         <b-col class="col-lg-3 m-auto">
@@ -464,7 +464,7 @@
         </b-col>
       </b-row>
 
-      <b-row v-if="entriesLoaded()" class="col-12">
+      <b-row v-if="eventInfoLoaded()" class="col-12">
         <template>
           <div class="overflow-auto m-auto my-lg-3">
             <b-pagination
@@ -495,14 +495,26 @@ import {
 } from "@/backend/dto";
 import { api } from "@/backend";
 import { DateTime } from "luxon";
-import {
-  EntryWithReleaseEventAndVisibility,
-  SongType
-} from "@/pages/events/views/Events.vue";
 import Component from "vue-class-component";
 import { Prop } from "vue-property-decorator";
+import {
+  getShortenedSongType,
+  getVocaDBEventUrl,
+  getVocaDBEntryUrl,
+  getVocaDBTagUrl,
+  getDateDisposition,
+  getMaxResultsForDisplay,
+  getOrderingConditionForDisplay,
+  getSongTypeColorForDisplay,
+  getSongTypeStatsForDisplay,
+  pageStateIsValid,
+  infoLoaded,
+  getDispositionBadgeColorVariant,
+  EntryWithReleaseEventAndVisibility,
+  SongType
+} from "@/utils";
 
-@Component
+@Component({ components: {} })
 export default class extends Vue {
   @Prop()
   private readonly mode!: number;
@@ -565,6 +577,62 @@ export default class extends Vue {
     { name: "Other", show: true }
   ];
 
+  // proxy methods
+  private getShortenedSongType(songType: string): string {
+    return getShortenedSongType(songType);
+  }
+
+  private getVocaDBEventUrl(id: number, urlSlug: string): string {
+    return getVocaDBEventUrl(id, urlSlug);
+  }
+
+  private getVocaDBEntryUrl(id: number): string {
+    return getVocaDBEntryUrl(id);
+  }
+
+  private getVocaDBTagUrl(id: number, urlSlug: string): string {
+    return getVocaDBTagUrl(id, urlSlug);
+  }
+
+  private getMaxResultsForDisplay(): string {
+    return getMaxResultsForDisplay(this.maxResults);
+  }
+
+  private getOrderingConditionForDisplay(): string {
+    return getOrderingConditionForDisplay(this.orderingCondition);
+  }
+
+  private getSongTypeColorForDisplay(typeString: string): string {
+    return getSongTypeColorForDisplay(typeString);
+  }
+
+  private getSongTypeStatsForDisplay(type: string): string {
+    return getSongTypeStatsForDisplay(
+      type,
+      this.entries.filter(item => item.songEntry.songType == type).length
+    );
+  }
+
+  private pageStateIsValid(): boolean {
+    return pageStateIsValid(this.pageToJump, this.maxPage);
+  }
+
+  private eventInfoLoaded(): boolean {
+    return infoLoaded(this.entries.length, this.eventTagNameFrozen);
+  }
+
+  private getDispositionBadgeColorVariant(disposition: string): string {
+    return getDispositionBadgeColorVariant(disposition);
+  }
+
+  private getDateDisposition(
+    date: DateTime | null,
+    dateStart: DateTime,
+    dateEnd: DateTime | null
+  ): DateComparisonResult {
+    return getDateDisposition(date, dateStart, dateEnd);
+  }
+
   // interface methods
   private isActiveMode(): boolean {
     return this.mode == 0;
@@ -576,48 +644,6 @@ export default class extends Vue {
 
   private getHiddenTypes(): number {
     return this.songTypes.filter(t => !t.show).length;
-  }
-
-  private fitDate(
-    date: DateTime | null,
-    dateStart: DateTime,
-    dateEnd: DateTime | null
-  ): DateComparisonResult {
-    if (date == null) {
-      return { disposition: "unknown", dayDiff: 0 };
-    }
-
-    let dayDiff = this.subDates(date, dateStart);
-    if (dateEnd === null) {
-      if (dayDiff === 0) {
-        return { dayDiff: 0, disposition: "perfect" };
-      } else {
-        return {
-          dayDiff: Math.abs(dayDiff),
-          disposition: dayDiff > 0 ? "late" : "early"
-        };
-      }
-    }
-
-    if (dateStart <= date) {
-      if (dateEnd >= date) {
-        return { dayDiff: 0, disposition: "perfect" };
-      } else {
-        return {
-          dayDiff: this.subDates(date, dateEnd),
-          disposition: "late"
-        };
-      }
-    } else {
-      return {
-        dayDiff: this.subDates(dateStart, date),
-        disposition: "early"
-      };
-    }
-  }
-
-  private subDates(date1: DateTime, date2: DateTime): number {
-    return date1.diff(date2).as("day");
   }
 
   private toggleCheckAll(): void {
@@ -638,72 +664,6 @@ export default class extends Vue {
     this.orderingCondition = value;
   }
 
-  private getMaxResultsForDisplay(): string {
-    return "Entries per page: " + this.maxResults;
-  }
-
-  private getOrderingConditionForDisplay(): string {
-    return "Arrange entries by: " + this.orderOptions[this.orderingCondition];
-  }
-
-  private getVocaDBEventUrl(id: number, urlSlug: string): string {
-    return "https://vocadb.net/E/" + id + "/" + urlSlug;
-  }
-
-  private getVocaDBEntryUrl(id: number): string {
-    return "https://vocadb.net/S/" + id;
-  }
-
-  private getVocaDBTagUrl(id: number, urlSlug: string): string {
-    return "https://vocadb.net/T/" + id + "/" + urlSlug;
-  }
-
-  private getSongTypeColorForDisplay(typeString: string): string {
-    if (typeString == "Original" || typeString == "Remaster") {
-      return "primary";
-    } else if (
-      typeString == "Remix" ||
-      typeString == "Cover" ||
-      typeString == "Mashup" ||
-      typeString == "Other"
-    ) {
-      return "secondary";
-    } else if (typeString == "Instrumental") {
-      return "dark";
-    } else if (typeString == "MusicPV" || typeString == "DramaPV") {
-      return "success";
-    } else {
-      return "warning";
-    }
-  }
-
-  private getSongTypeStatsForDisplay(type: string): string {
-    return (
-      type +
-      " (" +
-      this.entries.filter(item => item.songEntry.songType == type).length +
-      ")"
-    );
-  }
-
-  private getShortenedSongType(typeString: string): string {
-    if (typeString == "Unspecified") {
-      return "?";
-    } else if (typeString == "MusicPV") {
-      return "PV";
-    } else {
-      return typeString[0];
-    }
-  }
-
-  private getDispositionBadgeColorVariant(disposition: string): string {
-    return disposition === "perfect"
-      ? "success"
-      : disposition === "unknown"
-      ? "secondary"
-      : "warning";
-  }
-
   private filterEntries(): void {
     for (const item of this.entries) {
       item.rowVisible =
@@ -718,14 +678,6 @@ export default class extends Vue {
         (this.filledEvents || item.songEntry.releaseEvent == null);
       item.toAssign = item.toAssign && item.rowVisible;
     }
-  }
-
-  private pageStateIsValid(): boolean {
-    return this.pageToJump > 0 && this.pageToJump <= this.maxPage;
-  }
-
-  private entriesLoaded(): boolean {
-    return this.entries.length > 0 && this.eventTagNameFrozen != "";
   }
 
   // error handling
@@ -762,7 +714,6 @@ export default class extends Vue {
       if (response.releaseEvent.date == null) {
         throw { response: undefined, message: "Invalid event date" };
       }
-      console.log(response.items);
       let entries_temp: EntryWithReleaseEventAndVisibility[] = response.items.map(
         item => {
           return {
@@ -796,7 +747,7 @@ export default class extends Vue {
           : DateTime.fromISO(response.releaseEvent.endDate);
       this.entries.forEach(
         value =>
-          (value.songEntry.eventDateComparison = this.fitDate(
+          (value.songEntry.eventDateComparison = this.getDateDisposition(
             value.publishDate,
             this.event.date!,
             this.event.endDate
