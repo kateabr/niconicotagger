@@ -432,7 +432,7 @@ impl<'a> Client<'a> {
                     default_name_language: res.default_name_language.to_string(),
                 });
             }
-            _ => Err(VocadbClientError::NotFoundError)
+            _ => Err(VocadbClientError::NotFoundError(format!("tag with id=\"{}\" does not exist", tag_id)))
         }
     }
 
@@ -441,13 +441,13 @@ impl<'a> Client<'a> {
             &String::from("https://vocadb.net/api/tags/"),
             &vec![
                 ("fields", String::from("AdditionalNames")),
-                ("query", tag_name),
+                ("query", tag_name.clone()),
                 ("maxResults", String::from("1")),
             ],
         ).await?;
 
-        if !response.items.is_empty() {
-            return Ok(AssignableTag {
+        return if !response.items.is_empty() {
+            Ok(AssignableTag {
                 version: response.items[0].version.clone(),
                 usage_count: response.items[0].usage_count.clone(),
                 url_slug: response.items[0].url_slug.clone(),
@@ -459,9 +459,9 @@ impl<'a> Client<'a> {
                 category_name: response.items[0].category_name.clone(),
                 create_date: response.items[0].create_date.clone(),
                 default_name_language: response.items[0].default_name_language.to_string(),
-            });
+            })
         } else {
-            return Err(VocadbClientError::NotFoundError);
+            Err(VocadbClientError::NotFoundError("12346".to_string()))
         }
     }
 
@@ -485,7 +485,7 @@ impl<'a> Client<'a> {
                 url_slug: response.items[0].url_slug.clone(),
                 category: response.items[0].category.clone(),
             }),
-            0 => Err(VocadbClientError::NotFoundError),
+            0 => Err(VocadbClientError::NotFoundError(format!("tag with id=\"{}\" does not exist", tag_id))),
             _ => Err(VocadbClientError::AmbiguousResponseError)
         };
     }
@@ -631,7 +631,7 @@ impl<'a> Client<'a> {
             .context(format!("Failed to extract tag usage id for tag (id={})", tag_id))?;
         self.http_get_no_return_value(
             &format!("https://vocadb.net/Song/RemoveTagUsage/{}", tag_usage_id),
-            &query
+            &query,
         ).await?;
 
         return Ok(());
@@ -664,12 +664,12 @@ impl<'a> Client<'a> {
                     song_type: item.song_type.clone(),
                     artist_string: item.artist_string.clone(),
                     release_event: item.release_event.clone(),
-                    publish_date: item.publish_date.clone()
+                    publish_date: item.publish_date.clone(),
                 }).collect(),
                 total_count: response.total_count,
             })
         } else {
-            Err(VocadbClientError::NotFoundError)
+            Err(VocadbClientError::NotFoundError(format!("tag with id=\"{}\" is not attached to any songs", tag_id)))
         };
     }
 

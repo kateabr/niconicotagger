@@ -10,8 +10,10 @@ pub type Result<T, E = AppResponseError> = core::result::Result<T, E>;
 
 #[derive(thiserror::Error, Debug)]
 pub enum AppResponseError {
-    #[error("Resource not found")]
-    NotFoundError,
+    #[error("{0}")]
+    BadRequestError(String),
+    #[error("{0}")]
+    NotFoundError(String),
     #[error("{0}")]
     ConstraintViolationError(String),
     #[error(transparent)]
@@ -32,8 +34,7 @@ impl actix_web::ResponseError for AppResponseError {
         fn vocadb_client_error(e: &VocadbClientError) -> StatusCode {
             match e {
                 VocadbClientError::BadCredentialsError => StatusCode::UNAUTHORIZED,
-                VocadbClientError::NotFoundError => StatusCode::NOT_FOUND,
-                VocadbClientError::SpecificResourceNotFoundError(_) => StatusCode::NOT_FOUND,
+                VocadbClientError::NotFoundError(_) => StatusCode::NOT_FOUND,
                 VocadbClientError::AmbiguousResponseError => StatusCode::BAD_REQUEST,
                 _ => StatusCode::INTERNAL_SERVER_ERROR,
             }
@@ -43,7 +44,8 @@ impl actix_web::ResponseError for AppResponseError {
             AppResponseError::ConstraintViolationError(_) => StatusCode::BAD_REQUEST,
             AppResponseError::VocadbClientError(e) => vocadb_client_error(e),
             AppResponseError::UnexpectedError(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            AppResponseError::NotFoundError => StatusCode::NOT_FOUND
+            AppResponseError::NotFoundError(_) => StatusCode::NOT_FOUND,
+            AppResponseError::BadRequestError(_) => StatusCode::BAD_REQUEST
         };
     }
 
@@ -56,9 +58,8 @@ impl actix_web::ResponseError for AppResponseError {
             AppResponseError::VocadbClientError(e) => {
                 format!("Web client error: {}", e.to_string())
             }
-            AppResponseError::NotFoundError => {
-                format!("{}", AppResponseError::NotFoundError.to_string())
-            }
+            AppResponseError::NotFoundError(e) => format!("Web client error: {}", e.to_string()),
+            AppResponseError::BadRequestError(e) => format!("Web client error: {}", e.to_string())
         };
         let stacktrace = collect_stacktrace(self);
         let code = self.status_code();

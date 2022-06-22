@@ -1,9 +1,11 @@
 import { DateTime } from "luxon";
 import {
   DateComparisonResult,
+  NicoVideoWithTidyTags,
+  Publisher,
+  SongForApiContractSimplified,
   SongForApiContractSimplifiedWithReleaseEvent
 } from "@/backend/dto";
-import { VideoWithEntryAndVisibility } from "@/pages/nicovideo/views/Nicovideo.vue";
 
 // url generators
 export function getNicoTagUrl(tag: string, scope: string): string {
@@ -110,8 +112,8 @@ export function getDispositionBadgeColorVariant(disposition: string): string {
   return disposition === "perfect"
     ? "success"
     : disposition === "unknown"
-      ? "secondary"
-      : "warning";
+    ? "secondary"
+    : "warning";
 }
 
 export function getSongTypeStatsForDisplay(type: string, number: number): string {
@@ -178,6 +180,15 @@ export interface EntryWithReleaseEventAndVisibility {
   rowVisible: boolean;
   toAssign: boolean;
   processed: boolean;
+}
+
+export interface VideoWithEntryAndVisibility {
+  video: NicoVideoWithTidyTags;
+  songEntry: SongForApiContractSimplified | null;
+  embedVisible: boolean;
+  rowVisible: boolean;
+  toAssign: boolean;
+  publisher: Publisher | null;
 }
 
 export interface SongType {

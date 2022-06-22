@@ -39,7 +39,7 @@
             id="tag-form"
             v-model.trim="tagName"
             :disabled="defaultDisableCondition()"
-            placeholder="NicoNicoDouga tag"
+            placeholder="VocaDB tag"
             @keydown.enter.native="loadInitialPage"
           >
           </b-form-input>
@@ -129,7 +129,7 @@
                       type="number"
                       :disabled="defaultDisableCondition()"
                       aria-describedby="input-live-help input-live-feedback"
-                      :state="pageStateIsValid()"
+                      :state="pageStateIsValid"
                       @keydown.enter.native="
                         pageStateIsValid() ? loadPage(pageToJump) : null
                       "
@@ -174,21 +174,24 @@
           <b-link
             v-if="tagInfoLoaded()"
             target="_blank"
-            :to="getNicoTagUrl(tagNameFrozen, scopeTagStringFrozen)"
-            >{{ tagNameFrozen }}
-            <font-awesome-icon class="ml-1" icon="fas fa-external-link" />
-          </b-link> </strong
-      ></b-col>
+            :to="getVocaDBTagUrl(tagInfo[0].id, tagInfo[0].urlSlug)"
+            >{{ tagNameFrozen }}</b-link
+          >
+          >
+        </strong></b-col
+      >
       <b-col class="my-auto"
-        >Mapped to:<br />
-        <strong v-for="(tag, key) in tagMappings" :key="key">
+        >Search expression:<br /><strong>
           <b-link
+            v-if="tagInfoLoaded()"
             target="_blank"
-            :to="getVocaDBTagUrl(tagInfo[key].id, tagInfo[key].urlSlug)"
-            >{{ tag }}</b-link
-          ><span v-if="tagMappings.length - key > 1">, </span>
-        </strong>
-      </b-col>
+            :to="getNicoTagUrl(tagMappings.join(' OR '), scopeTagStringFrozen)"
+            >view at NND
+            <font-awesome-icon
+              class="ml-1"
+              icon="fas fa-external-link"
+            /> </b-link></strong
+      ></b-col>
       <b-col class="my-auto"
         >Videos found:<br /><strong>{{ totalVideoCount }}</strong></b-col
       >
@@ -489,31 +492,30 @@
 <script lang="ts">
 import { Component, Prop } from "vue-property-decorator";
 import Vue from "vue";
-import { api } from "@/backend";
-import { AssignableTag, SongForApiContractSimplified } from "@/backend/dto";
 import {
-  getShortenedSongType,
-  getVocaDBEntryUrl,
-  getVocaDBTagUrl,
-  getMaxResultsForDisplay,
-  getOrderingConditionForDisplayNico,
-  getSongTypeColorForDisplay,
-  getSongTypeStatsForDisplay,
-  pageStateIsValid,
   infoLoaded,
-  defaultScopeTagString,
-  SongType,
+  getVocaDBTagUrl,
   getNicoTagUrl,
+  getMaxResultsForDisplay,
+  SongType,
+  getSongTypeColorForDisplay,
+  defaultScopeTagString,
+  getSongTypeStatsForDisplay,
+  getOrderingConditionForDisplayNico,
+  pageStateIsValid,
   allVideosInvisible,
-  getNicoVideoUrl,
   getUniqueElementId,
+  getNicoVideoUrl,
+  getVocaDBEntryUrl,
+  getShortenedSongType,
   getVocaDBAddSongUrl,
   getVocaDBArtistUrl,
   VideoWithEntryAndVisibility
 } from "@/utils";
-import NicoEmbed from "@/components/NicoEmbed.vue";
+import { AssignableTag, SongForApiContractSimplified } from "@/backend/dto";
+import { api } from "@/backend";
 
-@Component({ components: { NicoEmbed } })
+@Component({ components: {} })
 export default class extends Vue {
   @Prop()
   private readonly mode!: number;
@@ -550,6 +552,10 @@ export default class extends Vue {
   private tagged: boolean = true;
   private tagMappings: string[] = [];
 
+  // error handling
+  private alertCode: number = 0;
+  private alertMessage: string = "";
+
   // interface dictionaries
   private songTypes: SongType[] = [
     { name: "Unspecified", show: true },
@@ -570,33 +576,60 @@ export default class extends Vue {
     lengthSeconds: "length"
   };
 
-  // error handling
-  private alertCode: number = 0;
-  private alertMessage: string = "";
-
-  // proxy methods
-  private pageStateIsValid(): boolean {
-    return pageStateIsValid(this.pageToJump, this.maxPage);
+  // interface methods
+  private isActiveMode(): boolean {
+    return this.mode == this.thisMode;
   }
 
-  private tagInfoLoaded(): boolean {
-    return infoLoaded(this.videos.length, this.tagNameFrozen);
+  private defaultDisableCondition(): boolean {
+    return this.fetching || this.massAssigning || this.assigning;
   }
 
-  private getOrderingCondition(): string {
-    return getOrderingConditionForDisplayNico(this.orderingCondition);
+  private setMaxResults(maxResults: number): void {
+    this.maxResults = maxResults;
+  }
+
+  private getHiddenTypes(): number {
+    return this.songTypes.filter(t => !t.show).length;
   }
 
   private setDefaultScopeTagString(): void {
     this.scopeTagString = defaultScopeTagString;
   }
 
-  private getNicoTagUrl(tagName: string, scopeTag: string): string {
-    return getNicoTagUrl(tagName, scopeTag);
+  private getOrderingCondition(): string {
+    return getOrderingConditionForDisplayNico(this.orderingCondition);
+  }
+
+  private setOrderingCondition(value: string): void {
+    this.orderingCondition = value;
+  }
+
+  private noVideosWithEntries(): boolean {
+    return this.videos.every(video => video.songEntry == null);
+  }
+
+  private toggleCheckAll(): void {
+    for (const item of this.videos.filter(video => video.rowVisible)) {
+      item.toAssign = this.allChecked;
+    }
+  }
+
+  private countChecked(): number {
+    return this.videos.filter(video => video.toAssign).length;
+  }
+
+  // proxy methods
+  private tagInfoLoaded(): boolean {
+    return infoLoaded(this.videos.length, this.tagNameFrozen);
   }
 
   private getVocaDBTagUrl(id: number, urlSlug: string): string {
     return getVocaDBTagUrl(id, urlSlug);
+  }
+
+  private getNicoTagUrl(tagName: string, scopeTag: string): string {
+    return getNicoTagUrl(tagName, scopeTag);
   }
 
   private getResultNumberStr(): string {
@@ -617,20 +650,24 @@ export default class extends Vue {
     );
   }
 
+  private pageStateIsValid(): boolean {
+    return pageStateIsValid(this.pageToJump, this.maxPage);
+  }
+
   private allInvisible(): boolean {
     return allVideosInvisible(this.videos);
   }
 
-  private getNicoVideoUrl(contentId: string): string {
-    return getNicoVideoUrl(contentId);
+  private getEmbedId(contentId: string): string {
+    return getUniqueElementId("embed_", contentId);
   }
 
   private getCollapseId(contentId: string): string {
     return getUniqueElementId("collapse_", contentId);
   }
 
-  private getEmbedId(contentId: string): string {
-    return getUniqueElementId("embed_", contentId);
+  private getNicoVideoUrl(contentId: string): string {
+    return getNicoVideoUrl(contentId);
   }
 
   private getVocaDBEntryUrl(id: number): string {
@@ -649,41 +686,6 @@ export default class extends Vue {
     return getVocaDBArtistUrl(artistId);
   }
 
-  // interface methods
-  private isActiveMode(): boolean {
-    return this.mode == this.thisMode;
-  }
-
-  private defaultDisableCondition(): boolean {
-    return this.fetching || this.massAssigning || this.assigning;
-  }
-
-  private getHiddenTypes(): number {
-    return this.songTypes.filter(t => !t.show).length;
-  }
-
-  private setOrderingCondition(value: string): void {
-    this.orderingCondition = value;
-  }
-
-  private setMaxResults(maxResults: number): void {
-    this.maxResults = maxResults;
-  }
-
-  private noVideosWithEntries(): boolean {
-    return this.videos.every(video => video.songEntry == null);
-  }
-
-  private toggleCheckAll(): void {
-    for (const item of this.videos.filter(video => video.rowVisible)) {
-      item.toAssign = this.allChecked;
-    }
-  }
-
-  private countChecked(): number {
-    return this.videos.filter(video => video.toAssign).length;
-  }
-
   // api methods
   async fetch(
     targetTag: string,
@@ -697,7 +699,7 @@ export default class extends Vue {
     this.showCollapse = false;
     this.fetching = true;
     try {
-      let response = await api.fetchVideos({
+      let response = await api.fetchVideosByTag({
         tag: targetTag,
         scopeTag: scopeString,
         startOffset: newStartOffset,
@@ -720,8 +722,10 @@ export default class extends Vue {
       this.scopeTagString = response.safeScope;
       this.scopeTagStringFrozen = response.safeScope;
       this.tagInfo = response.tags;
-      this.tagName = targetTag;
-      this.tagNameFrozen = targetTag;
+      this.tagName = response.tags[0].name;
+      this.tagNameFrozen = response.tags[0].name;
+      this.scopeTagString = scopeString;
+      this.scopeTagStringFrozen = scopeString;
       this.page = newStartOffset / this.maxResults + 1;
       this.numOfPages = this.totalVideoCount / this.maxResults + 1;
       this.startOffset = newStartOffset;

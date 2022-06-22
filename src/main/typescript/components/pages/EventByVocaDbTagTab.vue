@@ -1,5 +1,25 @@
 <template>
   <div>
+    <b-toast
+      :id="'error_' + thisMode"
+      title="Error"
+      no-auto-hide
+      variant="danger"
+      class="m-0 rounded-0"
+      toaster="toaster-events"
+    >
+      <span v-if="alertCode !== 401">
+        {{ alertMessage }}
+      </span>
+      <span v-else>
+        Access token has expired.
+        <b-link to="login" target="_blank">
+          Relogin
+          <font-awesome-icon class="ml-0" icon="fas fa-external-link" />
+        </b-link>
+        and try again
+      </span>
+    </b-toast>
     <b-row>
       <span class="m-auto col-lg-5">
         <b-input-group inline class="mt-lg-3">
@@ -519,6 +539,9 @@ export default class extends Vue {
   @Prop()
   private readonly mode!: number;
 
+  @Prop()
+  private readonly thisMode!: number;
+
   // main variables
   private readonly event: ReleaseEventForDisplay = {
     id: -1,
@@ -635,7 +658,7 @@ export default class extends Vue {
 
   // interface methods
   private isActiveMode(): boolean {
-    return this.mode == 0;
+    return this.mode == this.thisMode;
   }
 
   private defaultDisableCondition(): boolean {
@@ -682,7 +705,7 @@ export default class extends Vue {
 
   // error handling
   private processError(err: any): void {
-    this.$bvToast.show("error");
+    this.$bvToast.show("error_" + this.thisMode);
     if (err.response == undefined) {
       this.alertCode = 0;
       this.alertMessage = err.message;

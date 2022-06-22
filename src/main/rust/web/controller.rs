@@ -1,4 +1,4 @@
-use actix_web::{get, post, Responder, web};
+use actix_web::{get, post, Responder};
 use actix_web::http::header::Header;
 use actix_web::HttpRequest;
 use actix_web::web::Json;
@@ -75,7 +75,7 @@ pub async fn fetch_videos(_req: HttpRequest, payload: Json<TagFetchRequest>) -> 
                 safe_scope: response.safe_scope,
             }));
         }
-        None => Err(AppResponseError::NotFoundError)
+        None => Err(AppResponseError::NotFoundError(format!("tag \"{}\" is not mapped", payload.tag)))
     }
 }
 
@@ -115,7 +115,7 @@ pub async fn fetch_videos_by_tag(_req: HttpRequest, payload: Json<TagFetchReques
                 safe_scope: payload.scope_tag.clone(),
             }));
         }
-        None => Err(AppResponseError::NotFoundError)
+        None => Err(AppResponseError::NotFoundError(format!("tag \"{}\" is not mapped", payload.tag.clone())))
     }
 }
 
@@ -160,6 +160,9 @@ pub async fn fetch_from_db_by_event_tag(_req: HttpRequest, payload: Json<SongsBy
     let client = client_from_token(&token)?;
 
     let vocadb_tag = client.lookup_tag_by_name(payload.tag.clone()).await?;
+    if vocadb_tag.category_name != "Event" {
+        return Err(AppResponseError::BadRequestError(format!("\"{}\" is not an event", vocadb_tag.name)));
+    }
     let vocadb_event = client.get_event_by_tag(vocadb_tag.id).await?;
 
     let songs = client.get_songs_by_vocadb_event_tag(vocadb_tag.id, payload.start_offset, payload.max_results, payload.order_by.clone()).await?;
@@ -194,7 +197,7 @@ pub async fn assign_event_and_remove_tag(_req: HttpRequest, payload: Json<Assign
             if response_code.is_err() {
                 return Err(
                     AppResponseError::VocadbClientError(
-                        VocadbClientError::SpecificResourceNotFoundError(
+                        VocadbClientError::NotFoundError(
                             format!("Could not find tag \"multiple events\" (id={})", 8275)
                         )
                     )
@@ -240,7 +243,7 @@ pub async fn assign_tag(_req: HttpRequest, payload: Json<AssignTagRequest>) -> R
     return if response.is_ok() {
         Ok(Json(()))
     } else {
-        Err(AppResponseError::VocadbClientError(VocadbClientError::NotFoundError))
+        Err(AppResponseError::VocadbClientError(VocadbClientError::NotFoundError(format!("song with id=\"{}\" does not exist", payload.song_id))))
     };
 }
 
@@ -276,7 +279,7 @@ pub async fn lookup_and_assign_tag(_req: HttpRequest, payload: Json<LookupAndAss
     return if response.is_ok() {
         Ok(Json(()))
     } else {
-        Err(AppResponseError::VocadbClientError(VocadbClientError::NotFoundError))
+        Err(AppResponseError::VocadbClientError(VocadbClientError::NotFoundError(format!("song with id=\"{}\" does not exist", payload.song_id))))
     };
 }
 
