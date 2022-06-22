@@ -1,5 +1,6 @@
 <template>
   <div>
+    <nav-bar-menu active-mode="vocadb" />
     <div class="flex-fill fixed-top mb-3">
       <b-progress
         height="5px"
@@ -1205,15 +1206,6 @@
         </div>
       </b-col>
     </b-row>
-    <b-row class="fixed-top m-1" style="z-index: 1; max-width: min-content">
-      <b-col class="p-0">
-        <b-link to="nicovideo" target="_blank">
-          <b-button size="sm" style="width: 60px" variant="dark" squared
-            >Toggle<br />mode
-          </b-button>
-        </b-link>
-      </b-col>
-    </b-row>
   </div>
 </template>
 
@@ -1228,13 +1220,14 @@ import {
   SongForApiContractSimplified
 } from "@/backend/dto";
 import { api } from "@/backend";
+import NavBarMenu from "@/components/NavBarMenu.vue";
 
 import VueClipboard from "vue-clipboard2";
 import { DateTime } from "luxon";
 
 Vue.use(VueClipboard);
 
-@Component({ components: {} })
+@Component({ components: { NavBarMenu } })
 export default class extends Vue {
   private disableDateTimePicker = false;
   private browseMode = 0;

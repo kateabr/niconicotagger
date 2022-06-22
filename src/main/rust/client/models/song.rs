@@ -4,7 +4,7 @@ use strum_macros::ToString;
 
 use crate::client::models::entrythumb::{EntryThumbContract, EntryThumbForApiContract};
 use crate::client::models::pv::PVContract;
-use crate::client::models::releaseevent::{ReleaseEventForApiContract, ReleaseEventForApiContractSimplified};
+use crate::client::models::releaseevent::{ReleaseEventForApiContractSimplified};
 
 use crate::client::models::status::Status;
 use crate::client::models::tag::TagUsageForApiContract;

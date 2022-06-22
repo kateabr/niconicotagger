@@ -6,12 +6,9 @@ use std::time::Duration;
 
 use actix_web::cookie::Cookie;
 use actix_web::http::Method;
-use actix_web::HttpResponse;
-use actix_web::web::{Bytes, Json};
+use actix_web::web::{Bytes};
 use anyhow::Context;
-use awc::body::MessageBody;
 use awc::error::HeaderValue;
-use awc::error::SendRequestError::Http;
 use log::{debug, info};
 use roxmltree::Document;
 use scraper::{ElementRef, Node};
@@ -19,7 +16,6 @@ use scraper::node::Element;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use serde_json::{Map, Value};
-use serde_urlencoded::ser::Error;
 
 use crate::client::errors::Result;
 use crate::client::errors::VocadbClientError;
@@ -30,14 +26,12 @@ use crate::client::models::entrythumb::EntryType;
 use crate::client::models::misc::PartialFindResult;
 use crate::client::models::pv::{PVContract, PvService, PvType};
 use crate::client::models::query::OptionalFields;
-use crate::client::models::releaseevent::{EventSearchResult, ReleaseEventForApiContract, ReleaseEventForApiContractSimplified};
-use crate::client::models::song::{SongForApiContract, SongSearchResult};
+use crate::client::models::releaseevent::{EventSearchResult, ReleaseEventForApiContractSimplified};
+use crate::client::models::song::{SongForApiContract};
 use crate::client::models::tag::{AssignableTag, SelectedTag, TagBaseContract, TagForApiContract, TagSearchResult, TagUsageForApiContract};
 use crate::client::models::user::UserForApiContract;
 use crate::client::nicomodels::{NicoTagWithVariant, SongForApiContractWithThumbnails, SongForApiContractWithThumbnailsAndMappedTags, SongsForApiContractWithThumbnailsAndTimestamp, Tag, TagBaseContractSimplified, ThumbnailError, ThumbnailOk, ThumbnailOkWithMappedTags, ThumbnailTagMappedWithAssignAndLockInfo};
-use crate::StatusCode;
-use crate::web::dto::{DBFetchResponseWithTimestamps, DisplayableTag, EventAssigningResult, MinimalEvent, NicoResponse, NicoResponseWithScope, NicoVideo, NicoVideoWithTidyTags, SongForApiContractSimplified, TagMappingContract, VideoWithEntry};
-use crate::web::errors::AppResponseError;
+use crate::web::dto::{DBFetchResponseWithTimestamps, DisplayableTag, EventAssigningResult, MinimalEvent, NicoResponse, NicoResponseWithScope, NicoVideo, NicoVideoWithTidyTags, SongForApiContractSimplified, SongForApiContractSimplifiedWithMultipleEventInfo, SongForApiContractSimplifiedWithMultipleEventInfoSearchResult, TagMappingContract, VideoWithEntry};
 
 pub struct Client<'a> {
     pub client: awc::Client,
@@ -130,7 +124,7 @@ impl<'a> Client<'a> {
     {
         let request = self.create_request(url, Method::GET);
         debug!("Sending GET request {:?}", request);
-        let body = request
+        request
             .query(query)
             .context("Unable to construct a query")?
             .send()
@@ -162,6 +156,7 @@ impl<'a> Client<'a> {
     {
         let request = self.create_request(url, Method::GET);
         let body = request.query(query).context("Unable to construct a query")?.send().await?.body().await?;
+        if body.is_empty() { return Err(VocadbClientError::BadCredentialsError); }
         return Ok(body);
     }
 
@@ -555,7 +550,6 @@ impl<'a> Client<'a> {
         let request = self.create_request(&format!("https://vocadb.net/Song/Edit/{}", song_id), Method::POST);
 
         let payload: EditForm = EditForm { edited_song, album_id: None, ko_unique_1: false };
-        let payload_str = serde_urlencoded::to_string(&payload).unwrap();
 
         let response = request.content_type(HeaderValue::from_str("application/x-www-form-urlencoded").unwrap()).send_form(&payload).await?.body().await?;
 
@@ -634,16 +628,16 @@ impl<'a> Client<'a> {
         let html = String::from_utf8(response_bytes.to_vec()).context("Response is not a UTF-8 string")?;
 
         let tag_usage_id = extract_tag_usage_id(&html, tag_id)
-            .context(format!("Failed to extract tag usage id for tag (id={})", tag_id));
+            .context(format!("Failed to extract tag usage id for tag (id={})", tag_id))?;
         self.http_get_no_return_value(
-            &format!("https://vocadb.net/Song/RemoveTagUsage/{}", tag_usage_id.unwrap()),
+            &format!("https://vocadb.net/Song/RemoveTagUsage/{}", tag_usage_id),
             &query
         ).await?;
 
         return Ok(());
     }
 
-    pub async fn get_songs_by_vocadb_event_tag(&self, tag_id: i32, start_offset: i32, max_results: i32, order_by: String) -> Result<SongSearchResult> {
+    pub async fn get_songs_by_vocadb_event_tag(&self, tag_id: i32, start_offset: i32, max_results: i32, order_by: String) -> Result<SongForApiContractSimplifiedWithMultipleEventInfoSearchResult> {
         let response: PartialFindResult<SongForApiContract> = self.http_get(
             &String::from("https://vocadb.net/api/songs"),
             &vec![
@@ -658,8 +652,20 @@ impl<'a> Client<'a> {
         ).await?;
 
         return if response.total_count > 0 {
-            Ok(SongSearchResult {
-                items: response.items,
+            Ok(SongForApiContractSimplifiedWithMultipleEventInfoSearchResult {
+                items: response.items.iter().map(|item| SongForApiContractSimplifiedWithMultipleEventInfo {
+                    id: item.id,
+                    name: item.name.clone(),
+                    tagged_with_multiple_events: item.tags
+                        .iter()
+                        .map(|tag| tag.tag.id)
+                        .find(|&id| id == 8275)
+                        .is_some(),
+                    song_type: item.song_type.clone(),
+                    artist_string: item.artist_string.clone(),
+                    release_event: item.release_event.clone(),
+                    publish_date: item.publish_date.clone()
+                }).collect(),
                 total_count: response.total_count,
             })
         } else {

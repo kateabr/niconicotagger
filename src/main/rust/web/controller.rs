@@ -1,20 +1,14 @@
-use std::collections::HashMap;
-
-use actix_web::{get, HttpResponse, post, Responder, web};
+use actix_web::{get, post, Responder, web};
 use actix_web::http::header::Header;
 use actix_web::HttpRequest;
 use actix_web::web::Json;
 use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use anyhow::Context;
 use futures::future;
-use log::{debug, info};
-use regex::Regex;
-use serde_json::{Map, Value};
 
 use crate::client::client::Client;
 use crate::client::errors::VocadbClientError;
 use crate::client::models::tag::{AssignableTag, TagBaseContract};
-use crate::StatusCode;
 use crate::web::dto::{AssignEventAndRemoveTagPayload, AssignTagRequest, Database, DBBeforeSinceFetchRequest, DBFetchRequest, EventAssigningResult, LoginRequest, LoginResponse, LookupAndAssignTagRequest, SongsByEventTagFetchRequest, SongsByEventTagFetchResponse, TagFetchRequest, Token, VideosWithEntries, VideosWithEntriesByVocaDbTag};
 use crate::web::errors::AppResponseError;
 use crate::web::errors::Result;
@@ -26,18 +20,18 @@ pub async fn get_current_user(req: HttpRequest) -> Result<impl Responder> {
     let client = client_from_token(&token)?;
 
     let user = client.current_user().await?;
-    return Ok(web::Json(user));
+    return Ok(Json(user));
 }
 
 #[post("/api/login")]
-pub async fn login(payload: web::Json<LoginRequest>) -> Result<impl Responder> {
+pub async fn login(payload: Json<LoginRequest>) -> Result<impl Responder> {
     let mut client = create_client(&payload.database, &vec![])?;
     client.login(&payload.username, &payload.password).await?;
 
     let user = client.current_user().await?;
 
     let token = auth_token::encode(user.id, &payload.database, &client.cookies)?;
-    return Ok(web::Json(LoginResponse { token }));
+    return Ok(Json(LoginResponse { token }));
 }
 
 #[post("/fetch")]
@@ -166,9 +160,7 @@ pub async fn fetch_from_db_by_event_tag(_req: HttpRequest, payload: Json<SongsBy
     let client = client_from_token(&token)?;
 
     let vocadb_tag = client.lookup_tag_by_name(payload.tag.clone()).await?;
-    debug!("{}", vocadb_tag.id);
     let vocadb_event = client.get_event_by_tag(vocadb_tag.id).await?;
-    debug!("got event");
 
     let songs = client.get_songs_by_vocadb_event_tag(vocadb_tag.id, payload.start_offset, payload.max_results, payload.order_by.clone()).await?;
 
@@ -190,7 +182,6 @@ pub async fn assign_event_and_remove_tag(_req: HttpRequest, payload: Json<Assign
     let client = client_from_token(&token)?;
 
     let result = client.fill_in_event(payload.song_id, payload.event.clone()).await?;
-    info!("{:?}", result);
     match result {
         EventAssigningResult::MultipleEvents => {
             let response_code = client.assign(vec![TagBaseContract {

@@ -1,4 +1,4 @@
-import {DateTime} from "luxon";
+import { DateTime } from "luxon";
 
 export interface AuthenticationPayload {
   username: string;
@@ -63,6 +63,7 @@ export interface SongForApiContractSimplifiedWithReleaseEvent {
   releaseEvent: ReleaseEventForApiContractSimplified | null;
   publishDate: string | null;
   eventDateComparison: DateComparisonResult;
+  taggedWithMultipleEvents: boolean;
 }
 
 export interface DateComparisonResult {
@@ -207,8 +208,13 @@ export interface EntriesWithReleaseEventTag {
 }
 
 export interface AssignEventAndRemoveTagPayload {
-  songIds: number[];
-  eventId: number;
+  songId: number;
+  event: MinimalEvent;
   tagId: number;
 }
-``
+
+export interface MinimalEvent {
+  id: number;
+  name: string;
+  urlSlug: string;
+}

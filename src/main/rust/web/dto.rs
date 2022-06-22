@@ -2,10 +2,10 @@ use serde::{Deserialize, Serialize};
 use crate::client::models::activity::{ActivityEditEvent, ActivityEntryForApiContract};
 use crate::client::models::archived::ArchivedObjectVersionForApiContract;
 use crate::client::models::artist::NicoPublisher;
-use crate::client::models::releaseevent::{ReleaseEventForApiContract, ReleaseEventForApiContractSimplified};
+use crate::client::models::releaseevent::{ReleaseEventForApiContractSimplified};
 
-use crate::client::models::song::SongForApiContract;
-use crate::client::models::tag::{AssignableTag, TagForApiContract};
+use crate::client::models::song::{SongForApiContract, SongType};
+use crate::client::models::tag::{AssignableTag};
 use crate::client::models::user::UserForApiContract;
 use crate::client::nicomodels::{SongForApiContractWithThumbnailsAndMappedTags, TagBaseContractSimplified};
 
@@ -87,9 +87,32 @@ pub struct SongForApiContractSimplified {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+pub struct SongForApiContractSimplifiedWithMultipleEventInfo {
+    pub id: i32,
+    pub name: String,
+    #[serde(rename = "taggedWithMultipleEvents")]
+    pub tagged_with_multiple_events: bool,
+    #[serde(rename = "songType")]
+    pub song_type: SongType,
+    #[serde(rename = "artistString")]
+    pub artist_string: String,
+    #[serde(rename = "releaseEvent")]
+    pub release_event: Option<ReleaseEventForApiContractSimplified>,
+    #[serde(rename = "publishDate")]
+    pub publish_date: Option<String>,
+}
+
+#[derive(Serialize)]
+pub struct SongForApiContractSimplifiedWithMultipleEventInfoSearchResult {
+    pub items: Vec<SongForApiContractSimplifiedWithMultipleEventInfo>,
+    #[serde(rename = "totalCount")]
+    pub total_count: i32,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
 pub struct DisplayableTag {
-    pub(crate) name: String,
-    pub(crate) variant: String,
+    pub name: String,
+    pub variant: String,
 }
 
 #[derive(Serialize)]
@@ -253,7 +276,7 @@ pub struct SongActivityEntryForApiContract {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SongsByEventTagFetchResponse {
-    pub items: Vec<SongForApiContract>,
+    pub items: Vec<SongForApiContractSimplifiedWithMultipleEventInfo>,
     #[serde(rename = "totalCount")]
     pub total_count: i32,
     #[serde(rename = "releaseEvent")]

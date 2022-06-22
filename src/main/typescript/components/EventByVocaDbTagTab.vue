@@ -1,0 +1,865 @@
+<template>
+  <div>
+    <b-row>
+      <span class="m-auto col-lg-5">
+        <b-input-group inline class="mt-lg-3">
+          <template #prepend>
+            <b-button
+              v-b-toggle.scope-collapse
+              variant="primary"
+              style="width: 80px"
+              :disabled="defaultDisableCondition() || event.id < 0"
+              ><font-awesome-icon
+                class="mr-sm-1"
+                icon="fas fa-angle-down"
+              />More</b-button
+            >
+          </template>
+          <b-form-input
+            id="tag-form"
+            v-model.trim="eventTagName"
+            :disabled="defaultDisableCondition()"
+            placeholder="Event tag"
+            @keydown.enter.native="loadInitialPage"
+          >
+          </b-form-input>
+          <template #append>
+            <b-button
+              v-if="!fetching"
+              variant="primary"
+              style="width: 80px"
+              :disabled="eventTagName === '' || defaultDisableCondition()"
+              @click="loadInitialPage"
+              >Load</b-button
+            >
+            <b-button v-else variant="primary" style="width: 80px" disabled
+              ><b-spinner small></b-spinner
+            ></b-button>
+          </template>
+        </b-input-group>
+        <b-collapse id="scope-collapse" v-model="showCollapse" class="mt-2">
+          <b-row>
+            <b-col>
+              <template>
+                <b-input-group inline>
+                  <b-form-input
+                    v-model="timeDelta"
+                    :disabled="
+                      !timeDeltaEnabled ||
+                      defaultDisableCondition() ||
+                      !isActiveMode()
+                    "
+                    number
+                    type="range"
+                    min="0"
+                    max="7"
+                    @change="filterEntries"
+                  />
+                  <template #prepend>
+                    <b-input-group-text class="justify-content-center">
+                      <b-form-checkbox
+                        v-model="timeDeltaEnabled"
+                        :disabled="
+                          fetching || !isActiveMode() || orderedByPublishDate
+                        "
+                        @change="filterEntries"
+                      />
+                      Time delta
+                    </b-input-group-text>
+                  </template>
+                  <template #append>
+                    <b-input-group-text class="justify-content-center"
+                      >{{ timeDeltaEnabled ? timeDelta : "-" }}
+                      day(s)
+                    </b-input-group-text>
+                  </template>
+                </b-input-group>
+              </template>
+            </b-col>
+            <b-col>
+              <template>
+                <b-input-group
+                  inline
+                  :state="pageStateIsValid"
+                  invalid-feedback="Wrong page number"
+                >
+                  <template #prepend>
+                    <b-input-group-text
+                      class="justify-content-center"
+                      style="width: 80px"
+                      >Page:
+                    </b-input-group-text>
+                  </template>
+                  <template>
+                    <b-form-input
+                      id="page-jump-form"
+                      v-model.number="pageToJump"
+                      type="number"
+                      :disabled="defaultDisableCondition()"
+                      aria-describedby="input-live-help input-live-feedback"
+                      :state="pageStateIsValid()"
+                      @keydown.enter.native="
+                        pageStateIsValid() ? loadPage(pageToJump) : null
+                      "
+                    >
+                    </b-form-input>
+                  </template>
+                  <template #append>
+                    <b-button
+                      style="width: 80px"
+                      :variant="pageStateIsValid() ? 'success' : 'danger'"
+                      :disabled="
+                        defaultDisableCondition() || !pageStateIsValid()
+                      "
+                      @click="loadPage(pageToJump)"
+                      ><span v-if="pageToJump === page">Refresh</span
+                      ><span v-else>Jump</span></b-button
+                    >
+                  </template>
+                </b-input-group>
+              </template>
+            </b-col>
+          </b-row>
+        </b-collapse>
+      </span>
+    </b-row>
+    <b-row v-if="entriesLoaded() && isActiveMode()">
+      <b-row
+        class="mt-lg-3 pt-lg-3 pb-lg-3 col-lg-12 text-center m-auto alert-primary rounded p-sm-2 bg-light progress-bar-striped"
+      >
+        <b-col>
+          <b-row>
+            <b-col>
+              {{ event.category }}:<br />
+              <strong>
+                <b-link
+                  :to="getVocaDBEventUrl(event.id, event.urlSlug)"
+                  target="_blank"
+                  >{{ event.name }}
+                </b-link>
+              </strong>
+            </b-col>
+            <b-col>
+              Held on:<br />
+              <strong>
+                <font-awesome-icon icon="fa-solid fa-calendar" class="mr-1" />
+                {{ event.date.toLocaleString()
+                }}<span v-if="event.endDate !== null">
+                  - {{ event.endDate.toLocaleString() }}</span
+                ></strong
+              >
+            </b-col>
+            <b-col>
+              Songs found:<br />
+              <strong>{{ totalEntryCount }}</strong>
+            </b-col>
+            <b-col class="my-auto">
+              <b-dropdown
+                :disabled="defaultDisableCondition() || !isActiveMode()"
+                block
+                :text="getMaxResultsForDisplay()"
+                class="my-auto"
+                variant="primary"
+              >
+                <b-dropdown-item
+                  :disabled="maxResults === 10"
+                  @click="setMaxResults(10)"
+                  >10
+                </b-dropdown-item>
+                <b-dropdown-item
+                  :disabled="maxResults === 25"
+                  @click="setMaxResults(25)"
+                  >25
+                </b-dropdown-item>
+                <b-dropdown-item
+                  :disabled="maxResults === 50"
+                  @click="setMaxResults(50)"
+                  >50
+                </b-dropdown-item>
+                <b-dropdown-item
+                  :disabled="maxResults === 100"
+                  @click="setMaxResults(100)"
+                  >100
+                </b-dropdown-item>
+              </b-dropdown>
+            </b-col>
+            <b-col class="my-auto">
+              <b-dropdown
+                block
+                :disabled="defaultDisableCondition() || !isActiveMode()"
+                :text="getOrderingConditionForDisplay()"
+                variant="primary"
+              >
+                <b-dropdown-item
+                  v-for="(key, value) in orderOptions"
+                  :key="key"
+                  :disabled="orderingCondition === value"
+                  @click="setOrderingCondition(value)"
+                >
+                  {{ orderOptions[value] }}
+                </b-dropdown-item>
+              </b-dropdown>
+            </b-col>
+            <b-col class="my-auto">
+              <b-button
+                :disabled="defaultDisableCondition()"
+                variant="primary"
+                block
+                :pressed.sync="filledEvents"
+                @click="filterEntries()"
+                >Songs with events
+              </b-button>
+            </b-col>
+          </b-row>
+        </b-col>
+      </b-row>
+      <b-row v-if="entriesLoaded()" class="col-12">
+        <b-col class="my-auto">
+          <div class="text-center pt-sm-3">
+            <b-button-group>
+              <b-button
+                v-for="(type, key) in songTypes"
+                :key="key"
+                class="pl-4 pr-4"
+                :disabled="defaultDisableCondition()"
+                :variant="
+                  (type.show ? '' : 'outline-') +
+                  getSongTypeColorForDisplay(type.name)
+                "
+                @click="
+                  type.show = !type.show;
+                  filterEntries();
+                "
+                >{{ getSongTypeStatsForDisplay(type.name) }}
+              </b-button>
+            </b-button-group>
+          </div>
+        </b-col>
+      </b-row>
+      <b-row v-if="entriesLoaded" class="col-12">
+        <template>
+          <div class="overflow-auto m-auto mt-lg-3">
+            <b-pagination
+              v-model="page"
+              align="center"
+              :total-rows="totalEntryCount"
+              :per-page="maxResults"
+              use-router
+              first-number
+              last-number
+              limit="10"
+              :disabled="defaultDisableCondition()"
+              @change="loadPage"
+            />
+          </div>
+        </template>
+      </b-row>
+      <b-table-simple
+        v-if="entriesLoaded() && isActiveMode()"
+        hover
+        class="mt-1 col-lg-12"
+      >
+        <b-thead>
+          <b-th>
+            <b-form-checkbox
+              v-model="allChecked"
+              size="lg"
+              @change="toggleCheckAll"
+            />
+          </b-th>
+          <b-th class="col-3 align-middle">Entry</b-th>
+          <b-th class="col-2 align-middle">Current release event</b-th>
+          <b-th colspan="2" class="col-3 align-middle">Release date </b-th>
+          <b-th class="col-4 align-middle">Proposed actions</b-th>
+          <b-th></b-th>
+        </b-thead>
+        <b-tbody v-if="entriesLoaded">
+          <tr
+            v-for="item in entries.filter(item => item.rowVisible)"
+            :key="item.songEntry.id"
+          >
+            <td>
+              <b-form-checkbox
+                v-if="!item.processed"
+                v-model="item.toAssign"
+                size="lg"
+              />
+            </td>
+            <td>
+              <b-link
+                target="_blank"
+                :to="getVocaDBEntryUrl(item.songEntry.id)"
+                v-html="item.songEntry.name"
+              />
+              <b-link
+                target="_blank"
+                :to="getVocaDBEntryUrl(item.songEntry.id)"
+              >
+                <b-badge
+                  class="badge text-center ml-2"
+                  :variant="getSongTypeColorForDisplay(item.songEntry.songType)"
+                >
+                  {{ getShortenedSongType(item.songEntry.songType) }}
+                </b-badge>
+              </b-link>
+              <div class="text-muted">
+                {{ item.songEntry.artistString }}
+              </div>
+            </td>
+            <td>
+              <span
+                v-if="item.songEntry.releaseEvent !== null"
+                class="font-weight-bolder"
+              >
+                <b-badge
+                  class="badge text-center"
+                  :variant="
+                    item.songEntry.releaseEvent.id === event.id
+                      ? 'success'
+                      : 'warning'
+                  "
+                  :to="
+                    getVocaDBEventUrl(
+                      item.songEntry.releaseEvent.id,
+                      item.songEntry.releaseEvent.urlSlug
+                    )
+                  "
+                  target="_blank"
+                >
+                  {{ item.songEntry.releaseEvent.name }}
+                </b-badge>
+              </span>
+              <span v-else class="text-muted">Unspecified</span>
+            </td>
+            <td>
+              <span v-if="item.publishDate !== null">
+                <font-awesome-icon icon="fa-solid fa-calendar" class="mr-1" />{{
+                  item.publishDate.toLocaleString()
+                }}
+              </span>
+              <span v-else class="text-muted">Unspecified</span>
+            </td>
+            <td>
+              <b-badge
+                :variant="
+                  getDispositionBadgeColorVariant(
+                    item.songEntry.eventDateComparison.disposition
+                  )
+                "
+                class="mr-1"
+              >
+                {{ item.songEntry.eventDateComparison.disposition }}
+              </b-badge>
+              <span
+                v-if="
+                  item.songEntry.eventDateComparison.disposition !==
+                    'unknown' &&
+                  item.songEntry.eventDateComparison.disposition !== 'perfect'
+                "
+                >(by
+                {{ item.songEntry.eventDateComparison.dayDiff }}
+                day(s))
+              </span>
+            </td>
+            <td>
+              <ol class="ml-n4">
+                <li
+                  v-if="
+                    !item.songEntry.taggedWithMultipleEvents &&
+                    item.songEntry.releaseEvent !== null &&
+                    item.songEntry.releaseEvent.id !== event.id
+                  "
+                >
+                  Tag with "<b-link
+                    target="_blank"
+                    :to="getVocaDBTagUrl(8275, 'multiple-events')"
+                    >multiple events</b-link
+                  >" and update description
+                </li>
+                <li v-else-if="item.songEntry.releaseEvent == null">
+                  Set "<b-link
+                    :to="getVocaDBEventUrl(event.id, event.urlSlug)"
+                    target="_blank"
+                    >{{ event.name }}</b-link
+                  >" as release event
+                </li>
+                <li
+                  v-else-if="
+                    item.songEntry.taggedWithMultipleEvents &&
+                    item.songEntry.releaseEvent.id !== event.id
+                  "
+                >
+                  <span class="text-danger text-monospace">Important:</span>
+                  check that description mentions current event
+                </li>
+                <li>
+                  Remove tag "<b-link
+                    :to="getVocaDBTagUrl(tag.id, tag.urlSlug)"
+                    target="_blank"
+                    >{{ tag.name }}</b-link
+                  >"
+                </li>
+              </ol>
+            </td>
+            <td style="min-width: 40px">
+              <b-button
+                v-if="item.processed"
+                :disabled="defaultDisableCondition()"
+                class="btn"
+                variant="success"
+                @click="processSong(item)"
+              >
+                <font-awesome-icon icon="fas fa-check" />
+              </b-button>
+              <b-button
+                v-else
+                :disabled="defaultDisableCondition()"
+                class="btn"
+                variant="outline-success"
+                @click="processSong(item)"
+              >
+                <font-awesome-icon icon="fas fa-play" />
+              </b-button>
+            </td>
+          </tr>
+        </b-tbody>
+        <b-tbody v-else>
+          <b-tr>
+            <b-td colspan="6" class="text-center text-muted">
+              <small>No items to display</small>
+            </b-td>
+          </b-tr>
+        </b-tbody>
+        <b-tfoot>
+          <b-th
+            ><b-form-checkbox
+              v-model="allChecked"
+              size="lg"
+              @change="toggleCheckAll"
+          /></b-th>
+          <b-th class="col-3 align-middle">Entry</b-th>
+          <b-th class="col-2 align-middle">Current release event</b-th>
+          <b-th colspan="2" class="col-3 align-middle">Release date </b-th>
+          <b-th class="col-4 align-middle">Proposed actions</b-th>
+          <b-th></b-th>
+        </b-tfoot>
+      </b-table-simple>
+      <b-row
+        v-if="entriesLoaded()"
+        class="mt-lg-1 col-lg-12 text-center m-auto alert-primary rounded p-sm-2 bg-light progress-bar-striped"
+      >
+        <b-col class="col-lg-3 m-auto">
+          <b-button
+            block
+            variant="primary"
+            :disabled="countChecked() === 0 || massAssigning || fetching"
+            @click="processMultiple"
+          >
+            <div v-if="massAssigning">
+              <b-spinner small class="mr-1"></b-spinner>
+              Processing...
+            </div>
+            <div v-else>Batch process ({{ countChecked() }} selected)</div>
+          </b-button>
+        </b-col>
+      </b-row>
+
+      <b-row v-if="entriesLoaded()" class="col-12">
+        <template>
+          <div class="overflow-auto m-auto my-lg-3">
+            <b-pagination
+              v-model="page"
+              align="center"
+              :total-rows="totalEntryCount"
+              :per-page="maxResults"
+              use-router
+              first-number
+              last-number
+              limit="10"
+              :disabled="defaultDisableCondition()"
+              @change="loadPage"
+            />
+          </div>
+        </template>
+      </b-row>
+    </b-row>
+  </div>
+</template>
+
+<script lang="ts">
+import Vue from "vue";
+import {
+  DateComparisonResult,
+  MinimalTag,
+  ReleaseEventForDisplay
+} from "@/backend/dto";
+import { api } from "@/backend";
+import { DateTime } from "luxon";
+import {
+  EntryWithReleaseEventAndVisibility,
+  SongType
+} from "@/pages/events/views/Events.vue";
+import Component from "vue-class-component";
+import { Prop } from "vue-property-decorator";
+
+@Component
+export default class extends Vue {
+  @Prop()
+  private readonly mode!: number;
+
+  // main variables
+  private readonly event: ReleaseEventForDisplay = {
+    id: -1,
+    name: "",
+    category: "",
+    date: null,
+    endDate: null,
+    urlSlug: ""
+  };
+  private entries: EntryWithReleaseEventAndVisibility[] = [];
+  private tag: MinimalTag = { name: "", id: -1, urlSlug: "" };
+  private eventTagName: string = "";
+  private eventTagNameFrozen: string = "";
+
+  // api variables
+  private pageToJump: number = 1;
+  private startOffset: number = 0;
+  private maxResults: number = 10;
+  private orderingCondition = "PublishDate";
+  private fetching: boolean = false;
+  private massAssigning: boolean = false;
+  private assigning: boolean = false;
+
+  // interface variables
+  private allChecked: boolean = false;
+  private showCollapse: boolean = false;
+  private totalEntryCount: number = 0;
+  private orderedByPublishDate: boolean = true;
+  private timeDeltaEnabled: boolean = false;
+  private timeDelta: number = 0;
+  private filledEvents: boolean = true;
+  private page: number = 0;
+  private maxPage: number = 0;
+  private numOfPages: number = 0;
+
+  // error handling
+  private alertCode: number = 0;
+  private alertMessage: string = "";
+
+  // interface dictionaries
+  private readonly orderOptions = {
+    PublishDate: "upload time",
+    AdditionDate: "addition time",
+    RatingScore: "user rating"
+  };
+  private songTypes: SongType[] = [
+    { name: "Unspecified", show: true },
+    { name: "Original", show: true },
+    { name: "Remaster", show: true },
+    { name: "Remix", show: true },
+    { name: "Cover", show: true },
+    { name: "Instrumental", show: true },
+    { name: "Mashup", show: true },
+    { name: "MusicPV", show: true },
+    { name: "DramaPV", show: true },
+    { name: "Other", show: true }
+  ];
+
+  // interface methods
+  private isActiveMode(): boolean {
+    return this.mode == 0;
+  }
+
+  private defaultDisableCondition(): boolean {
+    return this.fetching || this.massAssigning || this.assigning;
+  }
+
+  private getHiddenTypes(): number {
+    return this.songTypes.filter(t => !t.show).length;
+  }
+
+  private fitDate(
+    date: DateTime | null,
+    dateStart: DateTime,
+    dateEnd: DateTime | null
+  ): DateComparisonResult {
+    if (date == null) {
+      return { disposition: "unknown", dayDiff: 0 };
+    }
+
+    let dayDiff = this.subDates(date, dateStart);
+    if (dateEnd === null) {
+      if (dayDiff === 0) {
+        return { dayDiff: 0, disposition: "perfect" };
+      } else {
+        return {
+          dayDiff: Math.abs(dayDiff),
+          disposition: dayDiff > 0 ? "late" : "early"
+        };
+      }
+    }
+
+    if (dateStart <= date) {
+      if (dateEnd >= date) {
+        return { dayDiff: 0, disposition: "perfect" };
+      } else {
+        return {
+          dayDiff: this.subDates(date, dateEnd),
+          disposition: "late"
+        };
+      }
+    } else {
+      return {
+        dayDiff: this.subDates(dateStart, date),
+        disposition: "early"
+      };
+    }
+  }
+
+  private subDates(date1: DateTime, date2: DateTime): number {
+    return date1.diff(date2).as("day");
+  }
+
+  private toggleCheckAll(): void {
+    for (const item of this.entries.filter(value => value.rowVisible)) {
+      item.toAssign = this.allChecked;
+    }
+  }
+
+  private countChecked(): number {
+    return this.entries.filter(item => item.toAssign).length;
+  }
+
+  private setMaxResults(maxResults: number): void {
+    this.maxResults = maxResults;
+  }
+
+  private setOrderingCondition(value: string): void {
+    this.orderingCondition = value;
+  }
+
+  private getMaxResultsForDisplay(): string {
+    return "Entries per page: " + this.maxResults;
+  }
+
+  private getOrderingConditionForDisplay(): string {
+    return "Arrange entries by: " + this.orderOptions[this.orderingCondition];
+  }
+
+  private getVocaDBEventUrl(id: number, urlSlug: string): string {
+    return "https://vocadb.net/E/" + id + "/" + urlSlug;
+  }
+
+  private getVocaDBEntryUrl(id: number): string {
+    return "https://vocadb.net/S/" + id;
+  }
+
+  private getVocaDBTagUrl(id: number, urlSlug: string): string {
+    return "https://vocadb.net/T/" + id + "/" + urlSlug;
+  }
+
+  private getSongTypeColorForDisplay(typeString: string): string {
+    if (typeString == "Original" || typeString == "Remaster") {
+      return "primary";
+    } else if (
+      typeString == "Remix" ||
+      typeString == "Cover" ||
+      typeString == "Mashup" ||
+      typeString == "Other"
+    ) {
+      return "secondary";
+    } else if (typeString == "Instrumental") {
+      return "dark";
+    } else if (typeString == "MusicPV" || typeString == "DramaPV") {
+      return "success";
+    } else {
+      return "warning";
+    }
+  }
+
+  private getSongTypeStatsForDisplay(type: string): string {
+    return (
+      type +
+      " (" +
+      this.entries.filter(item => item.songEntry.songType == type).length +
+      ")"
+    );
+  }
+
+  private getShortenedSongType(typeString: string): string {
+    if (typeString == "Unspecified") {
+      return "?";
+    } else if (typeString == "MusicPV") {
+      return "PV";
+    } else {
+      return typeString[0];
+    }
+  }
+
+  private getDispositionBadgeColorVariant(disposition: string): string {
+    return disposition === "perfect"
+      ? "success"
+      : disposition === "unknown"
+      ? "secondary"
+      : "warning";
+  }
+
+  private filterEntries(): void {
+    for (const item of this.entries) {
+      item.rowVisible =
+        (this.getHiddenTypes() == 0 ||
+          !this.songTypes
+            .filter(t => !t.show)
+            .map(t => t.name)
+            .includes(item.songEntry.songType)) &&
+        (!this.timeDeltaEnabled ||
+          item.songEntry.eventDateComparison.disposition === "perfect" ||
+          item.songEntry.eventDateComparison.dayDiff <= this.timeDelta) &&
+        (this.filledEvents || item.songEntry.releaseEvent == null);
+      item.toAssign = item.toAssign && item.rowVisible;
+    }
+  }
+
+  private pageStateIsValid(): boolean {
+    return this.pageToJump > 0 && this.pageToJump <= this.maxPage;
+  }
+
+  private entriesLoaded(): boolean {
+    return this.entries.length > 0 && this.eventTagNameFrozen != "";
+  }
+
+  // error handling
+  private processError(err: any): void {
+    this.$bvToast.show("error");
+    if (err.response == undefined) {
+      this.alertCode = 0;
+      this.alertMessage = err.message;
+    } else {
+      this.alertCode = err.response.data.code;
+      this.alertMessage = err.response.data.message;
+    }
+  }
+
+  // api methods
+  async fetch(
+    eventTagName: string,
+    newStartOffset: number,
+    newPage: number
+  ): Promise<void> {
+    if (eventTagName == "") {
+      return;
+    }
+    this.showCollapse = false;
+    this.fetching = true;
+    try {
+      this.pageToJump = newPage;
+      let response = await api.fetchEntriesFromDbByEventTag({
+        tag: eventTagName,
+        startOffset: newStartOffset,
+        maxResults: this.maxResults,
+        orderBy: this.orderingCondition
+      });
+      if (response.releaseEvent.date == null) {
+        throw { response: undefined, message: "Invalid event date" };
+      }
+      console.log(response.items);
+      let entries_temp: EntryWithReleaseEventAndVisibility[] = response.items.map(
+        item => {
+          return {
+            songEntry: item,
+            rowVisible: true,
+            toAssign: false,
+            publishDate:
+              item.publishDate !== null
+                ? DateTime.fromISO(item.publishDate)
+                : null,
+            eventDateComparison: null,
+            taggedWithMultipleEvents: item.taggedWithMultipleEvents,
+            processed: false
+          };
+        }
+      );
+      this.totalEntryCount = response.totalCount;
+      this.entries = entries_temp;
+      this.tag = response.eventTag;
+      this.event.id = response.releaseEvent.id;
+      this.event.name = response.releaseEvent.name;
+      this.event.urlSlug = response.releaseEvent.urlSlug;
+      this.event.category = response.releaseEvent.category;
+      this.event.date =
+        response.releaseEvent.date == null
+          ? null
+          : DateTime.fromISO(response.releaseEvent.date);
+      this.event.endDate =
+        response.releaseEvent.endDate == null
+          ? null
+          : DateTime.fromISO(response.releaseEvent.endDate);
+      this.entries.forEach(
+        value =>
+          (value.songEntry.eventDateComparison = this.fitDate(
+            value.publishDate,
+            this.event.date!,
+            this.event.endDate
+          ))
+      );
+      this.filterEntries();
+      this.eventTagNameFrozen = this.event.name;
+      this.page = newStartOffset / this.maxResults + 1;
+      this.numOfPages = this.totalEntryCount / this.maxResults + 1;
+      this.startOffset = newStartOffset;
+      this.allChecked = false;
+    } catch (err) {
+      this.processError(err);
+    } finally {
+      this.maxPage = Math.ceil(this.totalEntryCount / this.maxResults);
+      this.fetching = false;
+      this.pageToJump = newPage;
+      this.page = newPage;
+      this.orderedByPublishDate = this.orderingCondition === "PublishDate";
+    }
+  }
+
+  private async processSong(
+    song: EntryWithReleaseEventAndVisibility
+  ): Promise<void> {
+    this.assigning = true;
+    try {
+      await api.assignEventAndRemoveTag({
+        songId: song.songEntry.id,
+        event: {
+          name: this.event.name,
+          id: this.event.id,
+          urlSlug: this.event.urlSlug
+        },
+        tagId: this.tag.id
+      });
+      song.processed = true;
+    } catch (err) {
+      this.processError(err);
+    } finally {
+      this.assigning = false;
+    }
+  }
+
+  private async processMultiple(): Promise<void> {
+    this.massAssigning = true;
+    try {
+      for (const item1 of this.entries.filter(item => item.toAssign)) {
+        await this.processSong(item1);
+        item1.toAssign = false;
+      }
+    } finally {
+      this.massAssigning = false;
+      this.allChecked = false;
+    }
+  }
+
+  private loadInitialPage(): void {
+    this.fetch(this.eventTagName, 0, 1);
+  }
+
+  private loadPage(page: number): void {
+    this.fetch(this.event.name, (page - 1) * this.maxResults, page);
+  }
+}
+</script>
