@@ -1,25 +1,10 @@
 <template>
   <span>
-    <b-toast
-      :id="'error_' + thisMode"
-      title="Error"
-      no-auto-hide
-      variant="danger"
-      class="m-0 rounded-0"
-      toaster="toaster-nicovideo"
-    >
-      <span v-if="alertCode !== 401">
-        {{ alertMessage }}
-      </span>
-      <span v-else>
-        Access token has expired.
-        <b-link to="login" target="_blank">
-          Relogin
-          <font-awesome-icon class="ml-0" icon="fas fa-external-link" />
-        </b-link>
-        and try again
-      </span>
-    </b-toast>
+    <error-message
+      :alert-code="alertCode"
+      :alert-message="alertMessage"
+      :this-mode="thisMode"
+    />
     <b-row>
       <span class="m-auto col-lg-5">
         <b-input-group inline class="mt-lg-3">
@@ -174,7 +159,7 @@
           <b-link
             v-if="tagInfoLoaded()"
             target="_blank"
-            :to="getVocaDBTagUrl(tagInfo[0].id, tagInfo[0].urlSlug)"
+            :href="getVocaDBTagUrl(tagInfo[0].id, tagInfo[0].urlSlug)"
             >{{ tagNameFrozen }}</b-link
           >
           >
@@ -185,7 +170,7 @@
           <b-link
             v-if="tagInfoLoaded()"
             target="_blank"
-            :to="getNicoTagUrl(tagMappings.join(' OR '), scopeTagStringFrozen)"
+            :href="getNicoTagUrl(tagMappings.join(' OR '), scopeTagStringFrozen)"
             >view at NND
             <font-awesome-icon
               class="ml-1"
@@ -330,7 +315,7 @@
               </b-button>
               <b-link
                 target="_blank"
-                :to="getNicoVideoUrl(item.video.contentId)"
+                :href="getNicoVideoUrl(item.video.contentId)"
                 v-html="item.video.title"
               ></b-link>
               <div>
@@ -362,12 +347,12 @@
               <div v-if="item.songEntry != null">
                 <b-link
                   target="_blank"
-                  :to="getVocaDBEntryUrl(item.songEntry.id)"
+                  :href="getVocaDBEntryUrl(item.songEntry.id)"
                   v-html="item.songEntry.name"
                 ></b-link>
                 <b-link
                   target="_blank"
-                  :to="getVocaDBEntryUrl(item.songEntry.id)"
+                  :href="getVocaDBEntryUrl(item.songEntry.id)"
                 >
                   <b-badge
                     class="badge text-center ml-2"
@@ -397,7 +382,7 @@
                   Published by
                   <b-link
                     target="_blank"
-                    :to="getVocaDBArtistUrl(item.publisher.id)"
+                    :href="getVocaDBArtistUrl(item.publisher.id)"
                     >{{ item.publisher.name.displayName }}</b-link
                   >
                 </div>
@@ -514,8 +499,9 @@ import {
 } from "@/utils";
 import { AssignableTag, SongForApiContractSimplified } from "@/backend/dto";
 import { api } from "@/backend";
+import ErrorMessage from "@/components/ErrorMessage.vue";
 
-@Component({ components: {} })
+@Component({ components: {ErrorMessage} })
 export default class extends Vue {
   @Prop()
   private readonly mode!: number;
@@ -810,7 +796,7 @@ export default class extends Vue {
 
   // error handling
   private processError(err: any): void {
-    this.$bvToast.show("error_" + this.thisMode);
+    this.$bvToast.show(getUniqueElementId("error_", this.thisMode.toString()));
     if (err.response == undefined) {
       this.alertCode = 0;
       this.alertMessage = err.message;

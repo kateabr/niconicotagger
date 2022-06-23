@@ -461,7 +461,7 @@ impl<'a> Client<'a> {
                 default_name_language: response.items[0].default_name_language.to_string(),
             })
         } else {
-            Err(VocadbClientError::NotFoundError("12346".to_string()))
+            Err(VocadbClientError::NotFoundError(format!("tag \"{}\" does not exist", tag_name)))
         }
     }
 

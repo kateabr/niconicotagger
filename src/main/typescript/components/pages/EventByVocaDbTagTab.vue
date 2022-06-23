@@ -1,25 +1,10 @@
 <template>
   <div>
-    <b-toast
-      :id="'error_' + thisMode"
-      title="Error"
-      no-auto-hide
-      variant="danger"
-      class="m-0 rounded-0"
-      toaster="toaster-events"
-    >
-      <span v-if="alertCode !== 401">
-        {{ alertMessage }}
-      </span>
-      <span v-else>
-        Access token has expired.
-        <b-link to="login" target="_blank">
-          Relogin
-          <font-awesome-icon class="ml-0" icon="fas fa-external-link" />
-        </b-link>
-        and try again
-      </span>
-    </b-toast>
+    <error-message
+      :alert-code="alertCode"
+      :alert-message="alertMessage"
+      :this-mode="thisMode"
+    />
     <b-row>
       <span class="m-auto col-lg-5">
         <b-input-group inline class="mt-lg-3">
@@ -153,7 +138,7 @@
               {{ event.category }}:<br />
               <strong>
                 <b-link
-                  :to="getVocaDBEventUrl(event.id, event.urlSlug)"
+                  :href="getVocaDBEventUrl(event.id, event.urlSlug)"
                   target="_blank"
                   >{{ event.name }}
                 </b-link>
@@ -308,12 +293,12 @@
             <td>
               <b-link
                 target="_blank"
-                :to="getVocaDBEntryUrl(item.songEntry.id)"
+                :href="getVocaDBEntryUrl(item.songEntry.id)"
                 v-html="item.songEntry.name"
               />
               <b-link
                 target="_blank"
-                :to="getVocaDBEntryUrl(item.songEntry.id)"
+                :href="getVocaDBEntryUrl(item.songEntry.id)"
               >
                 <b-badge
                   class="badge text-center ml-2"
@@ -338,7 +323,7 @@
                       ? 'success'
                       : 'warning'
                   "
-                  :to="
+                  :href="
                     getVocaDBEventUrl(
                       item.songEntry.releaseEvent.id,
                       item.songEntry.releaseEvent.urlSlug
@@ -392,13 +377,13 @@
                 >
                   Tag with "<b-link
                     target="_blank"
-                    :to="getVocaDBTagUrl(8275, 'multiple-events')"
+                    :href="getVocaDBTagUrl(8275, 'multiple-events')"
                     >multiple events</b-link
                   >" and update description
                 </li>
                 <li v-else-if="item.songEntry.releaseEvent == null">
                   Set "<b-link
-                    :to="getVocaDBEventUrl(event.id, event.urlSlug)"
+                    :href="getVocaDBEventUrl(event.id, event.urlSlug)"
                     target="_blank"
                     >{{ event.name }}</b-link
                   >" as release event
@@ -414,7 +399,7 @@
                 </li>
                 <li>
                   Remove tag "<b-link
-                    :to="getVocaDBTagUrl(tag.id, tag.urlSlug)"
+                    :href="getVocaDBTagUrl(tag.id, tag.urlSlug)"
                     target="_blank"
                     >{{ tag.name }}</b-link
                   >"
@@ -531,10 +516,11 @@ import {
   infoLoaded,
   getDispositionBadgeColorVariant,
   EntryWithReleaseEventAndVisibility,
-  SongType
+  SongType, getUniqueElementId
 } from "@/utils";
+import ErrorMessage from "@/components/ErrorMessage.vue";
 
-@Component({ components: {} })
+@Component({ components: {ErrorMessage} })
 export default class extends Vue {
   @Prop()
   private readonly mode!: number;
@@ -705,7 +691,7 @@ export default class extends Vue {
 
   // error handling
   private processError(err: any): void {
-    this.$bvToast.show("error_" + this.thisMode);
+    this.$bvToast.show(getUniqueElementId("error_", this.thisMode.toString()));
     if (err.response == undefined) {
       this.alertCode = 0;
       this.alertMessage = err.message;

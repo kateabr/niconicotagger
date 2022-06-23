@@ -1,6 +1,10 @@
 import { DateTime } from "luxon";
 import {
   DateComparisonResult,
+  MappedTag,
+  MinimalTag,
+  NicoVideoWithError,
+  NicoVideoWithMappedTags,
   NicoVideoWithTidyTags,
   Publisher,
   SongForApiContractSimplified,
@@ -43,6 +47,10 @@ export function getVocaDBArtistUrl(artistId: number): string {
   return "https://vocadb.net/Ar/" + artistId;
 }
 
+export function getDeletedVideoUrl(videoId: string): string {
+  return "https://nicolog.jp/watch/" + videoId;
+}
+
 // common predicates
 export function pageStateIsValid(pageToJump: number, maxPage: number): boolean {
   return pageToJump > 0 && pageToJump <= maxPage;
@@ -71,6 +79,64 @@ export function getOrderingConditionForDisplayNico(orderingCondition: string): s
 
 export function getUniqueElementId(prefix: string, key: string): string {
   return prefix + key;
+}
+
+export function getTagVariant(tag: MappedTag, tagsToAssign: MinimalTag[]): string {
+  if (tag.assigned) {
+    return "success";
+  } else if (tagsToAssign.find(t => t.id == tag.tag.id) != undefined) {
+    return "warning";
+  } else {
+    return "outline-success";
+  }
+}
+
+export function getShortenedSongType(typeString: string): string {
+  if (typeString == "Unspecified") {
+    return "?";
+  } else if (typeString == "MusicPV") {
+    return "PV";
+  } else {
+    return typeString[0];
+  }
+}
+
+export function getDateDisposition(
+  date: DateTime | null,
+  dateStart: DateTime,
+  dateEnd: DateTime | null
+): DateComparisonResult {
+  if (date == null) {
+    return { disposition: "unknown", dayDiff: 0 };
+  }
+
+  const dayDiff = subDates(date, dateStart);
+  if (dateEnd === null) {
+    if (dayDiff === 0) {
+      return { dayDiff: 0, disposition: "perfect" };
+    } else {
+      return {
+        dayDiff: Math.abs(dayDiff),
+        disposition: dayDiff > 0 ? "late" : "early"
+      };
+    }
+  }
+
+  if (dateStart <= date) {
+    if (dateEnd >= date) {
+      return { dayDiff: 0, disposition: "perfect" };
+    } else {
+      return {
+        dayDiff: subDates(date, dateEnd),
+        disposition: "late"
+      };
+    }
+  } else {
+    return {
+      dayDiff: subDates(dateStart, date),
+      disposition: "early"
+    };
+  }
 }
 
 export const defaultScopeTagString: string =
@@ -121,56 +187,38 @@ export function getSongTypeStatsForDisplay(type: string, number: number): string
 }
 
 // other util methods
-export function getShortenedSongType(typeString: string): string {
-  if (typeString == "Unspecified") {
-    return "?";
-  } else if (typeString == "MusicPV") {
-    return "PV";
-  } else {
-    return typeString[0];
-  }
-}
-
-export function getDateDisposition(
-  date: DateTime | null,
-  dateStart: DateTime,
-  dateEnd: DateTime | null
-): DateComparisonResult {
-  if (date == null) {
-    return { disposition: "unknown", dayDiff: 0 };
-  }
-
-  const dayDiff = subDates(date, dateStart);
-  if (dateEnd === null) {
-    if (dayDiff === 0) {
-      return { dayDiff: 0, disposition: "perfect" };
-    } else {
-      return {
-        dayDiff: Math.abs(dayDiff),
-        disposition: dayDiff > 0 ? "late" : "early"
-      };
-    }
-  }
-
-  if (dateStart <= date) {
-    if (dateEnd >= date) {
-      return { dayDiff: 0, disposition: "perfect" };
-    } else {
-      return {
-        dayDiff: subDates(date, dateEnd),
-        disposition: "late"
-      };
-    }
-  } else {
-    return {
-      dayDiff: subDates(dateStart, date),
-      disposition: "early"
-    };
-  }
-}
-
 function subDates(date1: DateTime, date2: DateTime): number {
   return date1.diff(date2).as("day");
+}
+
+export function toggleTagAssignation(tag: MappedTag, video: EntryWithVideosAndVisibility): void {
+  const assign = video.tagsToAssign.filter((t: MinimalTag) => t.id == tag.tag.id).length > 0;
+  if (assign) {
+    video.tagsToAssign = video.tagsToAssign.filter((t: MinimalTag) => t.id != tag.tag.id);
+  } else {
+    video.tagsToAssign.push(tag.tag);
+  }
+  for (const thumbnailOk of video.thumbnailsOk) {
+    for (const mappedTag of thumbnailOk.mappedTags) {
+      if (mappedTag.tag.id == tag.tag.id) {
+        mappedTag.toAssign = !assign;
+      }
+    }
+    video.toAssign = video.tagsToAssign.length > 0;
+  }
+}
+
+export function getTagIconForTagAssignationButton(
+  tag: MappedTag,
+  tagsToAssign: MinimalTag[]
+): string[] {
+  if (tag.assigned) {
+    return ["fas", "fa-check"];
+  } else if (tagsToAssign.find(t => t.id == tag.tag.id) != undefined) {
+    return ["fas", "fa-minus"];
+  } else {
+    return ["fas", "fa-plus"];
+  }
 }
 
 // data structures
@@ -194,4 +242,21 @@ export interface VideoWithEntryAndVisibility {
 export interface SongType {
   name: string;
   show: boolean;
+}
+
+export interface Fetch1Payload {
+  mode: string;
+  createDate: string;
+  id: number;
+  sortRule: string;
+  reverse: boolean;
+}
+
+export interface EntryWithVideosAndVisibility {
+  thumbnailsOk: NicoVideoWithMappedTags[];
+  thumbnailsErr: NicoVideoWithError[];
+  song: SongForApiContractSimplified;
+  visible: boolean;
+  toAssign: boolean;
+  tagsToAssign: MinimalTag[];
 }
