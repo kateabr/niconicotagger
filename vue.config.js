@@ -11,6 +11,10 @@ module.exports = {
       title: "NicoNicoTagger (Nico)",
       entry: "src/main/typescript/pages/nicovideo/main.ts"
     },
+    events: {
+      title: "NicoNicoTagger (Events)",
+      entry: "src/main/typescript/pages/events/main.ts"
+    },
     login: {
       title: "Login",
       entry: "src/main/typescript/pages/login/main.ts"

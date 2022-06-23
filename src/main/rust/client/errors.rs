@@ -4,8 +4,10 @@ pub type Result<T, E = VocadbClientError> = core::result::Result<T, E>;
 pub enum VocadbClientError {
     #[error("Provided credentials are not valid")]
     BadCredentialsError,
-    #[error("Specified resource is not found")]
-    NotFoundError,
+    #[error("Ambiguous response")]
+    AmbiguousResponseError,
+    #[error("{0}")]
+    NotFoundError(String),
     #[error(transparent)]
     SendRequestError(#[from] awc::error::SendRequestError),
     #[error(transparent)]

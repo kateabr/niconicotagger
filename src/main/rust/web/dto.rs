@@ -2,8 +2,9 @@ use serde::{Deserialize, Serialize};
 use crate::client::models::activity::{ActivityEditEvent, ActivityEntryForApiContract};
 use crate::client::models::archived::ArchivedObjectVersionForApiContract;
 use crate::client::models::artist::NicoPublisher;
+use crate::client::models::releaseevent::{ReleaseEventForApiContractSimplified};
 
-use crate::client::models::song::SongForApiContract;
+use crate::client::models::song::{SongForApiContract, SongType};
 use crate::client::models::tag::{AssignableTag};
 use crate::client::models::user::UserForApiContract;
 use crate::client::nicomodels::{SongForApiContractWithThumbnailsAndMappedTags, TagBaseContractSimplified};
@@ -49,6 +50,17 @@ pub struct TagFetchRequest {
 }
 
 #[derive(Deserialize, Debug)]
+pub struct SongsByEventTagFetchRequest {
+    #[serde(rename = "startOffset")]
+    pub start_offset: i32,
+    #[serde(rename = "maxResults")]
+    pub max_results: i32,
+    pub tag: String,
+    #[serde(rename = "orderBy")]
+    pub order_by: String,
+}
+
+#[derive(Deserialize, Debug)]
 pub struct AssignTagRequest {
     #[serde(rename = "songId")]
     pub song_id: i32,
@@ -75,9 +87,32 @@ pub struct SongForApiContractSimplified {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+pub struct SongForApiContractSimplifiedWithMultipleEventInfo {
+    pub id: i32,
+    pub name: String,
+    #[serde(rename = "taggedWithMultipleEvents")]
+    pub tagged_with_multiple_events: bool,
+    #[serde(rename = "songType")]
+    pub song_type: SongType,
+    #[serde(rename = "artistString")]
+    pub artist_string: String,
+    #[serde(rename = "releaseEvent")]
+    pub release_event: Option<ReleaseEventForApiContractSimplified>,
+    #[serde(rename = "publishDate")]
+    pub publish_date: Option<String>,
+}
+
+#[derive(Serialize)]
+pub struct SongForApiContractSimplifiedWithMultipleEventInfoSearchResult {
+    pub items: Vec<SongForApiContractSimplifiedWithMultipleEventInfo>,
+    #[serde(rename = "totalCount")]
+    pub total_count: i32,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
 pub struct DisplayableTag {
-    pub(crate) name: String,
-    pub(crate) variant: String,
+    pub name: String,
+    pub variant: String,
 }
 
 #[derive(Serialize)]
@@ -237,4 +272,40 @@ pub struct SongActivityEntryForApiContract {
     #[serde(rename = "editEvent")]
     pub edit_event: ActivityEditEvent,
     pub entry: ActivityEntryForApiContract,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct SongsByEventTagFetchResponse {
+    pub items: Vec<SongForApiContractSimplifiedWithMultipleEventInfo>,
+    #[serde(rename = "totalCount")]
+    pub total_count: i32,
+    #[serde(rename = "releaseEvent")]
+    pub release_event: ReleaseEventForApiContractSimplified,
+    #[serde(rename = "eventTag")]
+    pub event_tag: AssignableTag,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct AssignEventAndRemoveTagPayload {
+    #[serde(rename = "songId")]
+    pub song_id: i32,
+    pub event: MinimalEvent,
+    #[serde(rename = "tagId")]
+    pub tag_id: i64,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct MinimalEvent {
+    pub id: i64,
+    pub name: String,
+    #[serde(rename = "urlSlug")]
+    pub url_slug: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub enum EventAssigningResult {
+    Assigned,
+    AlreadyAssigned,
+    MultipleEvents,
+    AlreadyTaggedWithMultipleEvents
 }

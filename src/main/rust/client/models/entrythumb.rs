@@ -10,7 +10,7 @@ use crate::client::models::song::{SongFeaturedCategory, SongType};
 use crate::client::models::status::Status;
 use crate::client::models::tag::TagUsageForApiContract;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct EntryThumbForApiContract {
     mime: Option<String>,
     #[serde(rename = "urlSmallThumb")]

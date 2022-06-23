@@ -1,3 +1,5 @@
+import { DateTime } from "luxon";
+
 export interface AuthenticationPayload {
   username: string;
   password: string;
@@ -11,6 +13,13 @@ export interface AccessToken {
 export interface FetchVideosPayload {
   tag: string;
   scopeTag: string;
+  startOffset: number;
+  maxResults: number;
+  orderBy: string;
+}
+
+export interface FetchVideosByEventTagPayload {
+  tag: string;
   startOffset: number;
   maxResults: number;
   orderBy: string;
@@ -43,6 +52,23 @@ export interface SongForApiContractSimplified {
   songType: string;
   artistString: string;
   createDate: string;
+}
+
+export interface SongForApiContractSimplifiedWithReleaseEvent {
+  id: number;
+  name: string;
+  songType: string;
+  artistString: string;
+  createDate: string;
+  releaseEvent: ReleaseEventForApiContractSimplified | null;
+  publishDate: string | null;
+  eventDateComparison: DateComparisonResult;
+  taggedWithMultipleEvents: boolean;
+}
+
+export interface DateComparisonResult {
+  dayDiff: number;
+  disposition: "perfect" | "late" | "early" | "unknown";
 }
 
 export interface VideoWithEntry {
@@ -154,4 +180,41 @@ export interface NicoVideoWithError {
   title: string;
   disabled: boolean;
   community: boolean;
+}
+
+export interface ReleaseEventForApiContractSimplified {
+  date: string | null;
+  endDate: string | null;
+  id: number;
+  name: string;
+  urlSlug: string;
+  category: string;
+}
+
+export interface ReleaseEventForDisplay {
+  date: DateTime | null;
+  endDate: DateTime | null;
+  id: number;
+  name: string;
+  urlSlug: string;
+  category: string;
+}
+
+export interface EntriesWithReleaseEventTag {
+  items: SongForApiContractSimplifiedWithReleaseEvent[];
+  totalCount: number;
+  releaseEvent: ReleaseEventForApiContractSimplified;
+  eventTag: AssignableTag;
+}
+
+export interface AssignEventAndRemoveTagPayload {
+  songId: number;
+  event: MinimalEvent;
+  tagId: number;
+}
+
+export interface MinimalEvent {
+  id: number;
+  name: string;
+  urlSlug: string;
 }

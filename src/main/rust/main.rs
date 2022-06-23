@@ -31,6 +31,8 @@ async fn main() -> std::io::Result<()> {
                     .service(web::controller::assign_tag)
                     .service(web::controller::lookup_and_assign_tag)
                     .service(web::controller::get_mapped_tags)
+                    .service(web::controller::fetch_from_db_by_event_tag)
+                    .service(web::controller::assign_event_and_remove_tag)
             )
     })
     .bind("127.0.0.1:8080")?

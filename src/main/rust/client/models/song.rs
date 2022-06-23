@@ -4,6 +4,7 @@ use strum_macros::ToString;
 
 use crate::client::models::entrythumb::{EntryThumbContract, EntryThumbForApiContract};
 use crate::client::models::pv::PVContract;
+use crate::client::models::releaseevent::{ReleaseEventForApiContractSimplified};
 
 use crate::client::models::status::Status;
 use crate::client::models::tag::TagUsageForApiContract;
@@ -105,8 +106,12 @@ pub struct SongForApiContract {
     #[serde(rename = "createDate")]
     pub create_date: String,
     pub pvs: Option<Vec<PVContract>>,
+    #[serde(rename = "releaseEvent")]
+    pub release_event: Option<ReleaseEventForApiContractSimplified>,
     #[serde(rename = "ratingScore")]
     pub rating_score: Option<i32>,
+    #[serde(rename = "publishDate")]
+    pub publish_date: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -207,4 +212,11 @@ pub struct SongListForApiContract {
     featured_category: FeaturedCategory,
     id: i32,
     name: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct SongSearchResult {
+    pub items: Vec<SongForApiContract>,
+    #[serde(rename = "totalCount")]
+    pub total_count: i32,
 }
