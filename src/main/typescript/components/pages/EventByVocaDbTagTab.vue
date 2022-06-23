@@ -673,7 +673,7 @@ export default class extends Vue {
   }
 
   private toggleCheckAll(): void {
-    for (const item of this.entries.filter(value => value.rowVisible)) {
+    for (const item of this.entries.filter(value => value.rowVisible && !value.processed)) {
       item.toAssign = this.allChecked;
     }
   }

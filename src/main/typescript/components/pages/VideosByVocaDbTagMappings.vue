@@ -97,7 +97,7 @@
               <template>
                 <b-input-group
                   inline
-                  :state="pageStateIsValid"
+                  :state="pageStateIsValid()"
                   invalid-feedback="Wrong page number"
                 >
                   <template #prepend>
@@ -114,7 +114,7 @@
                       type="number"
                       :disabled="defaultDisableCondition()"
                       aria-describedby="input-live-help input-live-feedback"
-                      :state="pageStateIsValid"
+                      :state="pageStateIsValid()"
                       @keydown.enter.native="
                         pageStateIsValid() ? loadPage(pageToJump) : null
                       "
@@ -404,7 +404,7 @@
                     :disabled="defaultDisableCondition()"
                     class="btn"
                     variant="outline-success"
-                    @click="assign(item.songEntry.id)"
+                    @click="assign(item)"
                   >
                     <font-awesome-icon icon="fas fa-plus" />
                   </b-button>
@@ -596,7 +596,7 @@ export default class extends Vue {
   }
 
   private toggleCheckAll(): void {
-    for (const item of this.videos.filter(video => video.rowVisible)) {
+    for (const item of this.videos.filter(video => video.rowVisible && video.songEntry != null && !video.songEntry.tagInTags)) {
       item.toAssign = this.allChecked;
     }
   }
@@ -718,17 +718,14 @@ export default class extends Vue {
     }
   }
 
-  private async assign(id: number): Promise<void> {
+  private async assign(video: VideoWithEntryAndVisibility): Promise<void> {
+    if (video.songEntry == null) {
+      return;
+    }
     this.assigning = true;
     try {
-      await api.assignTag({ tags: this.tagInfo, songId: id });
-      let songEntry = this.videos.filter(video => {
-        if (video.songEntry == null) return false;
-        return video.songEntry.id == id;
-      })[0].songEntry as SongForApiContractSimplified | null;
-      if (songEntry != null) {
-        songEntry.tagInTags = true;
-      }
+      await api.assignTag({ tags: this.tagInfo, songId: video.songEntry.id });
+      video.songEntry.tagInTags = true;
     } catch (err) {
       this.processError(err);
     } finally {
@@ -739,10 +736,9 @@ export default class extends Vue {
   private async assignMultiple(): Promise<void> {
     this.massAssigning = true;
     try {
-      for (const vid1 of this.videos.filter(vid => vid.toAssign)) {
-        let songEntry = vid1.songEntry as SongForApiContractSimplified;
-        await this.assign(songEntry.id);
-        vid1.toAssign = false;
+      for (const video of this.videos.filter(vid => vid.toAssign)) {
+        await this.assign(video);
+        video.toAssign = false;
       }
     } finally {
       this.massAssigning = false;
