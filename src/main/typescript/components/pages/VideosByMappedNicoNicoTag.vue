@@ -329,14 +329,12 @@
                 </b-badge>
               </div>
               <b-collapse
-                :id="getCollapseId(item.video.contentId)"
                 :visible="item.embedVisible && !fetching"
                 class="mt-2 collapsed"
               >
                 <nico-embed
                   v-if="item.embedVisible && !fetching"
                   :content-id="item.video.contentId"
-                  :embed-id="getEmbedId(item.video.contentId)"
                 />
               </b-collapse>
             </b-td>
@@ -609,14 +607,6 @@ export default class extends Vue {
 
   private getNicoVideoUrl(contentId: string): string {
     return getNicoVideoUrl(contentId);
-  }
-
-  private getCollapseId(contentId: string): string {
-    return getUniqueElementId("collapse_", contentId);
-  }
-
-  private getEmbedId(contentId: string): string {
-    return getUniqueElementId("embed_", contentId);
   }
 
   private getVocaDBEntryUrl(id: number): string {

@@ -70,11 +70,19 @@ export function getMaxResultsForDisplay(maxResults: number): string {
 }
 
 export function getOrderingConditionForDisplay(orderingCondition: string): string {
-  return "Arrange entries by: " + orderOptions[orderingCondition];
+  return "Arrange by: " + orderOptions[orderingCondition];
 }
 
 export function getOrderingConditionForDisplayNico(orderingCondition: string): string {
-  return "Arrange entries by: " + orderOptionsNico[orderingCondition];
+  return "Arrange by: " + orderOptionsNico[orderingCondition];
+}
+
+export function getSortingConditionForDisplay(sortingCondidion: string): string {
+  return "Sorting: " + sortOptions[sortingCondidion];
+}
+
+export function getAdditionModeForDisplay(additionMode: string): string {
+  return "Addition mode: " + additionOptions[additionMode];
 }
 
 export function getUniqueElementId(prefix: string, key: string): string {
@@ -155,6 +163,16 @@ export const orderOptionsNico = {
   lengthSeconds: "length"
 };
 
+export const sortOptions = {
+  CreateDate: "old→new",
+  CreateDateDescending: "new→old"
+};
+
+export const additionOptions = {
+  before: "before",
+  since: "since"
+};
+
 export function getSongTypeColorForDisplay(typeString: string): string {
   if (typeString == "Original" || typeString == "Remaster") {
     return "primary";
@@ -184,6 +202,13 @@ export function getDispositionBadgeColorVariant(disposition: string): string {
 
 export function getSongTypeStatsForDisplay(type: string, number: number): string {
   return type + " (" + number + ")";
+}
+
+export function validateTimestamp(timestamp: string): boolean | null {
+  if (timestamp === "") {
+    return null;
+  }
+  return DateTime.fromISO(timestamp).isValid;
 }
 
 // other util methods
@@ -218,6 +243,86 @@ export function getTagIconForTagAssignationButton(
     return ["fas", "fa-minus"];
   } else {
     return ["fas", "fa-plus"];
+  }
+}
+
+export function getRightButtonPayload(
+  sortBy: string,
+  createDate: string,
+  id: number
+): Fetch1Payload {
+  if (sortBy === "CreateDate") {
+    return {
+      mode: "since",
+      createDate: createDate,
+      id: id,
+      sortRule: "CreateDate",
+      reverse: false
+    };
+  } else {
+    return {
+      mode: "before",
+      createDate: createDate,
+      id: id,
+      sortRule: "CreateDateDescending",
+      reverse: false
+    };
+  }
+}
+
+export function getLeftButtonPayload(
+  sortBy: string,
+  createDate: string,
+  id: number
+): Fetch1Payload {
+  if (sortBy === "CreateDate") {
+    return {
+      mode: "before",
+      createDate: createDate,
+      id: id,
+      sortRule: "CreateDateDescending",
+      reverse: true
+    };
+  } else {
+    return {
+      mode: "since",
+      createDate: createDate,
+      id: id,
+      sortRule: "CreateDate",
+      reverse: true
+    };
+  }
+}
+
+export function updateFetch1Payload(
+  responseItems: EntryWithVideosAndVisibility[],
+  oldSortingCondition: string,
+  newSortingCondition: string,
+  timestampFirst: string,
+  timestampLast: string,
+  additionMode: string,
+  direction: string
+): Fetch1Payload {
+  const minId =
+    responseItems.length > 0 ? Math.min(...responseItems.map(video => video.song.id)) : 10000000;
+  const maxId =
+    responseItems.length > 0 ? Math.max(...responseItems.map(video => video.song.id)) : 0;
+  if (oldSortingCondition === "CreateDate") {
+    if (direction == "right") {
+      return getRightButtonPayload(newSortingCondition, timestampLast, maxId);
+    } else {
+      return getLeftButtonPayload(oldSortingCondition, timestampFirst, minId);
+    }
+  } else {
+    if (direction == "right") {
+      return getRightButtonPayload(newSortingCondition, timestampLast, maxId);
+    } else {
+      return getLeftButtonPayload(
+        oldSortingCondition,
+        oldSortingCondition === "CreateDate" ? timestampFirst : timestampLast,
+        additionMode === "before" ? minId : maxId
+      );
+    }
   }
 }
 

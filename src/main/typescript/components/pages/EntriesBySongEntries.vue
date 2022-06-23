@@ -1,6 +1,10 @@
 <template>
   <b-row>
-    <progress-bar :distinct-song-count="distinctSongCount" :fetching="fetching" :max-results="maxResults"/>
+    <progress-bar
+      :distinct-song-count="distinctSongCount"
+      :fetching="fetching"
+      :max-results="maxResults"
+    />
     <error-message
       :alert-code="alertCode"
       :alert-message="alertMessage"
@@ -273,14 +277,10 @@
                   </b-badge>
                 </div>
                 <b-collapse
-                  :id="getCollapseId(thumbnail.thumbnail.id)"
                   :visible="thumbnail.expanded && !fetching"
                   class="mt-2 collapsed"
                 >
-                  <nico-embed
-                    :embed-id="getEmbedId(thumbnail.thumbnail.id)"
-                    :content-id="thumbnail.thumbnail.id"
-                  />
+                  <nico-embed :content-id="thumbnail.thumbnail.id" />
                 </b-collapse>
               </b-col>
               <b-col>
@@ -473,7 +473,7 @@ import NicoEmbed from "@/components/NicoEmbed.vue";
 import ProgressBar from "@/components/ProgressBar.vue";
 import ErrorMessage from "@/components/ErrorMessage.vue";
 
-@Component({ components: {ProgressBar, NicoEmbed, ErrorMessage } })
+@Component({ components: { ProgressBar, NicoEmbed, ErrorMessage } })
 export default class extends Vue {
   @Prop()
   private readonly mode!: number;
@@ -646,14 +646,6 @@ export default class extends Vue {
 
   private getShortenedSongType(songType: string): string {
     return getShortenedSongType(songType);
-  }
-
-  private getCollapseId(contentId: string): string {
-    return getUniqueElementId("collapse_", contentId);
-  }
-
-  private getEmbedId(contentId: string): string {
-    return getUniqueElementId("embed_", contentId);
   }
 
   private getTagVariant(tag: MappedTag, tagsToAssign: MinimalTag[]): string {

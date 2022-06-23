@@ -274,9 +274,8 @@
           </b-th>
           <b-th class="col-3 align-middle">Entry</b-th>
           <b-th class="col-2 align-middle">Current release event</b-th>
-          <b-th colspan="2" class="col-3 align-middle">Release date </b-th>
+          <b-th class="col-3 align-middle">Release date</b-th>
           <b-th class="col-4 align-middle">Proposed actions</b-th>
-          <b-th></b-th>
         </b-thead>
         <b-tbody v-if="eventInfoLoaded">
           <tr
@@ -337,94 +336,104 @@
               <span v-else class="text-muted">Unspecified</span>
             </td>
             <td>
-              <span v-if="item.publishDate !== null">
-                <font-awesome-icon icon="fa-solid fa-calendar" class="mr-1" />{{
-                  item.publishDate.toLocaleString()
-                }}
-              </span>
-              <span v-else class="text-muted">Unspecified</span>
+              <b-row>
+                <b-col cols="4">
+                  <span v-if="item.publishDate !== null">
+                    <font-awesome-icon
+                      icon="fa-solid fa-calendar"
+                      class="mr-1"
+                    />{{ item.publishDate.toLocaleString() }}
+                  </span>
+                  <span v-else class="text-muted">Unspecified</span>
+                </b-col>
+                <b-col>
+                  <b-badge
+                    :variant="
+                      getDispositionBadgeColorVariant(
+                        item.songEntry.eventDateComparison.disposition
+                      )
+                    "
+                    class="mr-1"
+                  >
+                    {{ item.songEntry.eventDateComparison.disposition }}
+                  </b-badge>
+                  <span
+                    v-if="
+                      item.songEntry.eventDateComparison.disposition !==
+                        'unknown' &&
+                      item.songEntry.eventDateComparison.disposition !==
+                        'perfect'
+                    "
+                    >(by
+                    {{ item.songEntry.eventDateComparison.dayDiff }}
+                    day(s))
+                  </span>
+                </b-col>
+              </b-row>
             </td>
             <td>
-              <b-badge
-                :variant="
-                  getDispositionBadgeColorVariant(
-                    item.songEntry.eventDateComparison.disposition
-                  )
-                "
-                class="mr-1"
-              >
-                {{ item.songEntry.eventDateComparison.disposition }}
-              </b-badge>
-              <span
-                v-if="
-                  item.songEntry.eventDateComparison.disposition !==
-                    'unknown' &&
-                  item.songEntry.eventDateComparison.disposition !== 'perfect'
-                "
-                >(by
-                {{ item.songEntry.eventDateComparison.dayDiff }}
-                day(s))
-              </span>
-            </td>
-            <td>
-              <ol class="ml-n4">
-                <li
-                  v-if="
-                    !item.songEntry.taggedWithMultipleEvents &&
-                    item.songEntry.releaseEvent !== null &&
-                    item.songEntry.releaseEvent.id !== event.id
-                  "
-                >
-                  Tag with "<b-link
-                    target="_blank"
-                    :href="getVocaDBTagUrl(8275, 'multiple-events')"
-                    >multiple events</b-link
-                  >" and update description
-                </li>
-                <li v-else-if="item.songEntry.releaseEvent == null">
-                  Set "<b-link
-                    :href="getVocaDBEventUrl(event.id, event.urlSlug)"
-                    target="_blank"
-                    >{{ event.name }}</b-link
-                  >" as release event
-                </li>
-                <li
-                  v-else-if="
-                    item.songEntry.taggedWithMultipleEvents &&
-                    item.songEntry.releaseEvent.id !== event.id
-                  "
-                >
-                  <span class="text-danger text-monospace">Important:</span>
-                  check that description mentions current event
-                </li>
-                <li>
-                  Remove tag "<b-link
-                    :href="getVocaDBTagUrl(tag.id, tag.urlSlug)"
-                    target="_blank"
-                    >{{ tag.name }}</b-link
-                  >"
-                </li>
-              </ol>
-            </td>
-            <td style="min-width: 40px">
-              <b-button
-                v-if="item.processed"
-                :disabled="defaultDisableCondition()"
-                class="btn"
-                variant="success"
-                @click="processSong(item)"
-              >
-                <font-awesome-icon icon="fas fa-check" />
-              </b-button>
-              <b-button
-                v-else
-                :disabled="defaultDisableCondition()"
-                class="btn"
-                variant="outline-success"
-                @click="processSong(item)"
-              >
-                <font-awesome-icon icon="fas fa-play" />
-              </b-button>
+              <b-row>
+                <b-col cols="10">
+                  <ol class="ml-n4">
+                    <li
+                      v-if="
+                        !item.songEntry.taggedWithMultipleEvents &&
+                        item.songEntry.releaseEvent !== null &&
+                        item.songEntry.releaseEvent.id !== event.id
+                      "
+                    >
+                      Tag with "<b-link
+                        target="_blank"
+                        :href="getVocaDBTagUrl(8275, 'multiple-events')"
+                        >multiple events</b-link
+                      >" and update description
+                    </li>
+                    <li v-else-if="item.songEntry.releaseEvent == null">
+                      Set "<b-link
+                        :href="getVocaDBEventUrl(event.id, event.urlSlug)"
+                        target="_blank"
+                        >{{ event.name }}</b-link
+                      >" as release event
+                    </li>
+                    <li
+                      v-else-if="
+                        item.songEntry.taggedWithMultipleEvents &&
+                        item.songEntry.releaseEvent.id !== event.id
+                      "
+                    >
+                      <span class="text-danger text-monospace">Important:</span>
+                      check that description mentions current event
+                    </li>
+                    <li>
+                      Remove tag "<b-link
+                        :href="getVocaDBTagUrl(tag.id, tag.urlSlug)"
+                        target="_blank"
+                        >{{ tag.name }}</b-link
+                      >"
+                    </li>
+                  </ol>
+                </b-col>
+                <b-col>
+                  <b-button
+                    v-if="item.processed"
+                    disabled
+                    class="btn"
+                    variant="success"
+                    @click="processSong(item)"
+                  >
+                    <font-awesome-icon icon="fas fa-check" />
+                  </b-button>
+                  <b-button
+                    v-else
+                    :disabled="defaultDisableCondition()"
+                    class="btn"
+                    variant="outline-success"
+                    @click="processSong(item)"
+                  >
+                    <font-awesome-icon icon="fas fa-play" />
+                  </b-button>
+                </b-col>
+              </b-row>
             </td>
           </tr>
         </b-tbody>
@@ -444,9 +453,8 @@
           /></b-th>
           <b-th class="col-3 align-middle">Entry</b-th>
           <b-th class="col-2 align-middle">Current release event</b-th>
-          <b-th colspan="2" class="col-3 align-middle">Release date </b-th>
+          <b-th class="col-3 align-middle">Release date</b-th>
           <b-th class="col-4 align-middle">Proposed actions</b-th>
-          <b-th></b-th>
         </b-tfoot>
       </b-table-simple>
       <b-row
@@ -516,11 +524,12 @@ import {
   infoLoaded,
   getDispositionBadgeColorVariant,
   EntryWithReleaseEventAndVisibility,
-  SongType, getUniqueElementId
+  SongType,
+  getUniqueElementId
 } from "@/utils";
 import ErrorMessage from "@/components/ErrorMessage.vue";
 
-@Component({ components: {ErrorMessage} })
+@Component({ components: { ErrorMessage } })
 export default class extends Vue {
   @Prop()
   private readonly mode!: number;
@@ -713,6 +722,8 @@ export default class extends Vue {
     this.showCollapse = false;
     this.fetching = true;
     try {
+      localStorage.setItem("max_results", this.maxResults.toString());
+      localStorage.setItem("order_by", this.orderingCondition);
       this.pageToJump = newPage;
       let response = await api.fetchEntriesFromDbByEventTag({
         tag: eventTagName,
@@ -820,6 +831,18 @@ export default class extends Vue {
 
   private loadPage(page: number): void {
     this.fetch(this.event.name, (page - 1) * this.maxResults, page);
+  }
+
+  // session
+  created(): void {
+    let max_results = localStorage.getItem("max_results");
+    if (max_results != null) {
+      this.maxResults = parseInt(max_results);
+    }
+    let sort_by = localStorage.getItem("order_by");
+    if (sort_by != null) {
+      this.orderingCondition = sort_by;
+    }
   }
 }
 </script>

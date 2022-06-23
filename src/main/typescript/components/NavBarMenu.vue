@@ -1,5 +1,5 @@
 <template>
-  <b-row class="nav nav-pills nav-fill mt-3" >
+  <b-row class="nav nav-pills nav-fill mt-3">
     <b-col cols="4"></b-col>
     <b-col class="m-auto">
       <b-link
@@ -9,7 +9,10 @@
         "
         :disabled="activeMode === 'nicovideo'"
         to="nicovideo"
-        >NicoNicoDouga</b-link
+        ><font-awesome-icon
+          icon="fas fa-tag"
+          class="mr-1"
+        />NicoNicoDouga</b-link
       >
     </b-col>
     <b-col class="m-auto">
@@ -20,7 +23,7 @@
         "
         :disabled="activeMode === 'vocadb'"
         to="vocadb"
-        >VocaDB</b-link
+        ><font-awesome-icon icon="fas fa-tag" class="mr-1" />VocaDB</b-link
       >
     </b-col>
     <b-col class="m-auto">
@@ -31,7 +34,10 @@
         "
         :disabled="activeMode === 'events'"
         to="events"
-        >Events</b-link
+        ><font-awesome-icon
+          icon="fa-solid fa-calendar"
+          class="mr-1"
+        />Events</b-link
       >
     </b-col>
     <b-col cols="4"></b-col>

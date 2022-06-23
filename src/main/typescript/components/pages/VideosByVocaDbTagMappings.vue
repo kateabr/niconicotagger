@@ -170,7 +170,9 @@
           <b-link
             v-if="tagInfoLoaded()"
             target="_blank"
-            :href="getNicoTagUrl(tagMappings.join(' OR '), scopeTagStringFrozen)"
+            :href="
+              getNicoTagUrl(tagMappings.join(' OR '), scopeTagStringFrozen)
+            "
             >view at NND
             <font-awesome-icon
               class="ml-1"
@@ -332,14 +334,12 @@
                 </b-badge>
               </div>
               <b-collapse
-                :id="getCollapseId(item.video.contentId)"
                 :visible="item.embedVisible && !fetching"
                 class="mt-2 collapsed"
               >
                 <nico-embed
                   v-if="item.embedVisible && !fetching"
                   :content-id="item.video.contentId"
-                  :embed-id="getEmbedId(item.video.contentId)"
                 />
               </b-collapse>
             </b-td>
@@ -501,7 +501,7 @@ import { AssignableTag, SongForApiContractSimplified } from "@/backend/dto";
 import { api } from "@/backend";
 import ErrorMessage from "@/components/ErrorMessage.vue";
 
-@Component({ components: {ErrorMessage} })
+@Component({ components: { ErrorMessage } })
 export default class extends Vue {
   @Prop()
   private readonly mode!: number;
@@ -642,14 +642,6 @@ export default class extends Vue {
 
   private allInvisible(): boolean {
     return allVideosInvisible(this.videos);
-  }
-
-  private getEmbedId(contentId: string): string {
-    return getUniqueElementId("embed_", contentId);
-  }
-
-  private getCollapseId(contentId: string): string {
-    return getUniqueElementId("collapse_", contentId);
   }
 
   private getNicoVideoUrl(contentId: string): string {

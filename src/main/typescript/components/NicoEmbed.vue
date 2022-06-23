@@ -1,5 +1,5 @@
 <template>
-  <b-card v-cloak :id="embedId" class="embed-responsive embed-responsive-16by9">
+  <b-card v-cloak class="embed-responsive embed-responsive-16by9">
     <iframe
       class="embed-responsive-item"
       allowfullscreen="allowfullscreen"
@@ -18,9 +18,6 @@ import { getNicoEmbedUrl } from "@/utils";
 export default class extends Vue {
   @Prop()
   private readonly contentId!: string;
-
-  @Prop()
-  private readonly embedId!: string;
 
   private getNicoEmbedUrl(contentId: string): string {
     return getNicoEmbedUrl(contentId);
