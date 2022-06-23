@@ -1,5 +1,10 @@
 <template>
   <div style="display: flex; align-items: center" class="min-vh-100 min-vw-100">
+    <nav-bar-menu
+      style="position: fixed; top: 0px"
+      class="flex-lg-nowrap col-12"
+      active-mode="index"
+    />
     <div class="col-lg-3 mx-auto text-center">
       <h1>NicoNicoTagger</h1>
       <div class="blockquote">for VocaDB</div>
@@ -49,8 +54,9 @@
 import Vue from "vue";
 import { Component } from "vue-property-decorator";
 import { api } from "@/backend";
+import NavBarMenu from "@/components/NavBarMenu.vue";
 
-@Component({ components: {} })
+@Component({ components: { NavBarMenu } })
 export default class extends Vue {
   private username: string = "";
   private password: string = "";

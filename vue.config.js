@@ -18,6 +18,10 @@ module.exports = {
     login: {
       title: "Login",
       entry: "src/main/typescript/pages/login/main.ts"
+    },
+    index: {
+      title: "Login",
+      entry: "src/main/typescript/pages/login/main.ts"
     }
   },
 

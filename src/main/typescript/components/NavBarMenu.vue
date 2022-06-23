@@ -1,47 +1,33 @@
 <template>
-  <b-row class="nav nav-pills nav-fill mt-3">
-    <b-col cols="4"></b-col>
-    <b-col class="m-auto">
-      <b-link
-        :class="
-          'nav-link btn-block text-center' +
-          (activeMode === 'nicovideo' ? ' active' : '')
-        "
-        :disabled="activeMode === 'nicovideo'"
-        to="nicovideo"
-        ><font-awesome-icon
-          icon="fas fa-tag"
-          class="mr-1"
-        />NicoNicoDouga</b-link
-      >
-    </b-col>
-    <b-col class="m-auto">
-      <b-link
-        :class="
-          'nav-link btn-block text-center' +
-          (activeMode === 'vocadb' ? ' active' : '')
-        "
-        :disabled="activeMode === 'vocadb'"
-        to="vocadb"
-        ><font-awesome-icon icon="fas fa-tag" class="mr-1" />VocaDB</b-link
-      >
-    </b-col>
-    <b-col class="m-auto">
-      <b-link
-        :class="
-          'nav-link btn-block text-center' +
-          (activeMode === 'events' ? ' active' : '')
-        "
-        :disabled="activeMode === 'events'"
-        to="events"
-        ><font-awesome-icon
-          icon="fa-solid fa-calendar"
-          class="mr-1"
-        />Events</b-link
-      >
-    </b-col>
-    <b-col cols="4"></b-col>
-  </b-row>
+  <b-navbar print toggleable="lg" variant="faded" type="light">
+    <b-navbar-brand tag="h1" to="login">NicoNicoTagger</b-navbar-brand>
+
+    <b-navbar-toggle target="nav-collapse"></b-navbar-toggle>
+
+    <b-collapse id="nav-collapse" is-nav>
+      <b-navbar-nav>
+        <b-nav-item :disabled="activeMode === 'nicovideo'" to="nicovideo"
+          >Nicovideo</b-nav-item
+        >
+        <b-nav-item :disabled="activeMode === 'vocadb'" to="vocadb"
+          >VocaDB</b-nav-item
+        >
+        <b-nav-item :disabled="activeMode === 'events'" to="events"
+          >Events</b-nav-item
+        >
+      </b-navbar-nav>
+      <b-navbar-nav class="ml-auto">
+        <b-nav-item
+          href="https://github.com/kateabr/niconicotagger"
+          target="_blank"
+          ><font-awesome-icon
+            icon="fas fa-arrow-right"
+            class="mr-1"
+          />GitHub</b-nav-item
+        >
+      </b-navbar-nav>
+    </b-collapse>
+  </b-navbar>
 </template>
 
 <script lang="ts">

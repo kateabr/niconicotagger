@@ -268,6 +268,7 @@
           <b-th>
             <b-form-checkbox
               v-model="allChecked"
+              :disabled="defaultDisableCondition()"
               size="lg"
               @change="toggleCheckAll"
             />
@@ -277,15 +278,16 @@
           <b-th class="col-3 align-middle">Release date</b-th>
           <b-th class="col-4 align-middle">Proposed actions</b-th>
         </b-thead>
-        <b-tbody v-if="eventInfoLoaded">
+        <b-tbody v-if="!allInvisible()">
           <tr
-            v-for="item in entries.filter(item => item.rowVisible)"
+            v-for="item in entries.filter(item1 => item1.rowVisible)"
             :key="item.songEntry.id"
           >
             <td>
               <b-form-checkbox
                 v-if="!item.processed"
                 v-model="item.toAssign"
+                :disabled="defaultDisableCondition()"
                 size="lg"
               />
             </td>
@@ -449,6 +451,7 @@
             ><b-form-checkbox
               v-model="allChecked"
               size="lg"
+              :disabled="defaultDisableCondition()"
               @change="toggleCheckAll"
           /></b-th>
           <b-th class="col-3 align-middle">Entry</b-th>
@@ -525,7 +528,8 @@ import {
   getDispositionBadgeColorVariant,
   EntryWithReleaseEventAndVisibility,
   SongType,
-  getUniqueElementId
+  getUniqueElementId,
+  allVideosInvisible
 } from "@/utils";
 import ErrorMessage from "@/components/ErrorMessage.vue";
 
@@ -641,6 +645,10 @@ export default class extends Vue {
 
   private getDispositionBadgeColorVariant(disposition: string): string {
     return getDispositionBadgeColorVariant(disposition);
+  }
+
+  private allInvisible(): boolean {
+    return allVideosInvisible(this.entries);
   }
 
   private getDateDisposition(
@@ -805,6 +813,7 @@ export default class extends Vue {
         tagId: this.tag.id
       });
       song.processed = true;
+      song.toAssign = false;
     } catch (err) {
       this.processError(err);
     } finally {

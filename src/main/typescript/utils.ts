@@ -60,7 +60,7 @@ export function infoLoaded(listOfMediaLength: number, frozenTextValue: string): 
   return listOfMediaLength > 0 && frozenTextValue != "";
 }
 
-export function allVideosInvisible(list: VideoWithEntryAndVisibility[]): boolean {
+export function allVideosInvisible(list: { rowVisible: boolean }[]): boolean {
   return list.every(item => !item.rowVisible);
 }
 
