@@ -162,7 +162,6 @@
             :href="getVocaDBTagUrl(tagInfo[0].id, tagInfo[0].urlSlug)"
             >{{ tagNameFrozen }}</b-link
           >
-          >
         </strong></b-col
       >
       <b-col class="my-auto"
