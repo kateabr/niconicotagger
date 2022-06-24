@@ -210,9 +210,9 @@
                 :disabled="defaultDisableCondition()"
                 variant="primary"
                 block
-                :pressed.sync="filledEvents"
+                :pressed.sync="otherEvents"
                 @click="filterEntries()"
-                >Songs with events
+                >Songs with other events
               </b-button>
             </b-col>
           </b-row>
@@ -571,7 +571,7 @@ export default class extends Vue {
   private orderedByPublishDate: boolean = true;
   private timeDeltaEnabled: boolean = false;
   private timeDelta: number = 0;
-  private filledEvents: boolean = true;
+  private otherEvents: boolean = true;
   private page: number = 0;
   private maxPage: number = 0;
   private numOfPages: number = 0;
@@ -673,7 +673,9 @@ export default class extends Vue {
   }
 
   private toggleCheckAll(): void {
-    for (const item of this.entries.filter(value => value.rowVisible && !value.processed)) {
+    for (const item of this.entries.filter(
+      value => value.rowVisible && !value.processed
+    )) {
       item.toAssign = this.allChecked;
     }
   }
@@ -701,7 +703,9 @@ export default class extends Vue {
         (!this.timeDeltaEnabled ||
           item.songEntry.eventDateComparison.disposition === "perfect" ||
           item.songEntry.eventDateComparison.dayDiff <= this.timeDelta) &&
-        (this.filledEvents || item.songEntry.releaseEvent == null);
+        (this.otherEvents ||
+          item.songEntry.releaseEvent == null ||
+          item.songEntry.releaseEvent.id == this.event.id);
       item.toAssign = item.toAssign && item.rowVisible;
     }
   }

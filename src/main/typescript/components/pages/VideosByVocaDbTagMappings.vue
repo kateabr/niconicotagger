@@ -596,7 +596,12 @@ export default class extends Vue {
   }
 
   private toggleCheckAll(): void {
-    for (const item of this.videos.filter(video => video.rowVisible && video.songEntry != null && !video.songEntry.tagInTags)) {
+    for (const item of this.videos.filter(
+      video =>
+        video.rowVisible &&
+        video.songEntry != null &&
+        !video.songEntry.tagInTags
+    )) {
       item.toAssign = this.allChecked;
     }
   }
