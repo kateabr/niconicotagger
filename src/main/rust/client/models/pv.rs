@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
-use strum_macros::ToString;
+
 
 use crate::client::models::song::SongContract;
 
@@ -71,7 +71,7 @@ pub struct PVForSongContract {
     url: String,
 }
 
-#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, ToString, Debug)]
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, strum_macros::Display, Debug)]
 pub enum PvService {
     NicoNicoDouga,
     Youtube,
@@ -85,7 +85,7 @@ pub enum PvService {
     Bandcamp,
 }
 
-#[derive(Serialize, Deserialize, Clone, Copy, ToString, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Copy, strum_macros::Display, Debug, PartialEq)]
 pub enum PvType {
     Original,
     Reprint,

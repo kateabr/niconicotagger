@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-use strum_macros::ToString;
 
 use crate::client::models::entrythumb::{EntryThumbContract, EntryThumbForApiContract};
 use crate::client::models::pv::PVContract;
@@ -20,7 +19,7 @@ pub enum FeaturedCategory {
     Other,
 }
 
-#[derive(Serialize, Deserialize, ToString, Debug)]
+#[derive(Serialize, Deserialize, strum_macros::Display, Debug)]
 pub enum PvServices {
     Nothing,
     NicoNicoDouga,
@@ -125,7 +124,7 @@ pub struct SongInAlbumForApiContract {
     track_number: i32,
 }
 
-#[derive(Serialize, Deserialize, Debug, ToString, Clone)]
+#[derive(Serialize, Deserialize, Debug, strum_macros::Display, Clone)]
 pub enum SongType {
     Unspecified,
     Original,

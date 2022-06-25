@@ -17,19 +17,19 @@ regex = "1"
 chrono = { version = "0.4", features = ["serde"] }
 
 log = "0.4"
-env_logger = "0.8"
+env_logger = "0.9"
 
-strum = "0.20"
-strum_macros = "0.20"
+strum = "0.24"
+strum_macros = "0.24"
 
 base64 = "0.13"
 aes = "0.7"
-block-modes = "0.8.1"
-hex-literal = "0.3.4"
+block-modes = "0.8"
+hex-literal = "0.3"
 
-actix-web = { version = "4.0.0-beta.21", features = ["rustls"] }
-awc = { version = "3.0.0-beta.20", features = ["rustls"] }
-actix-web-httpauth = "0.6.0-beta.7"
+actix-web = { version = "4", features = ["rustls"] }
+awc = { version = "3", features = ["rustls"] }
+actix-web-httpauth = "0.6"
 scraper = "0.12.0"
 
 serde = { version = "1.0", features = ["derive"] }

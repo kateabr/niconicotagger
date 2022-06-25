@@ -1,6 +1,6 @@
 use chrono::{DateTime, TimeZone, Utc};
 use serde::{Deserialize, Deserializer, Serialize};
-use strum_macros::ToString;
+
 
 use crate::client::models::entrythumb::EntryThumbForApiContract;
 use crate::client::models::misc::OldUsernameContract;
@@ -15,7 +15,7 @@ pub enum GroupId {
     Admin,
 }
 
-#[derive(Serialize, Deserialize, ToString, Debug)]
+#[derive(Serialize, Deserialize, strum_macros::Display, Debug)]
 pub enum Inbox {
     Nothing,
     Received,
