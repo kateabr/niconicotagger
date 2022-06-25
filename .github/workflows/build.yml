@@ -1,0 +1,26 @@
+name: build and deploy image
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Prepare Heroku CLI
+        run: curl https://cli-assets.heroku.com/install.sh | sh
+
+      - name: Authorize Docker
+        run: docker login --username=_ --password=${{ secrets.HEROKU_API_KEY }} registry.heroku.com
+
+      - name: Build Container
+        run: docker build -t registry.heroku.com/niconicotagger/web .
+
+      - name: Upload Container
+        run: docker push registry.heroku.com/niconicotagger/web && heroku container:release web --app niconicotagger
