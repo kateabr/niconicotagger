@@ -326,6 +326,40 @@ export function updateFetch1Payload(
   }
 }
 
+export function dateIsWithinTimeDelta(
+  timeDelta: number,
+  restrictionBefore: boolean,
+  restrictionAfter: boolean,
+  dateComparisonResult: DateComparisonResult
+): boolean {
+  if (dateComparisonResult.disposition == "perfect") {
+    return true;
+  }
+
+  if (restrictionBefore && restrictionAfter) {
+    return dateComparisonResult.dayDiff <= timeDelta;
+  } else if (restrictionBefore) {
+    return dateComparisonResult.disposition == "late" || dateComparisonResult.dayDiff <= timeDelta;
+  } else {
+    return dateComparisonResult.disposition == "early" || dateComparisonResult.dayDiff <= timeDelta;
+  }
+}
+
+export function getTimeDeltaState(
+  isEnabled: boolean,
+  before: boolean,
+  after: boolean,
+  delta: number
+): boolean {
+  if (!isEnabled) {
+    return true;
+  }
+  if (delta < 0) {
+    return false;
+  }
+  return before || after;
+}
+
 // data structures
 export interface EntryWithReleaseEventAndVisibility {
   songEntry: SongForApiContractSimplifiedWithReleaseEvent;

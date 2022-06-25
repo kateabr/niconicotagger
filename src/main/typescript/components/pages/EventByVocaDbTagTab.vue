@@ -58,16 +58,14 @@
                     type="range"
                     min="0"
                     max="7"
-                    @change="filterEntries"
+                    @change="filterEntriesIfValidState()"
                   />
                   <template #prepend>
                     <b-input-group-text class="justify-content-center">
                       <b-form-checkbox
                         v-model="timeDeltaEnabled"
-                        :disabled="
-                          fetching || !isActiveMode() || orderedByPublishDate
-                        "
-                        @change="filterEntries"
+                        :disabled="fetching || !isActiveMode()"
+                        @change="filterEntriesIfValidState()"
                       />
                       Time delta
                     </b-input-group-text>
@@ -78,6 +76,24 @@
                       day(s)
                     </b-input-group-text>
                   </template>
+                </b-input-group>
+                <b-input-group inline class="mt-2 text-center">
+                  <b-checkbox
+                    v-model="timeDeltaBefore"
+                    :state="getTimeDeltaState()"
+                    :disabled="!timeDeltaEnabled"
+                    class="col-6"
+                    @change="filterEntriesIfValidState()"
+                    >before</b-checkbox
+                  >
+                  <b-checkbox
+                    v-model="timeDeltaAfter"
+                    :state="getTimeDeltaState()"
+                    :disabled="!timeDeltaEnabled"
+                    class="col-6"
+                    @change="filterEntriesIfValidState()"
+                    >after</b-checkbox
+                  >
                 </b-input-group>
               </template>
             </b-col>
@@ -529,7 +545,9 @@ import {
   EntryWithReleaseEventAndVisibility,
   SongType,
   getUniqueElementId,
-  allVideosInvisible
+  allVideosInvisible,
+  dateIsWithinTimeDelta,
+  getTimeDeltaState
 } from "@/utils";
 import ErrorMessage from "@/components/ErrorMessage.vue";
 
@@ -568,8 +586,9 @@ export default class extends Vue {
   private allChecked: boolean = false;
   private showCollapse: boolean = false;
   private totalEntryCount: number = 0;
-  private orderedByPublishDate: boolean = true;
   private timeDeltaEnabled: boolean = false;
+  private timeDeltaBefore: boolean = false;
+  private timeDeltaAfter: boolean = false;
   private timeDelta: number = 0;
   private otherEvents: boolean = true;
   private page: number = 0;
@@ -659,6 +678,15 @@ export default class extends Vue {
     return getDateDisposition(date, dateStart, dateEnd);
   }
 
+  private getTimeDeltaState(): boolean {
+    return getTimeDeltaState(
+      this.timeDeltaEnabled,
+      this.timeDeltaBefore,
+      this.timeDeltaAfter,
+      this.timeDelta
+    );
+  }
+
   // interface methods
   private isActiveMode(): boolean {
     return this.mode == this.thisMode;
@@ -701,12 +729,26 @@ export default class extends Vue {
             .map(t => t.name)
             .includes(item.songEntry.songType)) &&
         (!this.timeDeltaEnabled ||
-          item.songEntry.eventDateComparison.disposition === "perfect" ||
-          item.songEntry.eventDateComparison.dayDiff <= this.timeDelta) &&
+          dateIsWithinTimeDelta(
+            this.timeDelta,
+            this.timeDeltaBefore,
+            this.timeDeltaAfter,
+            item.songEntry.eventDateComparison
+          )) &&
         (this.otherEvents ||
           item.songEntry.releaseEvent == null ||
           item.songEntry.releaseEvent.id == this.event.id);
       item.toAssign = item.toAssign && item.rowVisible;
+    }
+  }
+
+  private filterEntriesIfValidState(): void {
+    if (this.getTimeDeltaState() && this.timeDelta != 0) {
+      if (!this.timeDeltaEnabled) {
+        this.timeDeltaBefore = false;
+        this.timeDeltaAfter = false;
+      }
+      this.filterEntries();
     }
   }
 
@@ -798,7 +840,6 @@ export default class extends Vue {
       this.fetching = false;
       this.pageToJump = newPage;
       this.page = newPage;
-      this.orderedByPublishDate = this.orderingCondition === "PublishDate";
     }
   }
 
