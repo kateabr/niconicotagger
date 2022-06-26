@@ -45,10 +45,14 @@
               style="width: 80px"
               :disabled="defaultDisableCondition()"
               @click="clear()"
-            >Clear</b-button
+              >Clear</b-button
             >
-            <b-button v-if="fetching" :variant="tagsConfirmed ? 'danger' : 'primary'" style="width: 80px" disabled
-            ><b-spinner small></b-spinner
+            <b-button
+              v-if="fetching"
+              :variant="tagsConfirmed ? 'danger' : 'primary'"
+              style="width: 80px"
+              disabled
+              ><b-spinner small></b-spinner
             ></b-button>
           </template>
         </b-input-group>
@@ -79,7 +83,7 @@
                     style="width: 80px"
                     :disabled="scopeTagString === ''"
                     @click="scopeTagString = ''"
-                  >Clear</b-button
+                    >Clear</b-button
                   >
                 </template>
               </b-input-group>
@@ -114,7 +118,7 @@
                     <b-input-group-text
                       class="justify-content-center"
                       style="width: 80px"
-                    >Page:</b-input-group-text
+                      >Page:</b-input-group-text
                     >
                   </template>
                   <template>
@@ -139,8 +143,8 @@
                         defaultDisableCondition() || !pageStateIsValid()
                       "
                       @click="loadPage(pageToJump)"
-                    ><span v-if="pageToJump === page">Refresh</span
-                    ><span v-else>Jump</span></b-button
+                      ><span v-if="pageToJump === page">Refresh</span
+                      ><span v-else>Jump</span></b-button
                     >
                   </template>
                 </b-input-group>
@@ -174,10 +178,10 @@
           </b-card-header>
           <b-card-body>
             <span v-for="(tag, key) in event.nndTags" :key="key">
-              <b-link
-                :href="getNicoTagUrl(tag)"
-                target="_blank"
-                ><font-awesome-icon icon="fas fa-tag" class="mr-1" />{{ tag }}</b-link
+              <b-link :href="getNicoTagUrl(tag)" target="_blank"
+                ><font-awesome-icon icon="fas fa-tag" class="mr-1" />{{
+                  tag
+                }}</b-link
               >
             </span>
           </b-card-body>
@@ -197,8 +201,14 @@
                 >
               </b-col>
               <b-col cols="6">
-                <b-button :disabled="defaultDisableCondition()" block @click="fetchEvent(eventName)"
-                  ><font-awesome-icon icon="fa-solid fa-arrow-rotate-right" class="mr-1"/>No, reload</b-button
+                <b-button
+                  :disabled="defaultDisableCondition()"
+                  block
+                  @click="fetchEvent(eventName)"
+                  ><font-awesome-icon
+                    icon="fa-solid fa-arrow-rotate-right"
+                    class="mr-1"
+                  />No, reload</b-button
                 >
               </b-col>
             </b-row>
@@ -347,34 +357,34 @@
                 size="lg"
               />
             </td>
-<!--            <td>-->
-<!--              <b-link-->
-<!--                target="_blank"-->
-<!--                :href="getVocaDBEntryUrl(item.songEntry.id)"-->
-<!--                v-html="item.songEntry.name"-->
-<!--              />-->
-<!--              <b-link-->
-<!--                target="_blank"-->
-<!--                :href="getVocaDBEntryUrl(item.songEntry.id)"-->
-<!--              >-->
-<!--                <b-badge-->
-<!--                  class="badge text-center ml-2"-->
-<!--                  :variant="getSongTypeColorForDisplay(item.songEntry.songType)"-->
-<!--                >-->
-<!--                  {{ getShortenedSongType(item.songEntry.songType) }}-->
-<!--                </b-badge>-->
-<!--              </b-link>-->
-<!--              <div class="text-muted">-->
-<!--                {{ item.songEntry.artistString }}-->
-<!--              </div>-->
-<!--            </td>-->
+            <!--            <td>-->
+            <!--              <b-link-->
+            <!--                target="_blank"-->
+            <!--                :href="getVocaDBEntryUrl(item.songEntry.id)"-->
+            <!--                v-html="item.songEntry.name"-->
+            <!--              />-->
+            <!--              <b-link-->
+            <!--                target="_blank"-->
+            <!--                :href="getVocaDBEntryUrl(item.songEntry.id)"-->
+            <!--              >-->
+            <!--                <b-badge-->
+            <!--                  class="badge text-center ml-2"-->
+            <!--                  :variant="getSongTypeColorForDisplay(item.songEntry.songType)"-->
+            <!--                >-->
+            <!--                  {{ getShortenedSongType(item.songEntry.songType) }}-->
+            <!--                </b-badge>-->
+            <!--              </b-link>-->
+            <!--              <div class="text-muted">-->
+            <!--                {{ item.songEntry.artistString }}-->
+            <!--              </div>-->
+            <!--            </td>-->
             <td>
-              <span
-                v-if="hasReleaseEvent(item)"
-                class="font-weight-bolder"
-              >
+              <span v-if="hasReleaseEvent(item)" class="font-weight-bolder">
                 <b-badge
-                  v-if="item.songEntry !== null && item.songEntry.releaseEvent !== null"
+                  v-if="
+                    item.songEntry !== null &&
+                    item.songEntry.releaseEvent !== null
+                  "
                   class="badge text-center"
                   :variant="
                     item.songEntry.releaseEvent.id === event.id
@@ -406,27 +416,27 @@
                   <span v-else class="text-muted">Unspecified</span>
                 </b-col>
                 <b-col>
-<!--                  <b-badge-->
-<!--                    :variant="-->
-<!--                      getDispositionBadgeColorVariant(-->
-<!--                        item.songEntry.eventDateComparison.disposition-->
-<!--                      )-->
-<!--                    "-->
-<!--                    class="mr-1"-->
-<!--                  >-->
-<!--                    {{ item.songEntry.eventDateComparison.disposition }}-->
-<!--                  </b-badge>-->
-<!--                  <span-->
-<!--                    v-if="-->
-<!--                      item.songEntry.eventDateComparison.disposition !==-->
-<!--                        'unknown' &&-->
-<!--                      item.songEntry.eventDateComparison.disposition !==-->
-<!--                        'perfect'-->
-<!--                    "-->
-<!--                    >(by-->
-<!--                    {{ item.songEntry.eventDateComparison.dayDiff }}-->
-<!--                    day(s))-->
-<!--                  </span>-->
+                  <!--                  <b-badge-->
+                  <!--                    :variant="-->
+                  <!--                      getDispositionBadgeColorVariant(-->
+                  <!--                        item.songEntry.eventDateComparison.disposition-->
+                  <!--                      )-->
+                  <!--                    "-->
+                  <!--                    class="mr-1"-->
+                  <!--                  >-->
+                  <!--                    {{ item.songEntry.eventDateComparison.disposition }}-->
+                  <!--                  </b-badge>-->
+                  <!--                  <span-->
+                  <!--                    v-if="-->
+                  <!--                      item.songEntry.eventDateComparison.disposition !==-->
+                  <!--                        'unknown' &&-->
+                  <!--                      item.songEntry.eventDateComparison.disposition !==-->
+                  <!--                        'perfect'-->
+                  <!--                    "-->
+                  <!--                    >(by-->
+                  <!--                    {{ item.songEntry.eventDateComparison.dayDiff }}-->
+                  <!--                    day(s))-->
+                  <!--                  </span>-->
                 </b-col>
               </b-row>
             </td>
@@ -435,7 +445,11 @@
                 <b-col cols="10">
                   <ol class="ml-n4">
                     <li
-                      v-if="hasReleaseEvent(item) && item.songEntry.releaseEvent.id !== event.id && !isTaggedWithMultipleEvents(item)"
+                      v-if="
+                        hasReleaseEvent(item) &&
+                        item.songEntry.releaseEvent.id !== event.id &&
+                        !isTaggedWithMultipleEvents(item)
+                      "
                     >
                       Tag with "<b-link
                         target="_blank"
@@ -451,7 +465,11 @@
                       >" as release event
                     </li>
                     <li
-                      v-else-if="hasReleaseEvent(item) && item.songEntry.releaseEvent.id !== event.id && isTaggedWithMultipleEvents(item)"
+                      v-else-if="
+                        hasReleaseEvent(item) &&
+                        item.songEntry.releaseEvent.id !== event.id &&
+                        isTaggedWithMultipleEvents(item)
+                      "
                     >
                       <span class="text-danger text-monospace">Important:</span>
                       check that description mentions current event
@@ -690,8 +708,7 @@ export default class extends Vue {
 
   private eventInfoLoaded(): boolean {
     return (
-      this.tagsConfirmed &&
-      infoLoaded(this.entries.length, this.event.name)
+      this.tagsConfirmed && infoLoaded(this.entries.length, this.event.name)
     );
   }
 
@@ -763,7 +780,9 @@ export default class extends Vue {
     return video.songEntry != null && video.songEntry.publishDate != null;
   }
 
-  private isTaggedWithMultipleEvents(video: VideoWithEntryAndVisibility): boolean {
+  private isTaggedWithMultipleEvents(
+    video: VideoWithEntryAndVisibility
+  ): boolean {
     return video.songEntry != null && video.songEntry.taggedWithMultipleEvents;
   }
 
@@ -876,10 +895,8 @@ export default class extends Vue {
     }
   }
 
-  private async processSong(
-    song: VideoWithEntryAndVisibility
-  ): Promise<void> {
-    if(song.songEntry == null) {
+  private async processSong(song: VideoWithEntryAndVisibility): Promise<void> {
+    if (song.songEntry == null) {
       return;
     }
     this.assigning = true;
