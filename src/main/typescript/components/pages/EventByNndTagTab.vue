@@ -13,7 +13,9 @@
               v-b-toggle.scope-collapse
               variant="primary"
               style="width: 80px"
-              :disabled="defaultDisableCondition() || event.id < 0"
+              :disabled="
+                defaultDisableCondition() || event.id < 0 || !tagsLoaded
+              "
               ><font-awesome-icon
                 class="mr-sm-1"
                 icon="fas fa-angle-down"
@@ -22,80 +24,84 @@
           </template>
           <b-form-input
             id="tag-form"
-            v-model.trim="eventTagName"
-            :disabled="defaultDisableCondition()"
-            placeholder="Event tag (VocaDB)"
-            @keydown.enter.native="loadInitialPage"
+            v-model.trim="eventName"
+            :disabled="defaultDisableCondition() || tagsConfirmed"
+            placeholder="Event tag (NND)"
+            @keydown.enter.native="fetchEvent(eventName)"
           >
           </b-form-input>
           <template #append>
             <b-button
-              v-if="!fetching"
+              v-if="!fetching && !tagsConfirmed"
               variant="primary"
               style="width: 80px"
-              :disabled="eventTagName === '' || defaultDisableCondition()"
-              @click="loadInitialPage"
+              :disabled="eventName === '' || defaultDisableCondition()"
+              @click="fetchEvent(eventName)"
               >Load</b-button
             >
-            <b-button v-else variant="primary" style="width: 80px" disabled
-              ><b-spinner small></b-spinner
+            <b-button
+              v-if="!fetching && tagsConfirmed"
+              variant="danger"
+              style="width: 80px"
+              :disabled="defaultDisableCondition()"
+              @click="clear()"
+            >Clear</b-button
+            >
+            <b-button v-if="fetching" :variant="tagsConfirmed ? 'danger' : 'primary'" style="width: 80px" disabled
+            ><b-spinner small></b-spinner
             ></b-button>
           </template>
         </b-input-group>
         <b-collapse id="scope-collapse" v-model="showCollapse" class="mt-2">
           <b-row>
             <b-col>
-              <template>
-                <b-input-group inline>
-                  <b-form-input
-                    v-model="timeDelta"
-                    :disabled="
-                      !timeDeltaEnabled ||
-                      defaultDisableCondition() ||
-                      !isActiveMode()
-                    "
-                    number
-                    type="range"
-                    min="0"
-                    max="7"
-                    @change="filterEntriesIfValidState()"
-                  />
-                  <template #prepend>
-                    <b-input-group-text class="justify-content-center">
-                      <b-form-checkbox
-                        v-model="timeDeltaEnabled"
-                        :disabled="fetching || !isActiveMode()"
-                        @change="filterEntriesIfValidState()"
-                      />
-                      Time delta
-                    </b-input-group-text>
-                  </template>
-                  <template #append>
-                    <b-input-group-text class="justify-content-center"
-                      >{{ timeDeltaEnabled ? timeDelta : "-" }}
-                      day(s)
-                    </b-input-group-text>
-                  </template>
-                </b-input-group>
-                <b-input-group inline class="mt-2 text-center">
-                  <b-checkbox
-                    v-model="timeDeltaBefore"
-                    :state="getTimeDeltaState()"
-                    :disabled="!timeDeltaEnabled"
-                    class="col-6"
-                    @change="filterEntriesIfValidState()"
-                    >before</b-checkbox
+              <b-input-group inline>
+                <b-form-input
+                  id="scope-tag-form"
+                  v-model="scopeTagString"
+                  placeholder="Specify scope (NND)"
+                  :disabled="defaultDisableCondition()"
+                  @keydown.enter.native="loadPage(1)"
+                >
+                </b-form-input>
+                <template #prepend>
+                  <b-button
+                    variant="secondary"
+                    style="width: 80px"
+                    @click="setDefaultScopeTagString"
                   >
-                  <b-checkbox
-                    v-model="timeDeltaAfter"
-                    :state="getTimeDeltaState()"
-                    :disabled="!timeDeltaEnabled"
-                    class="col-6"
-                    @change="filterEntriesIfValidState()"
-                    >after</b-checkbox
+                    <font-awesome-icon icon="fa-solid fa-paste" />
+                  </b-button>
+                </template>
+                <template #append>
+                  <b-button
+                    variant="danger"
+                    style="width: 80px"
+                    :disabled="scopeTagString === ''"
+                    @click="scopeTagString = ''"
+                  >Clear</b-button
                   >
-                </b-input-group>
-              </template>
+                </template>
+              </b-input-group>
+            </b-col>
+          </b-row>
+          <b-row v-if="event.name !== '' && isActiveMode()" class="mt-2">
+            <b-col>
+              <b-dropdown
+                block
+                :disabled="defaultDisableCondition()"
+                :text="getSortingConditionForDisplay()"
+                variant="primary"
+              >
+                <b-dropdown-item
+                  v-for="(key, item) in sortingOptions"
+                  :key="key"
+                  :disabled="sortingCondition === item"
+                  @click="setSortingCondition(item)"
+                >
+                  {{ sortingOptions[item] }}
+                </b-dropdown-item>
+              </b-dropdown>
             </b-col>
             <b-col>
               <template>
@@ -108,8 +114,8 @@
                     <b-input-group-text
                       class="justify-content-center"
                       style="width: 80px"
-                      >Page:
-                    </b-input-group-text>
+                    >Page:</b-input-group-text
+                    >
                   </template>
                   <template>
                     <b-form-input
@@ -133,16 +139,73 @@
                         defaultDisableCondition() || !pageStateIsValid()
                       "
                       @click="loadPage(pageToJump)"
-                      ><span v-if="pageToJump === page">Refresh</span
-                      ><span v-else>Jump</span></b-button
+                    ><span v-if="pageToJump === page">Refresh</span
+                    ><span v-else>Jump</span></b-button
                     >
                   </template>
                 </b-input-group>
               </template>
             </b-col>
           </b-row>
+          <b-row v-if="event.name !== '' && isActiveMode()" class="mt-2">
+            <b-col>
+              <b-form-checkbox
+                v-model="showVideosWithUploaderEntry"
+                @change="filterVideos()"
+              >
+                Force show videos whose uploaders have entries at VocaDB
+              </b-form-checkbox>
+            </b-col>
+          </b-row>
         </b-collapse>
       </span>
+    </b-row>
+    <b-row v-if="tagsLoaded && isActiveMode() && !tagsConfirmed" class="mt-5">
+      <b-col cols="3"></b-col>
+      <b-col>
+        <b-card>
+          <b-card-header>
+            Following tags are currently associated with
+            <b-link
+              :href="getVocaDBEventUrl(event.id, event.urlSlug)"
+              target="_blank"
+              >{{ event.name }}</b-link
+            >:
+          </b-card-header>
+          <b-card-body>
+            <span v-for="(tag, key) in event.nndTags" :key="key">
+              <b-link
+                :href="getNicoTagUrl(tag)"
+                target="_blank"
+                ><font-awesome-icon icon="fas fa-tag" class="mr-1" />{{ tag }}</b-link
+              >
+            </span>
+          </b-card-body>
+          <b-card-footer>
+            All good?
+            <b-row class="flex-fill mt-3">
+              <b-col cols="6">
+                <b-button
+                  :disabled="defaultDisableCondition()"
+                  block
+                  variant="success"
+                  @click="confirmAndLoad()"
+                  ><font-awesome-icon
+                    icon="fa-solid fa-check"
+                    class="mr-1"
+                  />Yes, continue</b-button
+                >
+              </b-col>
+              <b-col cols="6">
+                <b-button :disabled="defaultDisableCondition()" block @click="fetchEvent(eventName)"
+                  ><font-awesome-icon icon="fa-solid fa-arrow-rotate-right" class="mr-1"/>No, reload</b-button
+                >
+              </b-col>
+            </b-row>
+          </b-card-footer>
+        </b-card>
+      </b-col>
+      <b-col cols="3"></b-col>
     </b-row>
     <b-row v-if="eventInfoLoaded() && isActiveMode()">
       <b-row
@@ -172,7 +235,7 @@
             </b-col>
             <b-col>
               Songs found:<br />
-              <strong>{{ totalEntryCount }}</strong>
+              <strong>{{ totalVideoCount }}</strong>
             </b-col>
             <b-col class="my-auto">
               <b-dropdown
@@ -208,16 +271,16 @@
               <b-dropdown
                 block
                 :disabled="defaultDisableCondition() || !isActiveMode()"
-                :text="getOrderingConditionForDisplay()"
+                :text="getSortingConditionForDisplay()"
                 variant="primary"
               >
                 <b-dropdown-item
-                  v-for="(key, value) in orderOptions"
+                  v-for="(key, value) in sortingOptions"
                   :key="key"
-                  :disabled="orderingCondition === value"
-                  @click="setOrderingCondition(value)"
+                  :disabled="sortingCondition === value"
+                  @click="setSortingCondition(value)"
                 >
-                  {{ orderOptions[value] }}
+                  {{ sortingOptions[value] }}
                 </b-dropdown-item>
               </b-dropdown>
             </b-col>
@@ -227,34 +290,11 @@
                 variant="primary"
                 block
                 :pressed.sync="otherEvents"
-                @click="filterEntries()"
+                @click="filterVideos()"
                 >Songs with other events
               </b-button>
             </b-col>
           </b-row>
-        </b-col>
-      </b-row>
-      <b-row v-if="eventInfoLoaded()" class="col-12">
-        <b-col class="my-auto">
-          <div class="text-center pt-sm-3">
-            <b-button-group>
-              <b-button
-                v-for="(type, key) in songTypes"
-                :key="key"
-                class="pl-4 pr-4"
-                :disabled="defaultDisableCondition()"
-                :variant="
-                  (type.show ? '' : 'outline-') +
-                  getSongTypeColorForDisplay(type.name)
-                "
-                @click="
-                  type.show = !type.show;
-                  filterEntries();
-                "
-                >{{ getSongTypeStatsForDisplay(type.name) }}
-              </b-button>
-            </b-button-group>
-          </div>
         </b-col>
       </b-row>
       <b-row v-if="eventInfoLoaded" class="col-12">
@@ -263,7 +303,7 @@
             <b-pagination
               v-model="page"
               align="center"
-              :total-rows="totalEntryCount"
+              :total-rows="totalVideoCount"
               :per-page="maxResults"
               use-router
               first-number
@@ -297,7 +337,7 @@
         <b-tbody v-if="!allInvisible()">
           <tr
             v-for="item in entries.filter(item1 => item1.rowVisible)"
-            :key="item.songEntry.id"
+            :key="item.video.contentId"
           >
             <td>
               <b-form-checkbox
@@ -307,33 +347,34 @@
                 size="lg"
               />
             </td>
-            <td>
-              <b-link
-                target="_blank"
-                :href="getVocaDBEntryUrl(item.songEntry.id)"
-                v-html="item.songEntry.name"
-              />
-              <b-link
-                target="_blank"
-                :href="getVocaDBEntryUrl(item.songEntry.id)"
-              >
-                <b-badge
-                  class="badge text-center ml-2"
-                  :variant="getSongTypeColorForDisplay(item.songEntry.songType)"
-                >
-                  {{ getShortenedSongType(item.songEntry.songType) }}
-                </b-badge>
-              </b-link>
-              <div class="text-muted">
-                {{ item.songEntry.artistString }}
-              </div>
-            </td>
+<!--            <td>-->
+<!--              <b-link-->
+<!--                target="_blank"-->
+<!--                :href="getVocaDBEntryUrl(item.songEntry.id)"-->
+<!--                v-html="item.songEntry.name"-->
+<!--              />-->
+<!--              <b-link-->
+<!--                target="_blank"-->
+<!--                :href="getVocaDBEntryUrl(item.songEntry.id)"-->
+<!--              >-->
+<!--                <b-badge-->
+<!--                  class="badge text-center ml-2"-->
+<!--                  :variant="getSongTypeColorForDisplay(item.songEntry.songType)"-->
+<!--                >-->
+<!--                  {{ getShortenedSongType(item.songEntry.songType) }}-->
+<!--                </b-badge>-->
+<!--              </b-link>-->
+<!--              <div class="text-muted">-->
+<!--                {{ item.songEntry.artistString }}-->
+<!--              </div>-->
+<!--            </td>-->
             <td>
               <span
-                v-if="item.songEntry.releaseEvent !== null"
+                v-if="hasReleaseEvent(item)"
                 class="font-weight-bolder"
               >
                 <b-badge
+                  v-if="item.songEntry !== null && item.songEntry.releaseEvent !== null"
                   class="badge text-center"
                   :variant="
                     item.songEntry.releaseEvent.id === event.id
@@ -356,36 +397,36 @@
             <td>
               <b-row>
                 <b-col cols="4">
-                  <span v-if="item.publishDate !== null">
+                  <span v-if="hasPublishDate(item)">
                     <font-awesome-icon
                       icon="fa-solid fa-calendar"
                       class="mr-1"
-                    />{{ item.publishDate.toLocaleString() }}
+                    />{{ item.songEntry.publishDate.toLocaleString() }}
                   </span>
                   <span v-else class="text-muted">Unspecified</span>
                 </b-col>
                 <b-col>
-                  <b-badge
-                    :variant="
-                      getDispositionBadgeColorVariant(
-                        item.songEntry.eventDateComparison.disposition
-                      )
-                    "
-                    class="mr-1"
-                  >
-                    {{ item.songEntry.eventDateComparison.disposition }}
-                  </b-badge>
-                  <span
-                    v-if="
-                      item.songEntry.eventDateComparison.disposition !==
-                        'unknown' &&
-                      item.songEntry.eventDateComparison.disposition !==
-                        'perfect'
-                    "
-                    >(by
-                    {{ item.songEntry.eventDateComparison.dayDiff }}
-                    day(s))
-                  </span>
+<!--                  <b-badge-->
+<!--                    :variant="-->
+<!--                      getDispositionBadgeColorVariant(-->
+<!--                        item.songEntry.eventDateComparison.disposition-->
+<!--                      )-->
+<!--                    "-->
+<!--                    class="mr-1"-->
+<!--                  >-->
+<!--                    {{ item.songEntry.eventDateComparison.disposition }}-->
+<!--                  </b-badge>-->
+<!--                  <span-->
+<!--                    v-if="-->
+<!--                      item.songEntry.eventDateComparison.disposition !==-->
+<!--                        'unknown' &&-->
+<!--                      item.songEntry.eventDateComparison.disposition !==-->
+<!--                        'perfect'-->
+<!--                    "-->
+<!--                    >(by-->
+<!--                    {{ item.songEntry.eventDateComparison.dayDiff }}-->
+<!--                    day(s))-->
+<!--                  </span>-->
                 </b-col>
               </b-row>
             </td>
@@ -394,11 +435,7 @@
                 <b-col cols="10">
                   <ol class="ml-n4">
                     <li
-                      v-if="
-                        !item.songEntry.taggedWithMultipleEvents &&
-                        item.songEntry.releaseEvent !== null &&
-                        item.songEntry.releaseEvent.id !== event.id
-                      "
+                      v-if="hasReleaseEvent(item) && item.songEntry.releaseEvent.id !== event.id && !isTaggedWithMultipleEvents(item)"
                     >
                       Tag with "<b-link
                         target="_blank"
@@ -406,7 +443,7 @@
                         >multiple events</b-link
                       >" and update description
                     </li>
-                    <li v-else-if="item.songEntry.releaseEvent == null">
+                    <li v-else-if="!hasReleaseEvent(item)">
                       Set "<b-link
                         :href="getVocaDBEventUrl(event.id, event.urlSlug)"
                         target="_blank"
@@ -414,20 +451,10 @@
                       >" as release event
                     </li>
                     <li
-                      v-else-if="
-                        item.songEntry.taggedWithMultipleEvents &&
-                        item.songEntry.releaseEvent.id !== event.id
-                      "
+                      v-else-if="hasReleaseEvent(item) && item.songEntry.releaseEvent.id !== event.id && isTaggedWithMultipleEvents(item)"
                     >
                       <span class="text-danger text-monospace">Important:</span>
                       check that description mentions current event
-                    </li>
-                    <li>
-                      Remove tag "<b-link
-                        :href="getVocaDBTagUrl(tag.id, tag.urlSlug)"
-                        target="_blank"
-                        >{{ tag.name }}</b-link
-                      >"
                     </li>
                   </ol>
                 </b-col>
@@ -502,7 +529,7 @@
             <b-pagination
               v-model="page"
               align="center"
-              :total-rows="totalEntryCount"
+              :total-rows="totalVideoCount"
               :per-page="maxResults"
               use-router
               first-number
@@ -536,7 +563,7 @@ import {
   getVocaDBTagUrl,
   getDateDisposition,
   getMaxResultsForDisplay,
-  getOrderingConditionForDisplay,
+  getSortingConditionForDisplay,
   getSongTypeColorForDisplay,
   getSongTypeStatsForDisplay,
   pageStateIsValid,
@@ -546,8 +573,11 @@ import {
   SongType,
   getUniqueElementId,
   allVideosInvisible,
-  dateIsWithinTimeDelta,
-  getTimeDeltaState, fillReleaseEventForDisplay
+  fillReleaseEventForDisplay,
+  getNicoTagUrl,
+  defaultScopeTagString,
+  getSortingConditionForDisplayNico,
+  VideoWithEntryAndVisibility
 } from "@/utils";
 import ErrorMessage from "@/components/ErrorMessage.vue";
 
@@ -560,7 +590,7 @@ export default class extends Vue {
   private readonly thisMode!: number;
 
   // main variables
-  private event: ReleaseEventForDisplay = {
+  private readonly event: ReleaseEventForDisplay = {
     id: -1,
     name: "",
     category: "",
@@ -569,43 +599,39 @@ export default class extends Vue {
     urlSlug: "",
     nndTags: []
   };
-  private entries: EntryWithReleaseEventAndVisibility[] = [];
+  private entries: VideoWithEntryAndVisibility[] = [];
   private tag: MinimalTag = { name: "", id: -1, urlSlug: "" };
-  private eventTagName: string = "";
-  private eventTagNameFrozen: string = "";
+  private eventName: string = "";
+  private scopeTagString: string = "";
+  private scopeTagStringFrozen: string = "";
+  private eventTagsJoint: string = "";
 
   // api variables
   private pageToJump: number = 1;
   private startOffset: number = 0;
   private maxResults: number = 10;
-  private orderingCondition = "PublishDate";
+  private sortingCondition = "startTime";
   private fetching: boolean = false;
   private massAssigning: boolean = false;
   private assigning: boolean = false;
 
   // interface variables
+  private tagsLoaded: boolean = false;
+  private tagsConfirmed: boolean = false;
   private allChecked: boolean = false;
   private showCollapse: boolean = false;
-  private totalEntryCount: number = 0;
-  private timeDeltaEnabled: boolean = false;
-  private timeDeltaBefore: boolean = false;
-  private timeDeltaAfter: boolean = false;
-  private timeDelta: number = 0;
+  private totalVideoCount: number = 0;
   private otherEvents: boolean = true;
   private page: number = 0;
   private maxPage: number = 0;
   private numOfPages: number = 0;
+  private showVideosWithUploaderEntry: boolean = false;
 
   // error handling
   private alertCode: number = 0;
   private alertMessage: string = "";
 
   // interface dictionaries
-  private readonly orderOptions = {
-    PublishDate: "upload time",
-    AdditionDate: "addition time",
-    RatingScore: "user rating"
-  };
   private songTypes: SongType[] = [
     { name: "Unspecified", show: true },
     { name: "Original", show: true },
@@ -618,6 +644,12 @@ export default class extends Vue {
     { name: "DramaPV", show: true },
     { name: "Other", show: true }
   ];
+
+  private sortingOptions = {
+    startTime: "upload time",
+    viewCounter: "views",
+    lengthSeconds: "length"
+  };
 
   // proxy methods
   private getShortenedSongType(songType: string): string {
@@ -640,19 +672,16 @@ export default class extends Vue {
     return getMaxResultsForDisplay(this.maxResults);
   }
 
-  private getOrderingConditionForDisplay(): string {
-    return getOrderingConditionForDisplay(this.orderingCondition);
+  private getSortingConditionForDisplay(): string {
+    return getSortingConditionForDisplayNico(this.sortingCondition);
   }
 
   private getSongTypeColorForDisplay(typeString: string): string {
     return getSongTypeColorForDisplay(typeString);
   }
 
-  private getSongTypeStatsForDisplay(type: string): string {
-    return getSongTypeStatsForDisplay(
-      type,
-      this.entries.filter(item => item.songEntry.songType == type).length
-    );
+  private getNicoTagUrl(tag: string): string {
+    return getNicoTagUrl(tag, "");
   }
 
   private pageStateIsValid(): boolean {
@@ -660,7 +689,10 @@ export default class extends Vue {
   }
 
   private eventInfoLoaded(): boolean {
-    return infoLoaded(this.entries.length, this.eventTagNameFrozen);
+    return (
+      this.tagsConfirmed &&
+      infoLoaded(this.entries.length, this.event.name)
+    );
   }
 
   private getDispositionBadgeColorVariant(disposition: string): string {
@@ -679,13 +711,8 @@ export default class extends Vue {
     return getDateDisposition(date, dateStart, dateEnd);
   }
 
-  private getTimeDeltaState(): boolean {
-    return getTimeDeltaState(
-      this.timeDeltaEnabled,
-      this.timeDeltaBefore,
-      this.timeDeltaAfter,
-      this.timeDelta
-    );
+  private setDefaultScopeTagString(): void {
+    this.scopeTagString = defaultScopeTagString;
   }
 
   // interface methods
@@ -717,40 +744,27 @@ export default class extends Vue {
     this.maxResults = maxResults;
   }
 
-  private setOrderingCondition(value: string): void {
-    this.orderingCondition = value;
+  private setSortingCondition(value: string): void {
+    this.sortingCondition = value;
   }
 
-  private filterEntries(): void {
+  private filterVideos(): void {
     for (const item of this.entries) {
-      item.rowVisible =
-        (this.getHiddenTypes() == 0 ||
-          !this.songTypes
-            .filter(t => !t.show)
-            .map(t => t.name)
-            .includes(item.songEntry.songType)) &&
-        (!this.timeDeltaEnabled ||
-          dateIsWithinTimeDelta(
-            this.timeDelta,
-            this.timeDeltaBefore,
-            this.timeDeltaAfter,
-            item.songEntry.eventDateComparison
-          )) &&
-        (this.otherEvents ||
-          item.songEntry.releaseEvent == null ||
-          item.songEntry.releaseEvent.id == this.event.id);
+      item.rowVisible = true;
       item.toAssign = item.toAssign && item.rowVisible;
     }
   }
 
-  private filterEntriesIfValidState(): void {
-    if (this.getTimeDeltaState() && this.timeDelta != 0) {
-      if (!this.timeDeltaEnabled) {
-        this.timeDeltaBefore = false;
-        this.timeDeltaAfter = false;
-      }
-      this.filterEntries();
-    }
+  private hasReleaseEvent(video: VideoWithEntryAndVisibility): boolean {
+    return video.songEntry != null && video.songEntry.releaseEvent != null;
+  }
+
+  private hasPublishDate(video: VideoWithEntryAndVisibility): boolean {
+    return video.songEntry != null && video.songEntry.publishDate != null;
+  }
+
+  private isTaggedWithMultipleEvents(video: VideoWithEntryAndVisibility): boolean {
+    return video.songEntry != null && video.songEntry.taggedWithMultipleEvents;
   }
 
   // error handling
@@ -766,67 +780,96 @@ export default class extends Vue {
   }
 
   // api methods
-  async fetch(
-    eventTagName: string,
-    newStartOffset: number,
-    newPage: number
-  ): Promise<void> {
-    if (eventTagName == "") {
+  async fetchEvent(eventName: string): Promise<void> {
+    if (eventName == "") {
       return;
     }
     this.showCollapse = false;
     this.fetching = true;
     try {
-      localStorage.setItem("max_results", this.maxResults.toString());
-      localStorage.setItem("order_by", this.orderingCondition);
-      this.pageToJump = newPage;
-      let response = await api.fetchEntriesFromDbByEventTag({
-        tag: eventTagName,
+      let response = await api.fetchReleaseEventWithNndTags({
+        eventName: eventName
+      });
+      fillReleaseEventForDisplay(response.event, this.event);
+      this.event.nndTags = response.tags;
+      this.eventTagsJoint = this.event.nndTags.join(" ");
+    } catch (err) {
+      this.processError(err);
+    } finally {
+      this.fetching = false;
+      this.tagsLoaded = true;
+    }
+  }
+
+  async fetch(
+    targetTag: string,
+    scopeString: string,
+    newStartOffset: number,
+    newPage: number
+  ): Promise<void> {
+    if (targetTag == "") {
+      return;
+    }
+    this.showCollapse = false;
+    this.fetching = true;
+    try {
+      let response = await api.fetchVideosByEventNndTags({
+        tags: targetTag,
+        scopeTag: scopeString,
         startOffset: newStartOffset,
         maxResults: this.maxResults,
-        orderBy: this.orderingCondition
+        orderBy: this.sortingCondition,
+        eventId: this.event.id
       });
-      if (response.releaseEvent.date == null) {
-        throw { response: undefined, message: "Invalid event date" };
-      }
-      let entries_temp: EntryWithReleaseEventAndVisibility[] = response.items.map(
-        item => {
-          return {
-            songEntry: item,
-            rowVisible: true,
-            toAssign: false,
-            publishDate:
-              item.publishDate !== null
-                ? DateTime.fromISO(item.publishDate)
-                : null,
-            eventDateComparison: null,
-            taggedWithMultipleEvents: item.taggedWithMultipleEvents,
-            processed: false
-          };
-        }
-      );
-      this.totalEntryCount = response.totalCount;
-      this.entries = entries_temp;
-      this.tag = response.eventTag;
-      fillReleaseEventForDisplay(response.releaseEvent, this.event);
-      this.entries.forEach(
-        value =>
-          (value.songEntry.eventDateComparison = this.getDateDisposition(
-            value.publishDate,
+      console.log(response.items);
+      for (const item of response.items) {
+        let temp: VideoWithEntryAndVisibility = {
+          video: item.video,
+          songEntry: item.songEntry,
+          embedVisible: false,
+          rowVisible: true,
+          toAssign: false,
+          publisher: item.publisher,
+          processed: item.processed
+        };
+        if (
+          temp.songEntry != null &&
+          item.songEntry != null &&
+          item.songEntry.publishDate != null
+        ) {
+          temp.songEntry.eventDateComparison = this.getDateDisposition(
+            DateTime.fromISO(item.songEntry.publishDate),
             this.event.date!,
             this.event.endDate
-          ))
-      );
-      this.filterEntries();
-      this.eventTagNameFrozen = this.event.name;
+          );
+        }
+      }
+      this.entries = response.items.map(vid => {
+        return {
+          video: vid.video,
+          songEntry: vid.songEntry,
+          embedVisible: false,
+          rowVisible: true,
+          toAssign: false,
+          publishDate: null,
+          eventDateComparison: null,
+          taggedWithMultipleEvents: false,
+          publisher: vid.publisher,
+          processed: vid.processed
+        };
+      });
+      this.filterVideos();
+      this.totalVideoCount = response.totalVideoCount;
+      this.scopeTagString = response.safeScope;
+      this.scopeTagStringFrozen = response.safeScope;
       this.page = newStartOffset / this.maxResults + 1;
-      this.numOfPages = this.totalEntryCount / this.maxResults + 1;
+      this.numOfPages = this.totalVideoCount / this.maxResults + 1;
       this.startOffset = newStartOffset;
       this.allChecked = false;
     } catch (err) {
       this.processError(err);
     } finally {
-      this.maxPage = Math.ceil(this.totalEntryCount / this.maxResults);
+      this.maxPage = Math.ceil(this.totalVideoCount / this.maxResults);
       this.fetching = false;
       this.pageToJump = newPage;
       this.page = newPage;
@@ -834,8 +877,11 @@ export default class extends Vue {
   }
 
   private async processSong(
-    song: EntryWithReleaseEventAndVisibility
+    song: VideoWithEntryAndVisibility
   ): Promise<void> {
+    if(song.songEntry == null) {
+      return;
+    }
     this.assigning = true;
     try {
       await api.assignEventAndRemoveTag({
@@ -869,12 +915,24 @@ export default class extends Vue {
     }
   }
 
-  private loadInitialPage(): void {
-    this.fetch(this.eventTagName, 0, 1);
+  private confirmAndLoad(): void {
+    this.tagsConfirmed = true;
+    this.loadPage(1);
+  }
+
+  private clear(): void {
+    this.tagsLoaded = false;
+    this.tagsConfirmed = false;
+    this.entries = [];
   }
 
   private loadPage(page: number): void {
-    this.fetch(this.event.name, (page - 1) * this.maxResults, page);
+    this.fetch(
+      this.eventTagsJoint,
+      this.scopeTagString,
+      (page - 1) * this.maxResults,
+      page
+    );
   }
 
   // session
@@ -882,10 +940,6 @@ export default class extends Vue {
     let max_results = localStorage.getItem("max_results");
     if (max_results != null) {
       this.maxResults = parseInt(max_results);
-    }
-    let sort_by = localStorage.getItem("order_by");
-    if (sort_by != null) {
-      this.orderingCondition = sort_by;
     }
   }
 }

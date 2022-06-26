@@ -18,6 +18,15 @@ export interface FetchVideosPayload {
   orderBy: string;
 }
 
+export interface FetchVideosByEventTagsPayload {
+  tags: string;
+  scopeTag: string;
+  startOffset: number;
+  maxResults: number;
+  orderBy: string;
+  eventId: number;
+}
+
 export interface FetchVideosByEventTagPayload {
   tag: string;
   startOffset: number;
@@ -48,7 +57,6 @@ export interface NicoVideoWithTidyTags {
 export interface SongForApiContractSimplified {
   id: number;
   name: string;
-  tagInTags: boolean;
   songType: string;
   artistString: string;
   createDate: string;
@@ -73,8 +81,9 @@ export interface DateComparisonResult {
 
 export interface VideoWithEntry {
   video: NicoVideoWithTidyTags;
-  songEntry: SongForApiContractSimplified | null;
+  songEntry: SongForApiContractSimplifiedWithReleaseEvent | null;
   publisher: Publisher | null;
+  processed: boolean;
 }
 
 export interface Publisher {
@@ -189,6 +198,12 @@ export interface ReleaseEventForApiContractSimplified {
   name: string;
   urlSlug: string;
   category: string;
+  nndTags: string[];
+}
+
+export interface ReleaseEventForApiContractSimplifiedWithNndTags {
+  event: ReleaseEventForApiContractSimplified;
+  tags: string[];
 }
 
 export interface ReleaseEventForDisplay {
@@ -198,6 +213,7 @@ export interface ReleaseEventForDisplay {
   name: string;
   urlSlug: string;
   category: string;
+  nndTags: string[];
 }
 
 export interface EntriesWithReleaseEventTag {
@@ -211,6 +227,10 @@ export interface AssignEventAndRemoveTagPayload {
   songId: number;
   event: MinimalEvent;
   tagId: number;
+}
+
+export interface fetchReleaseEventWithNndTagsPayload {
+  eventName: string;
 }
 
 export interface MinimalEvent {

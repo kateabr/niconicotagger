@@ -334,7 +334,7 @@ impl<'a> Client<'a> {
             &vec![
                 ("pvService", String::from("NicoNicoDouga")),
                 ("pvId", String::from(pv_id)),
-                ("fields", String::from("Tags")),
+                ("fields", String::from("Tags,ReleaseEvent")),
             ],
         ).await;
     }
@@ -352,28 +352,20 @@ impl<'a> Client<'a> {
 
         return if lookup_result.is_empty() { Ok(None) } else { Ok(Some(lookup_result[0].entry.clone())) };
     }
-
-    pub async fn lookup_video(&self, video: &NicoVideo, src_tags: Vec<i32>, nico_tags: Vec<String>, mappings: &Vec<String>, scope: String) -> Result<VideoWithEntry> {
-        let response = self.get_song_by_nico_pv(&video.id).await?;
-
-        let normalized_nico_tags: Vec<String> = nico_tags.into_iter().map(|t| normalize(&t)).collect();
-        let normalized_scope = normalize(&scope.replace(" OR ", " "));
-        let normalized_scope_tags = normalized_scope.split(" ").map(|s| String::from(s)).collect::<Vec<_>>();
-
-        let publisher: Option<NicoPublisher> = match video.user_id {
-            Some(id) => self.lookup_artist_by_nico_account_id(id.clone()).await?,
-            None => None
-        };
-
-        let nico_tags = video.tags.split(" ").map(|s| String::from(s)).collect::<Vec<_>>();
-
-        let tags = nico_tags.iter().map(|t| {
+    pub fn assign_colors(
+        &self,
+        target_nico_tags: Vec<String>,
+        normalized_target_mappings: Vec<String>,
+        normalized_scope_tags: Vec<String>,
+        non_target_mappings: &Vec<String>
+    ) -> Vec<DisplayableTag> {
+        target_nico_tags.iter().map(|t| {
             let normalized_t: String = normalize(t);
-            let variant = if normalized_nico_tags.contains(&normalized_t) {
+            let variant = if normalized_target_mappings.contains(&normalized_t) {
                 String::from("primary")
             } else if normalized_scope_tags.iter().any(|s| s == &normalized_t) {
                 String::from("info")
-            } else if mappings.iter().any(|m| m == &normalized_t) {
+            } else if non_target_mappings.iter().any(|m| m == &normalized_t) {
                 String::from("dark")
             } else {
                 String::from("secondary")
@@ -383,17 +375,36 @@ impl<'a> Client<'a> {
                 name: t.clone(),
                 variant,
             }
-        }).collect();
+        }).collect()
+    }
 
+    pub async fn lookup_video(&self, video: &NicoVideo, src_tags: Vec<i32>, nico_tags: Vec<String>, mappings: &Vec<String>, scope: String) -> Result<VideoWithEntry> {
+        let response = self.get_song_by_nico_pv(&video.id).await?;
+
+        let normalized_nico_mappings: Vec<String> = nico_tags.into_iter().map(|t| normalize(&t)).collect();
+        let normalized_scope = normalize(&scope.replace(" OR ", " "));
+        let normalized_scope_tags = normalized_scope.split(" ").map(|s| String::from(s)).collect::<Vec<_>>();
+
+        let publisher: Option<NicoPublisher> = match video.user_id {
+            Some(id) => self.lookup_artist_by_nico_account_id(id.clone()).await?,
+            None => None
+        };
+
+        let src_nico_tags = video.tags.split(" ").map(|s| String::from(s)).collect::<Vec<_>>();
+
+        let tags = self.assign_colors(src_nico_tags, normalized_nico_mappings, normalized_scope_tags, mappings);
+
+        let mut tag_in_tags = false;
         let entry = response.map(|res| {
-            let tag_in_tags = src_tags.iter().all(|tag_id| res.tags.iter().any(|t| &t.tag.id == tag_id));
+            tag_in_tags = src_tags.iter().all(|tag_id| res.tags.iter().any(|t| &t.tag.id == tag_id));
 
             SongForApiContractSimplified {
                 id: res.id,
                 name: res.name.clone(),
-                tag_in_tags,
                 song_type: res.song_type.to_string(),
                 artist_string: res.artist_string.clone(),
+                release_event: res.release_event,
+                publish_date: res.publish_date
             }
         });
 
@@ -405,6 +416,49 @@ impl<'a> Client<'a> {
             },
             song_entry: entry,
             publisher,
+            processed: tag_in_tags
+        });
+    }
+
+    pub async fn lookup_video_by_event(&self, video: &NicoVideo, event_id: i32, nico_tags: Vec<String>, mappings: &Vec<String>, scope: String) -> Result<VideoWithEntry> {
+        let response = self.get_song_by_nico_pv(&video.id).await?;
+
+        let normalized_nico_mappings: Vec<String> = nico_tags.into_iter().map(|t| normalize(&t)).collect();
+        let normalized_scope = normalize(&scope.replace(" OR ", " "));
+        let normalized_scope_tags = normalized_scope.split(" ").map(|s| String::from(s)).collect::<Vec<_>>();
+
+        let publisher: Option<NicoPublisher> = match video.user_id {
+            Some(id) => self.lookup_artist_by_nico_account_id(id.clone()).await?,
+            None => None
+        };
+
+        let src_nico_tags = video.tags.split(" ").map(|s| String::from(s)).collect::<Vec<_>>();
+
+        let tags = self.assign_colors(src_nico_tags, normalized_nico_mappings, normalized_scope_tags, mappings);
+
+        let mut processed = false;
+        let entry = response.map(|res| {
+            processed = res.release_event.is_some() && res.release_event.as_ref().unwrap().id == event_id;
+
+            SongForApiContractSimplified {
+                id: res.id,
+                name: res.name.clone(),
+                song_type: res.song_type.to_string(),
+                artist_string: res.artist_string.clone(),
+                release_event: res.release_event.clone(),
+                publish_date: res.publish_date
+            }
+        });
+
+        return Ok(VideoWithEntry {
+            video: NicoVideoWithTidyTags {
+                id: video.id.clone(),
+                title: video.title.clone(),
+                tags,
+            },
+            song_entry: entry,
+            publisher,
+            processed
         });
     }
 
@@ -465,13 +519,38 @@ impl<'a> Client<'a> {
         }
     }
 
+    pub async fn get_event_by_name(&self, event_name: String) -> Result<ReleaseEventForApiContractSimplified> {
+        let response: EventSearchResult = self.http_get(
+            &String::from("https://vocadb.net/api/releaseEvents"),
+            &vec![
+                ("query", event_name.clone()),
+                ("getTotalCount", String::from("true")),
+                ("lang", String::from("Default")),
+                ("fields", String::from("WebLinks"))
+            ],
+        ).await?;
+
+        return match response.total_count {
+            1 => Ok(ReleaseEventForApiContractSimplified {
+                date: response.items[0].date.clone(),
+                end_date: response.items[0].end_date.clone(),
+                id: response.items[0].id,
+                name: response.items[0].name.clone(),
+                url_slug: response.items[0].url_slug.clone(),
+                category: response.items[0].category.clone(),
+                web_links: response.items[0].web_links.clone()
+            }),
+            0 => Err(VocadbClientError::NotFoundError(format!("event \"{}\" does not exist", event_name.clone()))),
+            _ => Err(VocadbClientError::AmbiguousResponseError)
+        };
+    }
+
     pub async fn get_event_by_tag(&self, tag_id: i32) -> Result<ReleaseEventForApiContractSimplified> {
         let response: EventSearchResult = self.http_get(
             &String::from("https://vocadb.net/api/releaseEvents"),
             &vec![
                 ("tagId[]", tag_id.to_string()),
                 ("getTotalCount", String::from("true")),
-                ("maxResults", String::from("100")),
                 ("lang", String::from("Default")),
             ],
         ).await?;
@@ -484,6 +563,7 @@ impl<'a> Client<'a> {
                 name: response.items[0].name.clone(),
                 url_slug: response.items[0].url_slug.clone(),
                 category: response.items[0].category.clone(),
+                web_links: None
             }),
             0 => Err(VocadbClientError::NotFoundError(format!("tag with id=\"{}\" does not exist", tag_id))),
             _ => Err(VocadbClientError::AmbiguousResponseError)

@@ -292,7 +292,7 @@
             :style="item.rowVisible ? '' : 'display: none'"
           >
             <b-td>
-              <div v-if="item.songEntry != null && !item.songEntry.tagInTags">
+              <div v-if="item.songEntry != null && !item.processed">
                 <b-form-checkbox
                   v-model="item.toAssign"
                   size="lg"
@@ -387,7 +387,7 @@
               <div v-if="item.songEntry != null">
                 <b-button-toolbar key-nav>
                   <b-button
-                    v-if="item.songEntry.tagInTags"
+                    v-if="item.processed"
                     style="pointer-events: none"
                     class="btn disabled"
                     variant="success"
@@ -399,7 +399,7 @@
                     :disabled="defaultDisableCondition()"
                     class="btn"
                     variant="outline-success"
-                    @click="assign(item.songEntry.id)"
+                    @click="assign(item)"
                   >
                     <font-awesome-icon icon="fas fa-plus" />
                   </b-button>
@@ -479,7 +479,7 @@ import {
   getVocaDBEntryUrl,
   getVocaDBTagUrl,
   getMaxResultsForDisplay,
-  getOrderingConditionForDisplayNico,
+  getSortingConditionForDisplayNico,
   getSongTypeColorForDisplay,
   getSongTypeStatsForDisplay,
   pageStateIsValid,
@@ -568,7 +568,7 @@ export default class extends Vue {
   }
 
   private getOrderingCondition(): string {
-    return getOrderingConditionForDisplayNico(this.orderingCondition);
+    return getSortingConditionForDisplayNico(this.orderingCondition);
   }
 
   private setDefaultScopeTagString(): void {
@@ -655,7 +655,7 @@ export default class extends Vue {
       video =>
         video.rowVisible &&
         video.songEntry != null &&
-        !video.songEntry.tagInTags
+        !video.processed
     )) {
       item.toAssign = this.allChecked;
     }
@@ -692,7 +692,8 @@ export default class extends Vue {
           embedVisible: false,
           rowVisible: true,
           toAssign: false,
-          publisher: vid.publisher
+          publisher: vid.publisher,
+          processed: vid.processed
         };
       });
       this.filterVideos();
@@ -721,10 +722,11 @@ export default class extends Vue {
     if (video.songEntry == null) {
       return;
     }
+    console.log("assign");
     this.assigning = true;
     try {
       await api.assignTag({ tags: this.tagInfo, songId: video.songEntry.id });
-      video.songEntry.tagInTags = true;
+      video.processed = true;
     } catch (err) {
       this.processError(err);
     } finally {
@@ -753,7 +755,7 @@ export default class extends Vue {
         (item.songEntry != null ||
           this.noEntry ||
           (item.publisher != null && this.showVideosWithUploaderEntry)) &&
-        (item.songEntry == null || this.tagged || !item.songEntry?.tagInTags);
+        (item.songEntry == null || this.tagged || !item.processed);
       item.toAssign = item.toAssign && item.rowVisible;
 
       if (hiddenTypes) {

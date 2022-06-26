@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum WebLinkCategory {
     Official,
     Commercial,
@@ -18,10 +18,10 @@ pub struct WebLinkContract {
     url: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct WebLinkForApiContract {
     category: WebLinkCategory,
     description: String,
     id: i32,
-    url: String,
+    pub(crate) url: String,
 }

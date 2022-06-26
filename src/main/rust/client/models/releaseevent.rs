@@ -50,7 +50,7 @@ pub struct ReleaseEventForApiContract {
     venue_name: Option<String>,
     version: i32,
     #[serde(rename = "webLinks")]
-    web_links: Option<Vec<WebLinkForApiContract>>,
+    pub(crate) web_links: Option<Vec<WebLinkForApiContract>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -63,6 +63,14 @@ pub struct ReleaseEventForApiContractSimplified {
     #[serde(rename = "urlSlug")]
     pub url_slug: String,
     pub category: ReleaseEventCategory,
+    #[serde(rename = "webLinks")]
+    pub web_links: Option<Vec<WebLinkForApiContract>>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ReleaseEventForApiContractSimplifiedWithNndTags {
+    pub(crate) event: ReleaseEventForApiContractSimplified,
+    pub(crate) tags: Vec<String>
 }
 
 #[derive(Serialize, Deserialize, Debug)]

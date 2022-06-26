@@ -7,6 +7,9 @@ import {
   NicoVideoWithMappedTags,
   NicoVideoWithTidyTags,
   Publisher,
+  ReleaseEventForApiContractSimplified,
+  ReleaseEventForApiContractSimplifiedWithNndTags,
+  ReleaseEventForDisplay,
   SongForApiContractSimplified,
   SongForApiContractSimplifiedWithReleaseEvent
 } from "@/backend/dto";
@@ -73,7 +76,7 @@ export function getOrderingConditionForDisplay(orderingCondition: string): strin
   return "Arrange by: " + orderOptions[orderingCondition];
 }
 
-export function getOrderingConditionForDisplayNico(orderingCondition: string): string {
+export function getSortingConditionForDisplayNico(orderingCondition: string): string {
   return "Arrange by: " + orderOptionsNico[orderingCondition];
 }
 
@@ -145,6 +148,18 @@ export function getDateDisposition(
       disposition: "early"
     };
   }
+}
+
+export function fillReleaseEventForDisplay(
+  src: ReleaseEventForApiContractSimplified,
+  trg: ReleaseEventForDisplay
+): void {
+  trg.id = src.id;
+  trg.name = src.name;
+  trg.urlSlug = src.urlSlug;
+  trg.category = src.category;
+  trg.date = src.date == null ? null : DateTime.fromISO(src.date);
+  trg.endDate = src.endDate == null ? null : DateTime.fromISO(src.endDate);
 }
 
 export const defaultScopeTagString: string =
@@ -371,11 +386,12 @@ export interface EntryWithReleaseEventAndVisibility {
 
 export interface VideoWithEntryAndVisibility {
   video: NicoVideoWithTidyTags;
-  songEntry: SongForApiContractSimplified | null;
+  songEntry: SongForApiContractSimplifiedWithReleaseEvent | null;
   embedVisible: boolean;
   rowVisible: boolean;
   toAssign: boolean;
   publisher: Publisher | null;
+  processed: boolean;
 }
 
 export interface SongType {
