@@ -10,7 +10,7 @@
         <b-input-group inline class="mt-lg-3">
           <template #prepend>
             <b-button
-              v-b-toggle.scope-collapse
+              v-b-toggle="'scope-collapse-' + thisMode"
               variant="primary"
               style="width: 80px"
               :disabled="defaultDisableCondition() || event.id < 0"
@@ -42,7 +42,11 @@
             ></b-button>
           </template>
         </b-input-group>
-        <b-collapse id="scope-collapse" v-model="showCollapse" class="mt-2">
+        <b-collapse
+          :id="'scope-collapse-' + thisMode"
+          v-model="showCollapse"
+          class="mt-2"
+        >
           <b-row>
             <b-col>
               <template>

@@ -51,7 +51,9 @@ export interface FetchVideosFromDbBeforeSincePayload {
 export interface NicoVideoWithTidyTags {
   contentId: string;
   title: string;
+  startTime: string;
   tags: DisplayableTag[];
+  eventDateComparison: DateComparisonResult | null;
 }
 
 export interface SongForApiContractSimplified {

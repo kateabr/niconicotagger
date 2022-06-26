@@ -10,7 +10,7 @@
         <b-input-group inline class="mt-lg-3">
           <template #prepend>
             <b-button
-              v-b-toggle.scope-collapse
+              v-b-toggle="'scope-collapse-' + thisMode"
               variant="primary"
               style="width: 80px"
               :disabled="
@@ -25,14 +25,14 @@
           <b-form-input
             id="tag-form"
             v-model.trim="eventName"
-            :disabled="defaultDisableCondition() || tagsConfirmed"
+            :disabled="defaultDisableCondition()"
             placeholder="Event name (VocaDB)"
             @keydown.enter.native="fetchEvent(eventName)"
           >
           </b-form-input>
           <template #append>
             <b-button
-              v-if="!fetching && !tagsConfirmed"
+              v-if="!fetching"
               variant="primary"
               style="width: 80px"
               :disabled="eventName === '' || defaultDisableCondition()"
@@ -40,23 +40,19 @@
               >Load</b-button
             >
             <b-button
-              v-if="!fetching && tagsConfirmed"
-              variant="danger"
-              style="width: 80px"
-              :disabled="defaultDisableCondition()"
-              @click="clear()"
-              >Clear</b-button
-            >
-            <b-button
               v-if="fetching"
-              :variant="tagsConfirmed ? 'danger' : 'primary'"
+              variant="primary"
               style="width: 80px"
               disabled
               ><b-spinner small></b-spinner
             ></b-button>
           </template>
         </b-input-group>
-        <b-collapse id="scope-collapse" v-model="showCollapse" class="mt-2">
+        <b-collapse
+          :id="'scope-collapse-' + thisMode"
+          v-model="showCollapse"
+          class="mt-2"
+        >
           <b-row>
             <b-col>
               <b-input-group inline>
@@ -89,7 +85,10 @@
               </b-input-group>
             </b-col>
           </b-row>
-          <b-row v-if="event.name !== '' && isActiveMode()" class="mt-2">
+          <b-row
+            v-if="event.name !== '' && isActiveMode() && tagsConfirmed"
+            class="mt-2"
+          >
             <b-col>
               <b-dropdown
                 block
@@ -151,7 +150,10 @@
               </template>
             </b-col>
           </b-row>
-          <b-row v-if="event.name !== '' && isActiveMode()" class="mt-2">
+          <b-row
+            v-if="event.name !== '' && isActiveMode() && tagsConfirmed"
+            class="mt-2"
+          >
             <b-col>
               <b-button
                 :disabled="defaultDisableCondition()"
@@ -159,10 +161,25 @@
                 block
                 :pressed.sync="showVideosWithoutEntries"
                 @click="filterVideos()"
-              >Videos without entries
+                >Videos without entries
               </b-button>
             </b-col>
-            <b-col cols="6">
+            <b-col>
+              <b-button
+                :disabled="defaultDisableCondition()"
+                variant="primary"
+                block
+                :pressed.sync="showVideosWithNoEvents"
+                @click="filterVideos()"
+                >Songs with no events
+              </b-button>
+            </b-col>
+          </b-row>
+          <b-row
+            v-if="event.name !== '' && isActiveMode() && tagsConfirmed"
+            class="mt-2"
+          >
+            <b-col>
               <b-form-checkbox
                 v-model="showVideosWithUploaderEntry"
                 @change="filterVideos()"
@@ -288,23 +305,6 @@
               </b-dropdown>
             </b-col>
             <b-col class="my-auto">
-              <b-dropdown
-                block
-                :disabled="defaultDisableCondition() || !isActiveMode()"
-                :text="getSortingConditionForDisplay()"
-                variant="primary"
-              >
-                <b-dropdown-item
-                  v-for="(key, value) in sortingOptions"
-                  :key="key"
-                  :disabled="sortingCondition === value"
-                  @click="setSortingCondition(value)"
-                >
-                  {{ sortingOptions[value] }}
-                </b-dropdown-item>
-              </b-dropdown>
-            </b-col>
-            <b-col class="my-auto">
               <b-button
                 :disabled="defaultDisableCondition()"
                 variant="primary"
@@ -312,6 +312,16 @@
                 :pressed.sync="currentEventFilled"
                 @click="filterVideos()"
                 >Songs with current event
+              </b-button>
+            </b-col>
+            <b-col class="my-auto">
+              <b-button
+                :disabled="defaultDisableCondition()"
+                variant="primary"
+                block
+                :pressed.sync="showVideosWithOtherEvents"
+                @click="filterVideos()"
+                >Songs with other events
               </b-button>
             </b-col>
           </b-row>
@@ -429,82 +439,84 @@
                   {{ item.songEntry.releaseEvent.name }}
                 </b-badge>
               </span>
-              <span v-else-if="item.songEntry != null" class="text-muted">Unspecified</span>
+              <span v-else-if="item.songEntry != null" class="text-muted"
+                >Unspecified</span
+              >
               <span v-else class="text-muted">None</span>
             </td>
             <td v-if="item.songEntry != null">
-                    <b-link
-                      target="_blank"
-                      :href="getVocaDBEntryUrl(item.songEntry.id)"
-                      v-html="item.songEntry.name"
-                    ></b-link>
-                    <b-link
-                      target="_blank"
-                      :href="getVocaDBEntryUrl(item.songEntry.id)"
-                    >
-                      <b-badge
-                        class="badge text-center ml-2"
-                        :variant="
-                      getSongTypeColorForDisplay(item.songEntry.songType)
-                    "
-                      >
-                        {{ getShortenedSongType(item.songEntry.songType) }}
-                      </b-badge>
-                    </b-link>
-                    <div class="text-muted mb-2">
-                      {{ item.songEntry.artistString }}
-                    </div>
+              <b-link
+                target="_blank"
+                :href="getVocaDBEntryUrl(item.songEntry.id)"
+                v-html="item.songEntry.name"
+              ></b-link>
+              <b-link
+                target="_blank"
+                :href="getVocaDBEntryUrl(item.songEntry.id)"
+              >
+                <b-badge
+                  class="badge text-center ml-2"
+                  :variant="getSongTypeColorForDisplay(item.songEntry.songType)"
+                >
+                  {{ getShortenedSongType(item.songEntry.songType) }}
+                </b-badge>
+              </b-link>
+              <div class="text-muted mb-2">
+                {{ item.songEntry.artistString }}
+              </div>
               <span v-if="hasPublishDate(item)">
-                    <font-awesome-icon
-                      icon="fa-solid fa-calendar"
-                      class="mr-1"
-                    />{{ getReleaseDateFormatted(item.songEntry.publishDate) }}
-                  </span>
+                <font-awesome-icon icon="fa-solid fa-calendar" class="mr-1" />{{
+                  getReleaseDateFormatted(item.songEntry.publishDate)
+                }}
+              </span>
               <span v-else class="text-muted">Unspecified</span>
-                    <b-badge
-                      :variant="
-                      getDispositionBadgeColorVariant(
-                        item.songEntry.eventDateComparison.disposition
-                      )
-                    "
-                      class="mr-1 ml-3"
-                    >
-                      {{ item.songEntry.eventDateComparison.disposition }}
-                    </b-badge>
-                    <span
-                      v-if="
-                      item.songEntry.eventDateComparison.disposition !==
-                        'unknown' &&
-                      item.songEntry.eventDateComparison.disposition !==
-                        'perfect'
-                    "
-                    >(by
-                    {{ item.songEntry.eventDateComparison.dayDiff }}
-                    day(s))
-                  </span>
+              <b-badge
+                :variant="
+                  getDispositionBadgeColorVariant(
+                    item.songEntry.eventDateComparison.disposition
+                  )
+                "
+                class="mr-1 ml-3"
+              >
+                {{ item.songEntry.eventDateComparison.disposition }}
+              </b-badge>
+              <span
+                v-if="
+                  item.songEntry.eventDateComparison.disposition !==
+                    'unknown' &&
+                  item.songEntry.eventDateComparison.disposition !== 'perfect'
+                "
+                >(by
+                {{ item.songEntry.eventDateComparison.dayDiff }}
+                day(s))
+              </span>
             </td>
             <td v-else>
-              <b-button
-                size="sm"
-                :disabled="fetching"
-                :href="getVocaDBAddSongUrl(item.video.contentId)"
-                target="_blank"
-              >Add to the database
-              </b-button>
-              <div
-                v-if="item.publisher !== null"
-                class="small text-secondary"
+              <font-awesome-icon icon="fa-solid fa-calendar" class="mr-1" />{{
+                getReleaseDateFormatted(item.video.startTime)
+              }}
+              <b-badge
+                :variant="
+                  getDispositionBadgeColorVariant(
+                    item.video.eventDateComparison.disposition
+                  )
+                "
+                class="mr-1 ml-3"
               >
-                Published by
-                <b-link
-                  target="_blank"
-                  :href="getVocaDBArtistUrl(item.publisher.id)"
-                >{{ item.publisher.name.displayName }}</b-link
-                >
-              </div>
+                {{ item.video.eventDateComparison.disposition }}
+              </b-badge>
+              <span
+                v-if="
+                  item.video.eventDateComparison.disposition !== 'unknown' &&
+                  item.video.eventDateComparison.disposition !== 'perfect'
+                "
+                >(by
+                {{ item.video.eventDateComparison.dayDiff }}
+                day(s))
+              </span>
             </td>
-            <td>
-              <b-row v-if="item.songEntry !== null">
+            <td v-if="item.songEntry !== null">
+              <b-row>
                 <b-col cols="10">
                   <ol class="ml-n4">
                     <li
@@ -551,7 +563,12 @@
                   </b-button>
                   <b-button
                     v-else
-                    :disabled="defaultDisableCondition()"
+                    :disabled="
+                      defaultDisableCondition() ||
+                      (hasReleaseEvent(item) &&
+                        item.songEntry.releaseEvent.id !== event.id &&
+                        isTaggedWithMultipleEvents(item))
+                    "
                     class="btn"
                     variant="outline-success"
                     @click="processSong(item)"
@@ -560,6 +577,23 @@
                   </b-button>
                 </b-col>
               </b-row>
+            </td>
+            <td v-else>
+              <b-button
+                size="sm"
+                :disabled="fetching"
+                :href="getVocaDBAddSongUrl(item.video.contentId)"
+                target="_blank"
+                >Add to the database
+              </b-button>
+              <div v-if="item.publisher !== null" class="small text-secondary">
+                Published by
+                <b-link
+                  target="_blank"
+                  :href="getVocaDBArtistUrl(item.publisher.id)"
+                  >{{ item.publisher.name.displayName }}</b-link
+                >
+              </div>
             </td>
           </tr>
         </b-tbody>
@@ -661,7 +695,8 @@ import {
   VideoWithEntryAndVisibility,
   getNicoVideoUrl,
   getVocaDBArtistUrl,
-  getVocaDBAddSongUrl
+  getVocaDBAddSongUrl,
+  getTimeDeltaState
 } from "@/utils";
 import ErrorMessage from "@/components/ErrorMessage.vue";
 import NicoEmbed from "@/components/NicoEmbed.vue";
@@ -712,6 +747,8 @@ export default class extends Vue {
   private numOfPages: number = 0;
   private showVideosWithoutEntries: boolean = true;
   private showVideosWithUploaderEntry: boolean = false;
+  private showVideosWithOtherEvents: boolean = true;
+  private showVideosWithNoEvents: boolean = true;
 
   // error handling
   private alertCode: number = 0;
@@ -821,10 +858,6 @@ export default class extends Vue {
     return this.fetching || this.massAssigning || this.assigning;
   }
 
-  private getHiddenTypes(): number {
-    return this.songTypes.filter(t => !t.show).length;
-  }
-
   private toggleCheckAll(): void {
     for (const item of this.entries.filter(
       value => value.rowVisible && !value.processed
@@ -849,10 +882,19 @@ export default class extends Vue {
     for (const item of this.entries) {
       item.rowVisible =
         (this.currentEventFilled ||
-        item.songEntry == null ||
-        item.songEntry.releaseEvent == null ||
-        item.songEntry.releaseEvent.id != this.event.id) &&
-        (this.showVideosWithoutEntries || item.songEntry != null || (this.showVideosWithUploaderEntry && item.publisher != null));
+          item.songEntry == null ||
+          item.songEntry.releaseEvent == null ||
+          item.songEntry.releaseEvent.id != this.event.id) &&
+        (this.showVideosWithoutEntries ||
+          item.songEntry != null ||
+          (this.showVideosWithUploaderEntry && item.publisher != null)) &&
+        (this.showVideosWithOtherEvents ||
+          item.songEntry == null ||
+          item.songEntry.releaseEvent == null ||
+          item.songEntry.releaseEvent.id == this.event.id) &&
+        (this.showVideosWithNoEvents ||
+          item.songEntry == null ||
+          item.songEntry.releaseEvent != null);
       item.toAssign = item.toAssign && item.rowVisible;
     }
   }
@@ -872,9 +914,7 @@ export default class extends Vue {
   }
 
   private getReleaseDateFormatted(releaseDate: string): string {
-
-      return DateTime.fromISO(releaseDate).toLocaleString();
-
+    return DateTime.fromISO(releaseDate).toLocaleString();
   }
 
   // error handling
@@ -931,7 +971,6 @@ export default class extends Vue {
         orderBy: this.sortingCondition,
         eventId: this.event.id
       });
-      console.log(response.items);
       for (const item of response.items) {
         let temp: VideoWithEntryAndVisibility = {
           video: item.video,
@@ -947,11 +986,18 @@ export default class extends Vue {
           item.songEntry != null &&
           item.songEntry.publishDate != null
         ) {
-          temp.songEntry.eventDateComparison = this.getDateDisposition(
+          item.songEntry.eventDateComparison = this.getDateDisposition(
             DateTime.fromISO(item.songEntry.publishDate),
             this.event.date!,
             this.event.endDate
           );
+        } else if (temp.songEntry == null && item.songEntry == null) {
+          item.video.eventDateComparison = this.getDateDisposition(
+            DateTime.fromISO(item.video.startTime),
+            this.event.date!,
+            this.event.endDate
+          );
+          console.log(item.video.eventDateComparison);
         }
       }
       this.entries = response.items.map(vid => {

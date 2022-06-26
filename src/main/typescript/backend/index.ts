@@ -16,7 +16,8 @@ import {
   fetchReleaseEventWithNndTagsPayload,
   ReleaseEventForApiContractSimplified,
   ReleaseEventForApiContractSimplifiedWithNndTags,
-  FetchVideosByEventTagsPayload, AssignEventPayload
+  FetchVideosByEventTagsPayload,
+  AssignEventPayload
 } from "@/backend/dto";
 import { AxiosResponse } from "axios";
 
@@ -64,9 +65,7 @@ export const api = {
   ): Promise<VideosWithEntries> {
     return axios.post("/api/fetch_videos_by_event_nnd_tags", payload).then(value => value.data);
   },
-  async assignEvent(
-    payload: AssignEventPayload
-  ): Promise<EntriesWithReleaseEventTag> {
+  async assignEvent(payload: AssignEventPayload): Promise<EntriesWithReleaseEventTag> {
     return axios.post("/api/assign_event", payload).then(value => value.data);
-  },
+  }
 };

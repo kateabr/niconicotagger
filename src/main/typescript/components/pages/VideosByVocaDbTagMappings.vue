@@ -10,7 +10,7 @@
         <b-input-group inline class="mt-lg-3">
           <template #prepend>
             <b-button
-              v-b-toggle.scope-collapse
+              v-b-toggle="'scope-collapse-' + thisMode"
               variant="primary"
               style="width: 80px"
               :disabled="defaultDisableCondition()"
@@ -42,7 +42,11 @@
             ></b-button>
           </template>
         </b-input-group>
-        <b-collapse id="scope-collapse" v-model="showCollapse" class="mt-2">
+        <b-collapse
+          :id="'scope-collapse-' + thisMode"
+          v-model="showCollapse"
+          class="mt-2"
+        >
           <b-row>
             <b-col>
               <b-input-group inline>
@@ -496,7 +500,7 @@ import {
   getVocaDBArtistUrl,
   VideoWithEntryAndVisibility
 } from "@/utils";
-import { AssignableTag, SongForApiContractSimplified } from "@/backend/dto";
+import { AssignableTag } from "@/backend/dto";
 import { api } from "@/backend";
 import ErrorMessage from "@/components/ErrorMessage.vue";
 

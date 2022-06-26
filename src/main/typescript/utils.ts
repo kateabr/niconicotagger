@@ -127,7 +127,7 @@ export function getDateDisposition(
       return { dayDiff: 0, disposition: "perfect" };
     } else {
       return {
-        dayDiff: Math.abs(dayDiff),
+        dayDiff: Math.round(dayDiff),
         disposition: dayDiff > 0 ? "late" : "early"
       };
     }
@@ -138,13 +138,13 @@ export function getDateDisposition(
       return { dayDiff: 0, disposition: "perfect" };
     } else {
       return {
-        dayDiff: subDates(date, dateEnd),
+        dayDiff: Math.round(subDates(date, dateEnd)),
         disposition: "late"
       };
     }
   } else {
     return {
-      dayDiff: subDates(dateStart, date),
+      dayDiff: Math.round(subDates(dateStart, date)),
       disposition: "early"
     };
   }

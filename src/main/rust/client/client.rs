@@ -244,7 +244,7 @@ impl<'a> Client<'a> {
                 ("_limit", max_results.to_string()),
                 ("_sort", order_by),
                 ("targets", String::from("tagsExact")),
-                ("fields", String::from("contentId,title,tags,userId")),
+                ("fields", String::from("contentId,title,tags,userId,startTime")),
             ],
         )
             .await?;
@@ -414,6 +414,7 @@ impl<'a> Client<'a> {
             video: NicoVideoWithTidyTags {
                 id: video.id.clone(),
                 title: video.title.clone(),
+                start_time: video.start_time.clone(),
                 tags,
             },
             song_entry: entry,
@@ -458,6 +459,7 @@ impl<'a> Client<'a> {
             video: NicoVideoWithTidyTags {
                 id: video.id.clone(),
                 title: video.title.clone(),
+                start_time: video.start_time.clone(),
                 tags,
             },
             song_entry: entry,

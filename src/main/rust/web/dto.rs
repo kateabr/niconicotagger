@@ -198,6 +198,8 @@ pub struct NicoVideo {
     pub tags: String,
     #[serde(rename = "userId")]
     pub user_id: Option<i32>,
+    #[serde(rename = "startTime")]
+    pub start_time: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -205,6 +207,8 @@ pub struct NicoVideoWithTidyTags {
     #[serde(rename = "contentId")]
     pub id: String,
     pub title: String,
+    #[serde(rename = "startTime")]
+    pub start_time: String,
     pub tags: Vec<DisplayableTag>,
 }
 
