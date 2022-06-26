@@ -33,6 +33,7 @@ async fn main() -> std::io::Result<()> {
                     .service(web::controller::get_mapped_tags)
                     .service(web::controller::fetch_from_db_by_event_tag)
                     .service(web::controller::assign_event_and_remove_tag)
+                    .service(web::controller::assign_event)
                     .service(web::controller::fetch_release_event_with_nnd_tags)
                     .service(web::controller::fetch_videos_by_event_nnd_tags)
             )

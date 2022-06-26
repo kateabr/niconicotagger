@@ -154,7 +154,7 @@ pub struct DisplayableTag {
 pub struct VideoWithEntry {
     pub video: NicoVideoWithTidyTags,
     #[serde(rename = "songEntry")]
-    pub song_entry: Option<SongForApiContractSimplified>,
+    pub song_entry: Option<SongForApiContractSimplifiedWithMultipleEventInfo>,
     pub publisher: Option<NicoPublisher>,
     pub processed: bool,
 }
@@ -328,6 +328,13 @@ pub struct AssignEventAndRemoveTagPayload {
     pub event: MinimalEvent,
     #[serde(rename = "tagId")]
     pub tag_id: i64,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct AssignEventPayload {
+    #[serde(rename = "songId")]
+    pub song_id: i32,
+    pub event: MinimalEvent,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

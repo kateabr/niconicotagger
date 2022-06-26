@@ -26,7 +26,7 @@
             id="tag-form"
             v-model.trim="eventName"
             :disabled="defaultDisableCondition() || tagsConfirmed"
-            placeholder="Event tag (NND)"
+            placeholder="Event name (VocaDB)"
             @keydown.enter.native="fetchEvent(eventName)"
           >
           </b-form-input>
@@ -153,6 +153,16 @@
           </b-row>
           <b-row v-if="event.name !== '' && isActiveMode()" class="mt-2">
             <b-col>
+              <b-button
+                :disabled="defaultDisableCondition()"
+                variant="primary"
+                block
+                :pressed.sync="showVideosWithoutEntries"
+                @click="filterVideos()"
+              >Videos without entries
+              </b-button>
+            </b-col>
+            <b-col cols="6">
               <b-form-checkbox
                 v-model="showVideosWithUploaderEntry"
                 @change="filterVideos()"
@@ -299,9 +309,9 @@
                 :disabled="defaultDisableCondition()"
                 variant="primary"
                 block
-                :pressed.sync="otherEvents"
+                :pressed.sync="currentEventFilled"
                 @click="filterVideos()"
-                >Songs with other events
+                >Songs with current event
               </b-button>
             </b-col>
           </b-row>
@@ -351,7 +361,7 @@
           >
             <td>
               <b-form-checkbox
-                v-if="!item.processed"
+                v-if="!item.processed && item.songEntry !== null"
                 v-model="item.toAssign"
                 :disabled="defaultDisableCondition()"
                 size="lg"
@@ -419,7 +429,8 @@
                   {{ item.songEntry.releaseEvent.name }}
                 </b-badge>
               </span>
-              <span v-else class="text-muted">Unspecified</span>
+              <span v-else-if="item.songEntry != null" class="text-muted">Unspecified</span>
+              <span v-else class="text-muted">None</span>
             </td>
             <td v-if="item.songEntry != null">
                     <b-link
@@ -493,7 +504,7 @@
               </div>
             </td>
             <td>
-              <b-row>
+              <b-row v-if="item.songEntry !== null">
                 <b-col cols="10">
                   <ol class="ml-n4">
                     <li
@@ -695,10 +706,11 @@ export default class extends Vue {
   private allChecked: boolean = false;
   private showCollapse: boolean = false;
   private totalVideoCount: number = 0;
-  private otherEvents: boolean = true;
+  private currentEventFilled: boolean = true;
   private page: number = 0;
   private maxPage: number = 0;
   private numOfPages: number = 0;
+  private showVideosWithoutEntries: boolean = true;
   private showVideosWithUploaderEntry: boolean = false;
 
   // error handling
@@ -835,7 +847,12 @@ export default class extends Vue {
 
   private filterVideos(): void {
     for (const item of this.entries) {
-      item.rowVisible = true;
+      item.rowVisible =
+        (this.currentEventFilled ||
+        item.songEntry == null ||
+        item.songEntry.releaseEvent == null ||
+        item.songEntry.releaseEvent.id != this.event.id) &&
+        (this.showVideosWithoutEntries || item.songEntry != null || (this.showVideosWithUploaderEntry && item.publisher != null));
       item.toAssign = item.toAssign && item.rowVisible;
     }
   }

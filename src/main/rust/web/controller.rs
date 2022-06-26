@@ -14,7 +14,7 @@ use crate::client::errors::VocadbClientError;
 use crate::client::models::releaseevent::{ReleaseEventForApiContractSimplified, ReleaseEventForApiContractSimplifiedWithNndTags};
 use crate::client::models::tag::{AssignableTag, TagBaseContract};
 use crate::client::models::weblink::WebLinkForApiContract;
-use crate::web::dto::{AssignEventAndRemoveTagPayload, AssignTagRequest, Database, DBBeforeSinceFetchRequest, DBFetchRequest, ReleaseEventWithNndTagsFetchRequest, EventAssigningResult, LoginRequest, LoginResponse, LookupAndAssignTagRequest, SongsByEventTagFetchRequest, SongsByEventTagFetchResponse, TagFetchRequest, Token, VideosWithEntries, VideosWithEntriesByVocaDbTag, ReleaseEventWithNndTagsFetchResponse, EventByTagsFetchRequest};
+use crate::web::dto::{AssignEventAndRemoveTagPayload, AssignTagRequest, Database, DBBeforeSinceFetchRequest, DBFetchRequest, ReleaseEventWithNndTagsFetchRequest, EventAssigningResult, LoginRequest, LoginResponse, LookupAndAssignTagRequest, SongsByEventTagFetchRequest, SongsByEventTagFetchResponse, TagFetchRequest, Token, VideosWithEntries, VideosWithEntriesByVocaDbTag, ReleaseEventWithNndTagsFetchResponse, EventByTagsFetchRequest, AssignEventPayload};
 use crate::web::errors::AppResponseError;
 use crate::web::errors::Result;
 use crate::web::middleware::auth_token;
@@ -218,6 +218,47 @@ pub async fn assign_event_and_remove_tag(_req: HttpRequest, payload: Json<Assign
         }
     }
     client.remove_tag(payload.song_id, payload.tag_id).await?;
+
+    return Ok(Json(result));
+}
+
+#[post("/assign_event")]
+pub async fn assign_event(_req: HttpRequest, payload: Json<AssignEventPayload>) -> Result<impl Responder> {
+    if payload.song_id < 0 || payload.event.id < 0 || payload.event.name.is_empty() || payload.event.url_slug.is_empty() {
+        return Err(AppResponseError::ConstraintViolationError(String::from("Invalid arguments")));
+    }
+
+    let token = extract_token(&_req)?;
+    let client = client_from_token(&token)?;
+
+    let result = client.fill_in_event(payload.song_id, payload.event.clone()).await?;
+    match result {
+        EventAssigningResult::MultipleEvents => {
+            let response_code = client.assign(vec![TagBaseContract {
+                id: 8275,
+                name: String::from("multiple events"),
+                category_name: Some(String::from("Editor notes")),
+                additional_names: Some(String::from("")),
+                url_slug: String::from("multiple-events")
+            }], payload.song_id).await;
+            if response_code.is_err() {
+                return Err(
+                    AppResponseError::VocadbClientError(
+                        VocadbClientError::NotFoundError(
+                            format!("Could not find tag \"multiple events\" (id={})", 8275)
+                        )
+                    )
+                );
+            }
+        }
+        EventAssigningResult::AlreadyTaggedWithMultipleEvents => {
+            // did nothing, but need to tell the user to check whether song description mentions the event
+        }
+        _ => {
+            // EventAssigningResult::Assigned => filled the event
+            // EventAssigningResult::AlreadyAssigned => the event is already filled
+        }
+    }
 
     return Ok(Json(result));
 }

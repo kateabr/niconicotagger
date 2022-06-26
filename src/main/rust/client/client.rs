@@ -397,11 +397,13 @@ impl<'a> Client<'a> {
         let mut tag_in_tags = false;
         let entry = response.map(|res| {
             tag_in_tags = src_tags.iter().all(|tag_id| res.tags.iter().any(|t| &t.tag.id == tag_id));
+            let tagged_with_multiple_events: bool = res.tags.iter().map(|tag| tag.tag.id).any(|tag_id| tag_id == i32::from(8275)); // multiple events
 
-            SongForApiContractSimplified {
+            SongForApiContractSimplifiedWithMultipleEventInfo {
                 id: res.id,
                 name: res.name.clone(),
-                song_type: res.song_type.to_string(),
+                tagged_with_multiple_events,
+                song_type: res.song_type,
                 artist_string: res.artist_string.clone(),
                 release_event: res.release_event,
                 publish_date: res.publish_date
@@ -439,11 +441,13 @@ impl<'a> Client<'a> {
         let mut processed = false;
         let entry = response.map(|res| {
             processed = res.release_event.is_some() && res.release_event.as_ref().unwrap().id == event_id;
+            let tagged_with_multiple_events: bool = res.tags.iter().map(|tag| tag.tag.id).any(|tag_id| tag_id == i32::from(8275)); // multiple events
 
-            SongForApiContractSimplified {
+            SongForApiContractSimplifiedWithMultipleEventInfo {
                 id: res.id,
                 name: res.name.clone(),
-                song_type: res.song_type.to_string(),
+                tagged_with_multiple_events,
+                song_type: res.song_type,
                 artist_string: res.artist_string.clone(),
                 release_event: res.release_event.clone(),
                 publish_date: res.publish_date
