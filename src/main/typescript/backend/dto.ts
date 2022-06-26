@@ -229,6 +229,11 @@ export interface AssignEventAndRemoveTagPayload {
   tagId: number;
 }
 
+export interface AssignEventPayload {
+  songId: number;
+  event: MinimalEvent;
+}
+
 export interface fetchReleaseEventWithNndTagsPayload {
   eventName: string;
 }

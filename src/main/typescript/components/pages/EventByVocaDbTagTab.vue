@@ -547,7 +547,8 @@ import {
   getUniqueElementId,
   allVideosInvisible,
   dateIsWithinTimeDelta,
-  getTimeDeltaState, fillReleaseEventForDisplay
+  getTimeDeltaState,
+  fillReleaseEventForDisplay
 } from "@/utils";
 import ErrorMessage from "@/components/ErrorMessage.vue";
 

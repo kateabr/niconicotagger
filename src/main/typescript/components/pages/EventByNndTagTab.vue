@@ -357,27 +357,44 @@
                 size="lg"
               />
             </td>
-            <!--            <td>-->
-            <!--              <b-link-->
-            <!--                target="_blank"-->
-            <!--                :href="getVocaDBEntryUrl(item.songEntry.id)"-->
-            <!--                v-html="item.songEntry.name"-->
-            <!--              />-->
-            <!--              <b-link-->
-            <!--                target="_blank"-->
-            <!--                :href="getVocaDBEntryUrl(item.songEntry.id)"-->
-            <!--              >-->
-            <!--                <b-badge-->
-            <!--                  class="badge text-center ml-2"-->
-            <!--                  :variant="getSongTypeColorForDisplay(item.songEntry.songType)"-->
-            <!--                >-->
-            <!--                  {{ getShortenedSongType(item.songEntry.songType) }}-->
-            <!--                </b-badge>-->
-            <!--              </b-link>-->
-            <!--              <div class="text-muted">-->
-            <!--                {{ item.songEntry.artistString }}-->
-            <!--              </div>-->
-            <!--            </td>-->
+            <td>
+              <b-button
+                :disabled="defaultDisableCondition()"
+                size="sm"
+                variant="primary-outline"
+                class="mr-2"
+                @click="item.embedVisible = !item.embedVisible"
+              >
+                <font-awesome-icon icon="fas fa-play" />
+              </b-button>
+              <b-link
+                target="_blank"
+                :href="getNicoVideoUrl(item.video.contentId)"
+                v-html="item.video.title"
+              ></b-link>
+              <div>
+                <b-badge
+                  v-for="(item1, key1) in item.video.tags"
+                  :key="key1"
+                  v-clipboard:copy="item1.name"
+                  class="m-sm-1"
+                  :variant="item1.variant"
+                  href="#"
+                >
+                  <font-awesome-icon icon="fas fa-tag" class="mr-1" />
+                  {{ item1.name }}
+                </b-badge>
+              </div>
+              <b-collapse
+                :visible="item.embedVisible && !fetching"
+                class="mt-2 collapsed"
+              >
+                <nico-embed
+                  v-if="item.embedVisible && !fetching"
+                  :content-id="item.video.contentId"
+                />
+              </b-collapse>
+            </td>
             <td>
               <span v-if="hasReleaseEvent(item)" class="font-weight-bolder">
                 <b-badge
@@ -404,41 +421,76 @@
               </span>
               <span v-else class="text-muted">Unspecified</span>
             </td>
-            <td>
-              <b-row>
-                <b-col cols="4">
-                  <span v-if="hasPublishDate(item)">
+            <td v-if="item.songEntry != null">
+                    <b-link
+                      target="_blank"
+                      :href="getVocaDBEntryUrl(item.songEntry.id)"
+                      v-html="item.songEntry.name"
+                    ></b-link>
+                    <b-link
+                      target="_blank"
+                      :href="getVocaDBEntryUrl(item.songEntry.id)"
+                    >
+                      <b-badge
+                        class="badge text-center ml-2"
+                        :variant="
+                      getSongTypeColorForDisplay(item.songEntry.songType)
+                    "
+                      >
+                        {{ getShortenedSongType(item.songEntry.songType) }}
+                      </b-badge>
+                    </b-link>
+                    <div class="text-muted mb-2">
+                      {{ item.songEntry.artistString }}
+                    </div>
+              <span v-if="hasPublishDate(item)">
                     <font-awesome-icon
                       icon="fa-solid fa-calendar"
                       class="mr-1"
-                    />{{ item.songEntry.publishDate.toLocaleString() }}
+                    />{{ getReleaseDateFormatted(item.songEntry.publishDate) }}
                   </span>
-                  <span v-else class="text-muted">Unspecified</span>
-                </b-col>
-                <b-col>
-                  <!--                  <b-badge-->
-                  <!--                    :variant="-->
-                  <!--                      getDispositionBadgeColorVariant(-->
-                  <!--                        item.songEntry.eventDateComparison.disposition-->
-                  <!--                      )-->
-                  <!--                    "-->
-                  <!--                    class="mr-1"-->
-                  <!--                  >-->
-                  <!--                    {{ item.songEntry.eventDateComparison.disposition }}-->
-                  <!--                  </b-badge>-->
-                  <!--                  <span-->
-                  <!--                    v-if="-->
-                  <!--                      item.songEntry.eventDateComparison.disposition !==-->
-                  <!--                        'unknown' &&-->
-                  <!--                      item.songEntry.eventDateComparison.disposition !==-->
-                  <!--                        'perfect'-->
-                  <!--                    "-->
-                  <!--                    >(by-->
-                  <!--                    {{ item.songEntry.eventDateComparison.dayDiff }}-->
-                  <!--                    day(s))-->
-                  <!--                  </span>-->
-                </b-col>
-              </b-row>
+              <span v-else class="text-muted">Unspecified</span>
+                    <b-badge
+                      :variant="
+                      getDispositionBadgeColorVariant(
+                        item.songEntry.eventDateComparison.disposition
+                      )
+                    "
+                      class="mr-1 ml-3"
+                    >
+                      {{ item.songEntry.eventDateComparison.disposition }}
+                    </b-badge>
+                    <span
+                      v-if="
+                      item.songEntry.eventDateComparison.disposition !==
+                        'unknown' &&
+                      item.songEntry.eventDateComparison.disposition !==
+                        'perfect'
+                    "
+                    >(by
+                    {{ item.songEntry.eventDateComparison.dayDiff }}
+                    day(s))
+                  </span>
+            </td>
+            <td v-else>
+              <b-button
+                size="sm"
+                :disabled="fetching"
+                :href="getVocaDBAddSongUrl(item.video.contentId)"
+                target="_blank"
+              >Add to the database
+              </b-button>
+              <div
+                v-if="item.publisher !== null"
+                class="small text-secondary"
+              >
+                Published by
+                <b-link
+                  target="_blank"
+                  :href="getVocaDBArtistUrl(item.publisher.id)"
+                >{{ item.publisher.name.displayName }}</b-link
+                >
+              </div>
             </td>
             <td>
               <b-row>
@@ -595,11 +647,15 @@ import {
   getNicoTagUrl,
   defaultScopeTagString,
   getSortingConditionForDisplayNico,
-  VideoWithEntryAndVisibility
+  VideoWithEntryAndVisibility,
+  getNicoVideoUrl,
+  getVocaDBArtistUrl,
+  getVocaDBAddSongUrl
 } from "@/utils";
 import ErrorMessage from "@/components/ErrorMessage.vue";
+import NicoEmbed from "@/components/NicoEmbed.vue";
 
-@Component({ components: { ErrorMessage } })
+@Component({ components: { ErrorMessage, NicoEmbed } })
 export default class extends Vue {
   @Prop()
   private readonly mode!: number;
@@ -686,12 +742,24 @@ export default class extends Vue {
     return getVocaDBTagUrl(id, urlSlug);
   }
 
+  private getNicoVideoUrl(contentId: string): string {
+    return getNicoVideoUrl(contentId);
+  }
+
   private getMaxResultsForDisplay(): string {
     return getMaxResultsForDisplay(this.maxResults);
   }
 
   private getSortingConditionForDisplay(): string {
     return getSortingConditionForDisplayNico(this.sortingCondition);
+  }
+
+  private getVocaDBArtistUrl(artistId: number): string {
+    return getVocaDBArtistUrl(artistId);
+  }
+
+  private getVocaDBAddSongUrl(contentId: string): string {
+    return getVocaDBAddSongUrl(contentId);
   }
 
   private getSongTypeColorForDisplay(typeString: string): string {
@@ -784,6 +852,12 @@ export default class extends Vue {
     video: VideoWithEntryAndVisibility
   ): boolean {
     return video.songEntry != null && video.songEntry.taggedWithMultipleEvents;
+  }
+
+  private getReleaseDateFormatted(releaseDate: string): string {
+
+      return DateTime.fromISO(releaseDate).toLocaleString();
+
   }
 
   // error handling
@@ -901,14 +975,13 @@ export default class extends Vue {
     }
     this.assigning = true;
     try {
-      await api.assignEventAndRemoveTag({
+      await api.assignEvent({
         songId: song.songEntry.id,
         event: {
           name: this.event.name,
           id: this.event.id,
           urlSlug: this.event.urlSlug
-        },
-        tagId: this.tag.id
+        }
       });
       song.processed = true;
       song.toAssign = false;

@@ -27,7 +27,9 @@ import EventByNndTagTab from "@/components/pages/EventByNndTagTab.vue";
 
 Vue.use(VueClipboard);
 
-@Component({ components: { NavBarMenu, EventByVocaDbTagTab, EventByNndTagTab } })
+@Component({
+  components: { NavBarMenu, EventByVocaDbTagTab, EventByNndTagTab }
+})
 export default class extends Vue {
   private browseMode = 0;
 }
