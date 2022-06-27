@@ -735,7 +735,6 @@ export default class extends Vue {
       this.tagInfo = response.tags;
       this.tagName = targetTag;
       this.tagNameFrozen = targetTag;
-      this.page = newStartOffset / this.maxResults + 1;
       this.numOfPages = this.totalVideoCount / this.maxResults + 1;
       this.startOffset = newStartOffset;
       this.allChecked = false;

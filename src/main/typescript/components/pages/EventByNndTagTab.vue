@@ -242,14 +242,14 @@
           </b-row>
         </b-collapse>
       </b-col>
-      <b-col class="m-auto text-left mt-lg-3 ml-n1"><b-button
-        v-if="eventInfoLoaded()"
-        variant="link"
-        :disabled="defaultDisableCondition()"
-        @click="loadPage(page)"
-      ><font-awesome-icon
-        icon="fa-solid fa-arrow-rotate-right"
-      /></b-button></b-col>
+      <b-col class="m-auto text-left mt-lg-3 ml-n1"
+        ><b-button
+          v-if="eventInfoLoaded()"
+          variant="link"
+          :disabled="defaultDisableCondition()"
+          @click="loadPage(page)"
+          ><font-awesome-icon icon="fa-solid fa-arrow-rotate-right" /></b-button
+      ></b-col>
     </b-row>
     <Transition appear>
       <b-row v-if="tagsLoaded && isActiveMode() && !tagsConfirmed" class="mt-5">
@@ -433,7 +433,7 @@
           >
             <td>
               <b-form-checkbox
-                v-if="!item.processed && item.songEntry !== null"
+                v-if="isSelectable(item)"
                 v-model="item.toAssign"
                 :disabled="defaultDisableCondition()"
                 size="lg"
@@ -763,8 +763,8 @@ export default class extends Vue {
   private showVideosWithOtherEvents: boolean = true;
   private showVideosWithNoEvents: boolean = true;
   private timeDeltaEnabled: boolean = false;
-  private timeDeltaBefore: boolean = false;
-  private timeDeltaAfter: boolean = false;
+  private timeDeltaBefore: boolean = true;
+  private timeDeltaAfter: boolean = true;
   private timeDelta: number = 0;
 
   // error handling
@@ -872,10 +872,10 @@ export default class extends Vue {
   }
 
   private toggleCheckAll(): void {
-    for (const item of this.entries.filter(
-      value => value.rowVisible && !value.processed
-    )) {
-      item.toAssign = this.allChecked;
+    for (const item of this.entries) {
+      if (item.rowVisible && this.isSelectable(item)) {
+        item.toAssign = this.allChecked;
+      }
     }
   }
 
@@ -916,10 +916,6 @@ export default class extends Vue {
 
   private filterEntriesIfValidState(): void {
     if (this.getTimeDeltaState()) {
-      if (!this.timeDeltaEnabled) {
-        this.timeDeltaBefore = false;
-        this.timeDeltaAfter = false;
-      }
       this.filterVideos();
     }
   }
@@ -991,6 +987,18 @@ export default class extends Vue {
         );
       item.toAssign = item.toAssign && item.rowVisible;
     }
+  }
+
+  private isSelectable(item: VideoWithEntryAndVisibility): boolean {
+    return (
+      !item.processed &&
+      item.songEntry !== null &&
+      !(
+        this.hasReleaseEvent(item) &&
+        item.songEntry.releaseEvent!.id !== this.event.id &&
+        this.isTaggedWithMultipleEvents(item)
+      )
+    );
   }
 
   // error handling
@@ -1098,7 +1106,6 @@ export default class extends Vue {
       this.totalVideoCount = response.totalVideoCount;
       this.scopeTagString = response.safeScope;
       this.scopeTagStringFrozen = response.safeScope;
-      this.page = newStartOffset / this.maxResults + 1;
       this.numOfPages = this.totalVideoCount / this.maxResults + 1;
       this.startOffset = newStartOffset;
       this.allChecked = false;

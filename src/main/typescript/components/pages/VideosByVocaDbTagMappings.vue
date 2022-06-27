@@ -740,7 +740,6 @@ export default class extends Vue {
       this.tagNameFrozen = response.tags[0].name;
       this.scopeTagString = scopeString;
       this.scopeTagStringFrozen = scopeString;
-      this.page = newStartOffset / this.maxResults + 1;
       this.numOfPages = this.totalVideoCount / this.maxResults + 1;
       this.startOffset = newStartOffset;
       this.allChecked = false;

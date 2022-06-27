@@ -801,7 +801,6 @@ export default class extends Vue {
       );
       this.filterEntries();
       this.eventTagNameFrozen = this.event.name;
-      this.page = newStartOffset / this.maxResults + 1;
       this.numOfPages = this.totalEntryCount / this.maxResults + 1;
       this.startOffset = newStartOffset;
       this.allChecked = false;

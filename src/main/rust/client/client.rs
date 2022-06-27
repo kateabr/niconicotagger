@@ -346,7 +346,7 @@ impl<'a> Client<'a> {
             &vec![
                 ("pvService", String::from("NicoNicoDouga")),
                 ("pvId", String::from(pv_id)),
-                ("fields", String::from("Tags,ReleaseEvent")),
+                ("fields", String::from("Tags,ReleaseEvent,Albums")),
             ],
         ).await;
     }
@@ -435,6 +435,32 @@ impl<'a> Client<'a> {
         });
     }
 
+    fn get_release_event_from_albums_or_entry(&self, entry: SongForApiContract, event_id: i32) -> Option<ReleaseEventForApiContractSimplified> {
+        match entry.albums {
+            Some(albums) => {
+                for ref album in albums {
+                    if album.release_event.is_some() && album.release_event.as_ref().unwrap().id == event_id {
+                        return album.release_event.as_ref()
+                            .map(|release_event|
+                                ReleaseEventForApiContractSimplified {
+                                    date: release_event.date.clone(),
+                                    end_date: release_event.end_date.clone(),
+                                    id: release_event.id,
+                                    name: release_event.name.clone(),
+                                    url_slug: release_event.url_slug.clone(),
+                                    category: release_event.category.clone(),
+                                    web_links: release_event.web_links.clone()
+                                }).or(None);
+                    }
+                }
+                entry.release_event
+            }
+            None => {
+                entry.release_event
+            }
+        }
+    }
+
     pub async fn lookup_video_by_event(&self, video: &NicoVideo, event_id: i32, nico_tags: Vec<String>, mappings: &Vec<String>, scope: String) -> Result<VideoWithEntry> {
         let response = self.get_song_by_nico_pv(&video.id).await?;
 
@@ -460,10 +486,10 @@ impl<'a> Client<'a> {
                 id: res.id,
                 name: res.name.clone(),
                 tagged_with_multiple_events,
-                song_type: res.song_type,
+                song_type: res.song_type.clone(),
                 artist_string: res.artist_string.clone(),
-                release_event: res.release_event.clone(),
-                publish_date: res.publish_date
+                publish_date: res.publish_date.clone(),
+                release_event: self.get_release_event_from_albums_or_entry(res, event_id)
             }
         });
 
@@ -818,6 +844,7 @@ impl<'a> Client<'a> {
                                         rating_score: Some(0),
                                         release_event: None,
                                         publish_date: None,
+                                        albums: None
                                     });
                                 } else {
                                     response_entries.push(SongForApiContract {
@@ -831,6 +858,7 @@ impl<'a> Client<'a> {
                                         rating_score: Some(0),
                                         release_event: None,
                                         publish_date: None,
+                                        albums: None
                                     });
                                 };
                             }
@@ -844,7 +872,7 @@ impl<'a> Client<'a> {
             }
         }
 
-        let response_entries_small: Vec<SongForApiContract> = response_entries[0..min(max_results as usize, response_entries.len() as usize)].to_vec();
+        let response_entries_small: &[SongForApiContract] = response_entries[0..min(max_results as usize, response_entries.len() as usize)].as_ref();
         let mut mapped_response = vec![];
 
         let res_len = i32::from(response_entries_small.len() as i32);
@@ -859,7 +887,7 @@ impl<'a> Client<'a> {
         Ok(SongsForApiContractWithThumbnailsAndTimestamp { items: mapped_response, total_count: response.total_count, timestamp_first, timestamp_last })
     }
 
-    pub async fn process_mapped_response(&self, songs: Vec<SongForApiContract>) -> Result<Vec<SongForApiContractWithThumbnails>> {
+    pub async fn process_mapped_response(&self, songs: &[SongForApiContract]) -> Result<Vec<SongForApiContractWithThumbnails>> {
         pub fn parse_thumbnail(xml: &str, thumnail_id: &str, pv: &PVContract, community: bool) -> Result<ThumbnailOk, ThumbnailError> {
             let doc = Document::parse(xml).unwrap();
             let status = doc.descendants()
@@ -948,15 +976,16 @@ impl<'a> Client<'a> {
             mapped_response.push(SongForApiContractWithThumbnails {
                 song: SongForApiContract {
                     id: song.id,
-                    name: song.name,
-                    tags: song.tags,
-                    song_type: song.song_type,
-                    artist_string: song.artist_string,
-                    create_date: song.create_date,
+                    name: song.name.clone(),
+                    tags: song.tags.clone(),
+                    song_type: song.song_type.clone(),
+                    artist_string: song.artist_string.clone(),
+                    create_date: song.create_date.clone(),
                     rating_score: song.rating_score,
                     pvs: Some(nico_pvs),
-                    release_event: song.release_event,
-                    publish_date: song.publish_date,
+                    release_event: song.release_event.clone(),
+                    publish_date: song.publish_date.clone(),
+                    albums: None
                 },
                 thumbnails_ok: ok,
                 thumbnails_error: err,
@@ -986,7 +1015,7 @@ impl<'a> Client<'a> {
             ],
         ).await?;
 
-        let mapped_response = self.process_mapped_response(response.items).await?;
+        let mapped_response = self.process_mapped_response(response.items.as_slice()).await?;
 
         Ok(SongsForApiContractWithThumbnailsAndTimestamp { items: mapped_response, total_count: response.total_count, timestamp_first: String::from(""), timestamp_last: String::from("") })
     }

@@ -1,3 +1,5 @@
+extern crate core;
+
 use actix_web::{App, Error, HttpRequest, HttpResponse, HttpServer, middleware};
 use actix_web::error::{InternalError, JsonPayloadError};
 use actix_web::http::StatusCode;

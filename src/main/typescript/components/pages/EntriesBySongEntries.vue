@@ -770,7 +770,6 @@ export default class extends Vue {
       this.postProcessVideos();
       this.filterVideos();
       this.distinctSongCount = this.maxResults;
-      this.page = newStartOffset / this.maxResults + 1;
       this.numOfPages = this.totalVideoCount / this.maxResults + 1;
       this.startOffset = newStartOffset;
     } catch (err) {

@@ -4,9 +4,7 @@
       getReleaseDateFormatted(releaseDate)
     }}
     <b-badge
-      :variant="
-        getDispositionBadgeColorVariant(eventDateComparison)
-      "
+      :variant="getDispositionBadgeColorVariant(eventDateComparison)"
       class="mr-1 ml-3"
     >
       {{ eventDateComparison.disposition }}
