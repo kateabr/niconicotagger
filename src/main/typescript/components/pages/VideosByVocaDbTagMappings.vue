@@ -503,6 +503,7 @@ import {
 import { AssignableTag } from "@/backend/dto";
 import { api } from "@/backend";
 import ErrorMessage from "@/components/ErrorMessage.vue";
+import { AxiosResponse } from "axios";
 
 @Component({ components: { ErrorMessage } })
 export default class extends Vue {
@@ -800,7 +801,9 @@ export default class extends Vue {
   }
 
   // error handling
-  private processError(err: any): void {
+  private processError(
+    err: { response: AxiosResponse } | { response: undefined; message: string }
+  ): void {
     this.$bvToast.show(getUniqueElementId("error_", this.thisMode.toString()));
     if (err.response == undefined) {
       this.alertCode = 0;

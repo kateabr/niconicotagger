@@ -188,6 +188,57 @@
               </b-form-checkbox>
             </b-col>
           </b-row>
+          <b-row class="mt-2">
+            <b-col>
+              <template>
+                <b-input-group inline>
+                  <b-form-input
+                    v-model="timeDelta"
+                    :disabled="defaultDisableCondition() || !isActiveMode()"
+                    number
+                    type="range"
+                    min="0"
+                    max="7"
+                    @change="filterEntriesIfValidState()"
+                  />
+                  <template #prepend>
+                    <b-input-group-text class="justify-content-center">
+                      <b-form-checkbox
+                        v-model="timeDeltaEnabled"
+                        :disabled="fetching || !isActiveMode()"
+                        @change="filterEntriesIfValidState()"
+                      />
+                      Time delta
+                    </b-input-group-text>
+                  </template>
+                  <template #append>
+                    <b-input-group-text class="justify-content-center"
+                      >{{ timeDelta }}
+                      day(s)
+                    </b-input-group-text>
+                  </template>
+                </b-input-group>
+                <b-input-group inline class="mt-2 text-center">
+                  <b-checkbox
+                    v-model="timeDeltaBefore"
+                    :state="getTimeDeltaState()"
+                    :disabled="!timeDeltaEnabled"
+                    class="col-6"
+                    @change="filterEntriesIfValidState()"
+                    >before</b-checkbox
+                  >
+                  <b-checkbox
+                    v-model="timeDeltaAfter"
+                    :state="getTimeDeltaState()"
+                    :disabled="!timeDeltaEnabled"
+                    class="col-6"
+                    @change="filterEntriesIfValidState()"
+                    >after</b-checkbox
+                  >
+                </b-input-group>
+              </template>
+            </b-col>
+          </b-row>
         </b-collapse>
       </span>
     </b-row>
@@ -650,11 +701,15 @@ import {
   VideoWithEntryAndVisibility,
   getNicoVideoUrl,
   getVocaDBArtistUrl,
-  getVocaDBAddSongUrl
+  getVocaDBAddSongUrl,
+  getTimeDeltaState,
+  EntryWithReleaseEventAndVisibility,
+  dateIsWithinTimeDelta
 } from "@/utils";
 import ErrorMessage from "@/components/ErrorMessage.vue";
 import NicoEmbed from "@/components/NicoEmbed.vue";
 import DateDisposition from "@/components/DateDisposition.vue";
+import { AxiosResponse } from "axios";
 
 @Component({ components: { ErrorMessage, NicoEmbed, DateDisposition } })
 export default class extends Vue {
@@ -703,6 +758,10 @@ export default class extends Vue {
   private showVideosWithUploaderEntry: boolean = false;
   private showVideosWithOtherEvents: boolean = true;
   private showVideosWithNoEvents: boolean = true;
+  private timeDeltaEnabled: boolean = false;
+  private timeDeltaBefore: boolean = false;
+  private timeDeltaAfter: boolean = false;
+  private timeDelta: number = 0;
 
   // error handling
   private alertCode: number = 0;
@@ -842,8 +901,26 @@ export default class extends Vue {
     return video.songEntry != null && video.songEntry.taggedWithMultipleEvents;
   }
 
-  // row filtering
+  private getTimeDeltaState(): boolean {
+    return getTimeDeltaState(
+      this.timeDeltaEnabled,
+      this.timeDeltaBefore,
+      this.timeDeltaAfter,
+      this.timeDelta
+    );
+  }
 
+  private filterEntriesIfValidState(): void {
+    if (this.getTimeDeltaState()) {
+      if (!this.timeDeltaEnabled) {
+        this.timeDeltaBefore = false;
+        this.timeDeltaAfter = false;
+      }
+      this.filterVideos();
+    }
+  }
+
+  // row filtering
   private currentEventFilledFlag(item: VideoWithEntryAndVisibility): boolean {
     return (
       this.currentEventFilled ||
@@ -884,19 +961,38 @@ export default class extends Vue {
     );
   }
 
+  private timeDeltaFlag(eventDateComparison: DateComparisonResult): boolean {
+    return (
+      !this.timeDeltaEnabled ||
+      dateIsWithinTimeDelta(
+        this.timeDelta,
+        this.timeDeltaBefore,
+        this.timeDeltaAfter,
+        eventDateComparison
+      )
+    );
+  }
+
   private filterVideos(): void {
     for (const item of this.entries) {
       item.rowVisible =
         this.currentEventFilledFlag(item) &&
         this.showVideosWithoutEntriesFlag(item) &&
         this.showVideosWithOtherEventsFlag(item) &&
-        this.showVideosWithNoEventsFlag(item);
+        this.showVideosWithNoEventsFlag(item) &&
+        this.timeDeltaFlag(
+          item.songEntry != null
+            ? item.songEntry!.eventDateComparison
+            : item.video.eventDateComparison!
+        );
       item.toAssign = item.toAssign && item.rowVisible;
     }
   }
 
   // error handling
-  private processError(err: any): void {
+  private processError(
+    err: { response: AxiosResponse } | { response: undefined; message: string }
+  ): void {
     this.$bvToast.show(getUniqueElementId("error_", this.thisMode.toString()));
     if (err.response == undefined) {
       this.alertCode = 0;

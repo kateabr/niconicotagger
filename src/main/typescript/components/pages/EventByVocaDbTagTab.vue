@@ -53,11 +53,7 @@
                 <b-input-group inline>
                   <b-form-input
                     v-model="timeDelta"
-                    :disabled="
-                      !timeDeltaEnabled ||
-                      defaultDisableCondition() ||
-                      !isActiveMode()
-                    "
+                    :disabled="defaultDisableCondition() || !isActiveMode()"
                     number
                     type="range"
                     min="0"
@@ -76,7 +72,7 @@
                   </template>
                   <template #append>
                     <b-input-group-text class="justify-content-center"
-                      >{{ timeDeltaEnabled ? timeDelta : "-" }}
+                      >{{ timeDelta }}
                       day(s)
                     </b-input-group-text>
                   </template>
@@ -527,6 +523,7 @@ import {
 } from "@/utils";
 import ErrorMessage from "@/components/ErrorMessage.vue";
 import DateDisposition from "@/components/DateDisposition.vue";
+import { AxiosResponse } from "axios";
 
 @Component({ components: { ErrorMessage, DateDisposition } })
 export default class extends Vue {
@@ -709,14 +706,14 @@ export default class extends Vue {
     );
   }
 
-  private timeDeltaFlag(entry: EntryWithReleaseEventAndVisibility): boolean {
+  private timeDeltaFlag(eventDateComparison: DateComparisonResult): boolean {
     return (
       !this.timeDeltaEnabled ||
       dateIsWithinTimeDelta(
         this.timeDelta,
         this.timeDeltaBefore,
         this.timeDeltaAfter,
-        entry.songEntry.eventDateComparison
+        eventDateComparison
       )
     );
   }
@@ -733,14 +730,14 @@ export default class extends Vue {
     for (const entry of this.entries) {
       entry.rowVisible =
         this.hiddenTypeFlag(entry) &&
-        this.timeDeltaFlag(entry) &&
+        this.timeDeltaFlag(entry.songEntry.eventDateComparison) &&
         this.otherEventsFlag(entry);
       entry.toAssign = entry.toAssign && entry.rowVisible;
     }
   }
 
   private filterEntriesIfValidState(): void {
-    if (this.getTimeDeltaState() && this.timeDelta != 0) {
+    if (this.getTimeDeltaState()) {
       if (!this.timeDeltaEnabled) {
         this.timeDeltaBefore = false;
         this.timeDeltaAfter = false;
@@ -750,7 +747,9 @@ export default class extends Vue {
   }
 
   // error handling
-  private processError(err: any): void {
+  private processError(
+    err: { response: AxiosResponse } | { response: undefined; message: string }
+  ): void {
     this.$bvToast.show(getUniqueElementId("error_", this.thisMode.toString()));
     if (err.response == undefined) {
       this.alertCode = 0;

@@ -500,6 +500,7 @@ import {
 } from "@/utils";
 import NicoEmbed from "@/components/NicoEmbed.vue";
 import ErrorMessage from "@/components/ErrorMessage.vue";
+import { AxiosResponse } from "axios";
 
 @Component({ components: { NicoEmbed, ErrorMessage } })
 export default class extends Vue {
@@ -796,7 +797,9 @@ export default class extends Vue {
   }
 
   // error handling
-  private processError(err: any): void {
+  private processError(
+    err: { response: AxiosResponse } | { response: undefined; message: string }
+  ): void {
     this.$bvToast.show(getUniqueElementId("error_", this.thisMode.toString()));
     if (err.response == undefined) {
       this.alertCode = 0;
