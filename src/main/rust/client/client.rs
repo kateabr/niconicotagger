@@ -31,7 +31,7 @@ use crate::client::models::song::{SongForApiContract};
 use crate::client::models::tag::{AssignableTag, SelectedTag, TagBaseContract, TagForApiContract, TagSearchResult, TagUsageForApiContract};
 use crate::client::models::user::UserForApiContract;
 use crate::client::nicomodels::{NicoTagWithVariant, SongForApiContractWithThumbnails, SongForApiContractWithThumbnailsAndMappedTags, SongsForApiContractWithThumbnailsAndTimestamp, Tag, TagBaseContractSimplified, ThumbnailError, ThumbnailOk, ThumbnailOkWithMappedTags, ThumbnailTagMappedWithAssignAndLockInfo};
-use crate::web::dto::{DBFetchResponseWithTimestamps, DisplayableTag, EventAssigningResult, MinimalEvent, NicoResponse, NicoResponseWithScope, NicoVideo, NicoVideoWithTidyTags, SongForApiContractSimplified, SongForApiContractSimplifiedWithMultipleEventInfo, SongForApiContractSimplifiedWithMultipleEventInfoSearchResult, TagMappingContract, VideoWithEntry};
+use crate::web::dto::{DBFetchResponseWithTimestamps, DisplayableTag, EventAssigningResult, MinimalEvent, NicoResponse, NicoResponseWithScope, NicoVideo, NicoVideoWithTidyTags, SongForApiContractSimplifiedWithMultipleEventInfo, SongForApiContractSimplifiedWithMultipleEventInfoSearchResult, TagMappingContract, VideoWithEntry};
 
 pub struct Client<'a> {
     pub client: awc::Client,
@@ -249,9 +249,21 @@ impl<'a> Client<'a> {
         )
             .await?;
 
+        let mut escaped_data: Vec<NicoVideo> = vec![];
+
+        for video in response.data {
+            escaped_data.push(NicoVideo {
+                id: video.id,
+                title: html_escape::decode_html_entities(&video.title).to_string(),
+                tags: video.tags.clone(),
+                user_id: video.user_id,
+                start_time: video.start_time
+            });
+        }
+
         Ok(NicoResponseWithScope {
             safe_scope: new_scope,
-            data: response.data,
+            data: escaped_data,
             meta: response.meta,
         })
     }
@@ -644,10 +656,8 @@ impl<'a> Client<'a> {
 
         let payload: EditForm = EditForm { edited_song, album_id: None, ko_unique_1: false };
 
-        let response = request.content_type(HeaderValue::from_str("application/x-www-form-urlencoded").unwrap()).send_form(&payload).await?.body().await?;
+        request.content_type(HeaderValue::from_str("application/x-www-form-urlencoded").unwrap()).send_form(&payload).await?.body().await?;
 
-        let result = String::from_utf8(response.to_vec()).context("Response is not a UTF-8 string")?;
-        debug!("{}", result);
         return Ok(final_result);
     }
 
@@ -768,7 +778,7 @@ impl<'a> Client<'a> {
 
     pub async fn get_videos_from_db_before_since(&self, max_results: i32, mode: String, date_time: String, song_id: i32, sort_rule: String) -> Result<SongsForApiContractWithThumbnailsAndTimestamp> {
         let mut response_entries: Vec<SongForApiContract> = vec![];
-        debug!("fetching...");
+
         let response: PartialFindResult<ActivityEntryForApiContract> = self.http_get(
             &String::from("https://vocadb.net/api/activityEntries"),
             &vec![
@@ -782,8 +792,6 @@ impl<'a> Client<'a> {
                 ("sortRule", String::from(sort_rule)),
             ],
         ).await?;
-
-        debug!("fetched.");
 
         let timestamp_first = response.items[0].entry.create_date.clone();
         let mut timestamp_last = response.items[response.items.len() - 1].entry.create_date.clone();
@@ -839,8 +847,6 @@ impl<'a> Client<'a> {
         let response_entries_small: Vec<SongForApiContract> = response_entries[0..min(max_results as usize, response_entries.len() as usize)].to_vec();
         let mut mapped_response = vec![];
 
-        debug!("fetched {:?} songs ({:?}-{:?}), with id {:?} than {:?}; gathering thumbnail data...", response_entries_small.len(), timestamp_first, timestamp_last, if mode == "since" { "greater" } else { "less" }, song_id);
-
         let res_len = i32::from(response_entries_small.len() as i32);
 
         if i32::from(res_len) > 0 {
@@ -849,9 +855,6 @@ impl<'a> Client<'a> {
             }
             mapped_response = self.process_mapped_response(response_entries_small).await?;
         }
-
-
-        debug!("done.");
 
         Ok(SongsForApiContractWithThumbnailsAndTimestamp { items: mapped_response, total_count: response.total_count, timestamp_first, timestamp_last })
     }

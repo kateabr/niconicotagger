@@ -5,10 +5,10 @@
     <div style="display: flex; align-items: center">
       <b-container class="col-lg-11">
         <b-tabs v-model="browseMode" class="mt-3" content-class="mt-3">
-          <b-tab title="Browse by event tag (VocaDB)">
+          <b-tab title="Replace an event tag (VocaDB)">
             <event-by-voca-db-tag-tab :mode="browseMode" this-mode="0" />
           </b-tab>
-          <b-tab title="Browse by event tags (NND)">
+          <b-tab title="Add event by associated tags (NND)">
             <event-by-nnd-tag-tab :mode="browseMode" this-mode="1" />
           </b-tab>
         </b-tabs>

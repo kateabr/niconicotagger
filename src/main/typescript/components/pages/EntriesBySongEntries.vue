@@ -224,12 +224,8 @@
             </div>
           </td>
           <td>
-            <b-link
-              target="_blank"
-              :href="getVocaDBEntryUrl(video.song.id)"
-              v-html="video.song.name"
-            />
-            <b-link target="_blank" :href="getVocaDBEntryUrl(video.song.id)">
+            <b-link target="_blank" :href="getVocaDBEntryUrl(video.song.id)"
+              >{{ video.song.name }}
               <b-badge
                 class="badge text-center ml-2"
                 :variant="getSongTypeColorForDisplay(video.song.songType)"
@@ -259,8 +255,8 @@
                 <b-link
                   target="_blank"
                   :href="getNicoVideoUrl(thumbnail.thumbnail.id)"
-                  v-html="thumbnail.thumbnail.title"
-                />
+                  >{{ thumbnail.thumbnail.title }}</b-link
+                >
                 <div>
                   <b-badge
                     v-for="(nico_tag, key) in thumbnail.nicoTags"

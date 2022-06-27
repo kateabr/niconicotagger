@@ -57,7 +57,7 @@
                     number
                     type="range"
                     min="0"
-                    max="7"
+                    :max="event.endDate == null ? 7 : 1"
                     @change="filterEntriesIfValidState()"
                   />
                   <template #prepend>
@@ -311,19 +311,14 @@
               <b-link
                 target="_blank"
                 :href="getVocaDBEntryUrl(item.songEntry.id)"
-                v-html="item.songEntry.name"
-              />
-              <b-link
-                target="_blank"
-                :href="getVocaDBEntryUrl(item.songEntry.id)"
-              >
-                <b-badge
+                >{{ item.songEntry.name
+                }}<b-badge
                   class="badge text-center ml-2"
                   :variant="getSongTypeColorForDisplay(item.songEntry.songType)"
                 >
                   {{ getShortenedSongType(item.songEntry.songType) }}
-                </b-badge>
-              </b-link>
+                </b-badge></b-link
+              >
               <div class="text-muted">
                 {{ item.songEntry.artistString }}
               </div>
@@ -491,11 +486,7 @@
 
 <script lang="ts">
 import Vue from "vue";
-import {
-  DateComparisonResult,
-  MinimalTag,
-  ReleaseEventForDisplay
-} from "@/backend/dto";
+import { MinimalTag, ReleaseEventForDisplay } from "@/backend/dto";
 import { api } from "@/backend";
 import { DateTime } from "luxon";
 import Component from "vue-class-component";
@@ -512,14 +503,14 @@ import {
   getSongTypeStatsForDisplay,
   pageStateIsValid,
   infoLoaded,
-  getDispositionBadgeColorVariant,
   EntryWithReleaseEventAndVisibility,
   SongType,
   getUniqueElementId,
   allVideosInvisible,
   dateIsWithinTimeDelta,
   getTimeDeltaState,
-  fillReleaseEventForDisplay
+  fillReleaseEventForDisplay,
+  DateComparisonResult
 } from "@/utils";
 import ErrorMessage from "@/components/ErrorMessage.vue";
 import DateDisposition from "@/components/DateDisposition.vue";
@@ -635,10 +626,6 @@ export default class extends Vue {
 
   private eventInfoLoaded(): boolean {
     return infoLoaded(this.entries.length, this.eventTagNameFrozen);
-  }
-
-  private getDispositionBadgeColorVariant(disposition: string): string {
-    return getDispositionBadgeColorVariant(disposition);
   }
 
   private allInvisible(): boolean {
@@ -843,6 +830,17 @@ export default class extends Vue {
         tagId: this.tag.id
       });
       song.processed = true;
+      if (song.songEntry.releaseEvent == null) {
+        song.songEntry.releaseEvent = {
+          id: this.event.id,
+          date: null,
+          nndTags: this.event.nndTags,
+          name: this.event.name,
+          urlSlug: this.event.urlSlug,
+          category: this.event.category,
+          endDate: null
+        };
+      }
       song.toAssign = false;
     } catch (err) {
       this.processError(err);

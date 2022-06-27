@@ -1,4 +1,3 @@
-use std::borrow::Borrow;
 use actix_web::{get, post, Responder};
 use actix_web::http::header::Header;
 use actix_web::HttpRequest;
@@ -6,15 +5,14 @@ use actix_web::web::Json;
 use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use anyhow::Context;
 use futures::future;
-use log::debug;
 use url::Url;
 
 use crate::client::client::Client;
 use crate::client::errors::VocadbClientError;
-use crate::client::models::releaseevent::{ReleaseEventForApiContractSimplified, ReleaseEventForApiContractSimplifiedWithNndTags};
+use crate::client::models::releaseevent::ReleaseEventForApiContractSimplifiedWithNndTags;
 use crate::client::models::tag::{AssignableTag, TagBaseContract};
 use crate::client::models::weblink::WebLinkForApiContract;
-use crate::web::dto::{AssignEventAndRemoveTagPayload, AssignTagRequest, Database, DBBeforeSinceFetchRequest, DBFetchRequest, ReleaseEventWithNndTagsFetchRequest, EventAssigningResult, LoginRequest, LoginResponse, LookupAndAssignTagRequest, SongsByEventTagFetchRequest, SongsByEventTagFetchResponse, TagFetchRequest, Token, VideosWithEntries, VideosWithEntriesByVocaDbTag, ReleaseEventWithNndTagsFetchResponse, EventByTagsFetchRequest, AssignEventPayload};
+use crate::web::dto::{AssignEventAndRemoveTagPayload, AssignTagRequest, Database, DBBeforeSinceFetchRequest, DBFetchRequest, ReleaseEventWithNndTagsFetchRequest, EventAssigningResult, LoginRequest, LoginResponse, LookupAndAssignTagRequest, SongsByEventTagFetchRequest, SongsByEventTagFetchResponse, TagFetchRequest, Token, VideosWithEntries, VideosWithEntriesByVocaDbTag, EventByTagsFetchRequest, AssignEventPayload};
 use crate::web::errors::AppResponseError;
 use crate::web::errors::Result;
 use crate::web::middleware::auth_token;
@@ -323,7 +321,7 @@ pub async fn fetch_videos_by_event_nnd_tags(_req: HttpRequest, payload: Json<Eve
                 .map(|video|
                     client.lookup_video_by_event(video,
                                         payload.event_id,
-                                        vec![payload.tags.clone()],
+                                        payload.tags.split(" OR ").map(|tag| String::from(tag)).collect(),
                                         &mappings, payload.scope_tag.clone()));
 
             let video_entries = future::try_join_all(futures).await?;

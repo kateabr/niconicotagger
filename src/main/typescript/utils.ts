@@ -1,6 +1,5 @@
 import { DateTime } from "luxon";
 import {
-  DateComparisonResult,
   MappedTag,
   MinimalTag,
   NicoVideoWithError,
@@ -126,7 +125,7 @@ export function getDateDisposition(
       return { dayDiff: 0, disposition: "perfect" };
     } else {
       return {
-        dayDiff: dayDiff,
+        dayDiff: Math.abs(dayDiff),
         disposition: dayDiff > 0 ? "late" : dayDiff < 0 ? "early" : "perfect"
       };
     }
@@ -137,13 +136,13 @@ export function getDateDisposition(
       return { dayDiff: 0, disposition: "perfect" };
     } else {
       return {
-        dayDiff: subDates(date, dateEnd),
+        dayDiff: Math.abs(subDates(date, dateEnd)),
         disposition: "late"
       };
     }
   } else {
     return {
-      dayDiff: subDates(dateStart, date),
+      dayDiff: Math.abs(subDates(dateStart, date)),
       disposition: "early"
     };
   }
@@ -206,12 +205,14 @@ export function getSongTypeColorForDisplay(typeString: string): string {
   }
 }
 
-export function getDispositionBadgeColorVariant(disposition: string): string {
-  return disposition === "perfect"
+export function getDispositionBadgeColorVariant(eventDateComparison: DateComparisonResult): string {
+  return eventDateComparison.disposition === "perfect"
     ? "success"
-    : disposition === "unknown"
+    : eventDateComparison.disposition === "unknown"
     ? "secondary"
-    : "warning";
+    : eventDateComparison.dayDiff <= 7
+    ? "warning"
+    : "danger";
 }
 
 export function getSongTypeStatsForDisplay(type: string, number: number): string {
@@ -227,7 +228,7 @@ export function validateTimestamp(timestamp: string): boolean | null {
 
 // other util methods
 function subDates(date1: DateTime, date2: DateTime): number {
-  return Math.round(Math.abs(date1.diff(date2).as("day")));
+  return Math.round(date1.diff(date2).as("day"));
 }
 
 export function toggleTagAssignation(tag: MappedTag, video: EntryWithVideosAndVisibility): void {
@@ -413,4 +414,9 @@ export interface EntryWithVideosAndVisibility {
   visible: boolean;
   toAssign: boolean;
   tagsToAssign: MinimalTag[];
+}
+
+export interface DateComparisonResult {
+  dayDiff: number;
+  disposition: "perfect" | "late" | "early" | "unknown";
 }

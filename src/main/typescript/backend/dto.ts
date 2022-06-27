@@ -1,4 +1,5 @@
 import { DateTime } from "luxon";
+import { DateComparisonResult } from "@/utils";
 
 export interface AuthenticationPayload {
   username: string;
@@ -74,11 +75,6 @@ export interface SongForApiContractSimplifiedWithReleaseEvent {
   publishDate: string | null;
   eventDateComparison: DateComparisonResult;
   taggedWithMultipleEvents: boolean;
-}
-
-export interface DateComparisonResult {
-  dayDiff: number;
-  disposition: "perfect" | "late" | "early" | "unknown";
 }
 
 export interface VideoWithEntry {

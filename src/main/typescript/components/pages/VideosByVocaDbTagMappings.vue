@@ -321,8 +321,8 @@
               <b-link
                 target="_blank"
                 :href="getNicoVideoUrl(item.video.contentId)"
-                v-html="item.video.title"
-              ></b-link>
+                >{{ item.video.title }}</b-link
+              >
               <div>
                 <b-badge
                   v-for="(item1, key1) in item.video.tags"
@@ -351,21 +351,16 @@
                 <b-link
                   target="_blank"
                   :href="getVocaDBEntryUrl(item.songEntry.id)"
-                  v-html="item.songEntry.name"
-                ></b-link>
-                <b-link
-                  target="_blank"
-                  :href="getVocaDBEntryUrl(item.songEntry.id)"
-                >
-                  <b-badge
+                  >{{ item.songEntry.name
+                  }}<b-badge
                     class="badge text-center ml-2"
                     :variant="
                       getSongTypeColorForDisplay(item.songEntry.songType)
                     "
                   >
                     {{ getShortenedSongType(item.songEntry.songType) }}
-                  </b-badge>
-                </b-link>
+                  </b-badge></b-link
+                >
                 <div class="text-muted">
                   {{ item.songEntry.artistString }}
                 </div>

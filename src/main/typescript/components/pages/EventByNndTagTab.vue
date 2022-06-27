@@ -6,7 +6,8 @@
       :this-mode="thisMode"
     />
     <b-row>
-      <span class="m-auto col-lg-5">
+      <b-col></b-col>
+      <b-col cols="5" class="m-auto">
         <b-input-group inline class="mt-lg-3">
           <template #prepend>
             <b-button
@@ -198,7 +199,7 @@
                     number
                     type="range"
                     min="0"
-                    max="7"
+                    :max="event.endDate == null ? 7 : 1"
                     @change="filterEntriesIfValidState()"
                   />
                   <template #prepend>
@@ -240,7 +241,15 @@
             </b-col>
           </b-row>
         </b-collapse>
-      </span>
+      </b-col>
+      <b-col class="m-auto text-left mt-lg-3 ml-n1"><b-button
+        v-if="eventInfoLoaded()"
+        variant="link"
+        :disabled="defaultDisableCondition()"
+        @click="loadPage(page)"
+      ><font-awesome-icon
+        icon="fa-solid fa-arrow-rotate-right"
+      /></b-button></b-col>
     </b-row>
     <Transition appear>
       <b-row v-if="tagsLoaded && isActiveMode() && !tagsConfirmed" class="mt-5">
@@ -256,13 +265,13 @@
               >:
             </b-card-header>
             <b-card-body>
-              <span v-for="(tag, key) in event.nndTags" :key="key">
+              <div v-for="(tag, key) in event.nndTags" :key="key">
                 <b-link :href="getNicoTagUrl(tag)" target="_blank"
                   ><font-awesome-icon icon="fas fa-tag" class="mr-1" />{{
                     tag
                   }}</b-link
                 >
-              </span>
+              </div>
             </b-card-body>
             <b-card-footer>
               All good?
@@ -443,8 +452,8 @@
               <b-link
                 target="_blank"
                 :href="getNicoVideoUrl(item.video.contentId)"
-                v-html="item.video.title"
-              ></b-link>
+                >{{ item.video.title }}</b-link
+              >
               <div>
                 <b-badge
                   v-for="(item1, key1) in item.video.tags"
@@ -501,19 +510,14 @@
               <b-link
                 target="_blank"
                 :href="getVocaDBEntryUrl(item.songEntry.id)"
-                v-html="item.songEntry.name"
-              ></b-link>
-              <b-link
-                target="_blank"
-                :href="getVocaDBEntryUrl(item.songEntry.id)"
-              >
-                <b-badge
+                >{{ item.songEntry.name
+                }}<b-badge
                   class="badge text-center ml-2"
                   :variant="getSongTypeColorForDisplay(item.songEntry.songType)"
                 >
                   {{ getShortenedSongType(item.songEntry.songType) }}
-                </b-badge>
-              </b-link>
+                </b-badge></b-link
+              >
               <div class="text-muted mb-2">
                 {{ item.songEntry.artistString }}
               </div>
@@ -676,7 +680,7 @@
 
 <script lang="ts">
 import Vue from "vue";
-import { DateComparisonResult, ReleaseEventForDisplay } from "@/backend/dto";
+import { ReleaseEventForDisplay } from "@/backend/dto";
 import { api } from "@/backend";
 import { DateTime } from "luxon";
 import Component from "vue-class-component";
@@ -703,7 +707,7 @@ import {
   getVocaDBArtistUrl,
   getVocaDBAddSongUrl,
   getTimeDeltaState,
-  EntryWithReleaseEventAndVisibility,
+  DateComparisonResult,
   dateIsWithinTimeDelta
 } from "@/utils";
 import ErrorMessage from "@/components/ErrorMessage.vue";
@@ -1019,12 +1023,12 @@ export default class extends Vue {
       });
       fillReleaseEventForDisplay(response.event, this.event);
       this.event.nndTags = response.tags;
-      this.eventTagsJoint = this.event.nndTags.join(" ");
+      this.eventTagsJoint = this.event.nndTags.join(" OR ");
+      this.tagsLoaded = true;
     } catch (err) {
       this.processError(err);
     } finally {
       this.fetching = false;
-      this.tagsLoaded = true;
     }
   }
 
@@ -1123,6 +1127,17 @@ export default class extends Vue {
         }
       });
       song.processed = true;
+      if (song.songEntry.releaseEvent == null) {
+        song.songEntry.releaseEvent = {
+          id: this.event.id,
+          date: null,
+          nndTags: this.event.nndTags,
+          name: this.event.name,
+          urlSlug: this.event.urlSlug,
+          category: this.event.category,
+          endDate: null
+        };
+      }
       song.toAssign = false;
     } catch (err) {
       this.processError(err);
@@ -1147,12 +1162,6 @@ export default class extends Vue {
   private confirmAndLoad(): void {
     this.tagsConfirmed = true;
     this.loadPage(1);
-  }
-
-  private clear(): void {
-    this.tagsLoaded = false;
-    this.tagsConfirmed = false;
-    this.entries = [];
   }
 
   private loadPage(page: number): void {

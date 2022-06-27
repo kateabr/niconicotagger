@@ -5,7 +5,7 @@
     }}
     <b-badge
       :variant="
-        getDispositionBadgeColorVariant(eventDateComparison.disposition)
+        getDispositionBadgeColorVariant(eventDateComparison)
       "
       class="mr-1 ml-3"
     >
@@ -26,8 +26,7 @@
 <script lang="ts">
 import { Component, Prop } from "vue-property-decorator";
 import Vue from "vue";
-import { DateComparisonResult } from "@/backend/dto";
-import { getDispositionBadgeColorVariant } from "@/utils";
+import { getDispositionBadgeColorVariant, DateComparisonResult } from "@/utils";
 import { DateTime } from "luxon";
 
 @Component({ components: {} })
@@ -38,8 +37,10 @@ export default class extends Vue {
   @Prop()
   private readonly eventDateComparison!: DateComparisonResult;
 
-  private getDispositionBadgeColorVariant(disposition: string): string {
-    return getDispositionBadgeColorVariant(disposition);
+  private getDispositionBadgeColorVariant(
+    eventDateComparison: DateComparisonResult
+  ): string {
+    return getDispositionBadgeColorVariant(eventDateComparison);
   }
 
   private getReleaseDateFormatted(releaseDate: string): string {
