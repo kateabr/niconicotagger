@@ -610,6 +610,40 @@ export default class extends Vue {
     return this.videos.filter(video => video.toAssign).length;
   }
 
+  // row filtering
+  private hiddenTypeFlag(video: VideoWithEntryAndVisibility): boolean {
+    return (
+      this.getHiddenTypes() == 0 ||
+      (video.songEntry != null &&
+        !this.songTypes
+          .filter(t => !t.show)
+          .map(t => t.name)
+          .includes(video.songEntry.songType))
+    );
+  }
+
+  private noEntryFlag(video: VideoWithEntryAndVisibility): boolean {
+    return (
+      video.songEntry != null ||
+      this.noEntry ||
+      (video.publisher != null && this.showVideosWithUploaderEntry)
+    );
+  }
+
+  private taggedFlag(video: VideoWithEntryAndVisibility): boolean {
+    return video.songEntry == null || this.tagged || !video.processed;
+  }
+
+  private filterVideos(): void {
+    for (const item of this.videos) {
+      item.rowVisible =
+        this.hiddenTypeFlag(item) &&
+        this.noEntryFlag(item) &&
+        this.taggedFlag(item);
+      item.toAssign = item.toAssign && item.rowVisible;
+    }
+  }
+
   // proxy methods
   private tagInfoLoaded(): boolean {
     return infoLoaded(this.videos.length, this.tagNameFrozen);
@@ -749,29 +783,6 @@ export default class extends Vue {
     } finally {
       this.massAssigning = false;
       this.allChecked = false;
-    }
-  }
-
-  private filterVideos(): void {
-    const hiddenTypes = this.getHiddenTypes() > 0;
-
-    for (const item of this.videos) {
-      item.rowVisible =
-        (item.songEntry != null ||
-          this.noEntry ||
-          (item.publisher != null && this.showVideosWithUploaderEntry)) &&
-        (item.songEntry == null || this.tagged || !item.processed);
-      item.toAssign = item.toAssign && item.rowVisible;
-
-      if (hiddenTypes) {
-        const songEntryTemp = item.songEntry;
-        if (songEntryTemp != null) {
-          item.rowVisible = !this.songTypes
-            .filter(t => !t.show)
-            .map(t => t.name)
-            .includes(songEntryTemp.songType);
-        }
-      }
     }
   }
 

@@ -597,6 +597,50 @@ export default class extends Vue {
     return this.videos.filter(video => video.toAssign).length;
   }
 
+  // row filtering
+  private hiddenTypeFlag(entry: EntryWithVideosAndVisibility): boolean {
+    return (
+      this.getHiddenTypes() == 0 ||
+      !this.songTypes
+        .filter(t => !t.show)
+        .map(t => t.name)
+        .includes(entry.song.songType)
+    );
+  }
+
+  private hasTagsToAssign(entry: EntryWithVideosAndVisibility): boolean {
+    let assignable_mapped_tags_cnt = 0;
+    for (const thumbnailOk of entry.thumbnailsOk) {
+      assignable_mapped_tags_cnt += thumbnailOk.mappedTags.filter(
+        tag => !tag.assigned
+      ).length;
+    }
+    return assignable_mapped_tags_cnt > 0;
+  }
+
+  private hideEntriesWithNoTagsFlag(
+    entry: EntryWithVideosAndVisibility
+  ): boolean {
+    return !this.hideEntriesWithNoTags || this.hasTagsToAssign(entry);
+  }
+
+  private showEntriesWithErrorsFlag(
+    entry: EntryWithVideosAndVisibility
+  ): boolean {
+    return (
+      this.showEntriesWithErrors &&
+      entry.thumbnailsErr.filter(thumb => !thumb.community).length > 0
+    );
+  }
+
+  private filterVideos(): void {
+    for (const video of this.videos) {
+      video.visible =
+        (this.hiddenTypeFlag(video) && this.hideEntriesWithNoTagsFlag(video)) ||
+        this.showEntriesWithErrorsFlag(video);
+    }
+  }
+
   // proxy methods
   private getMaxResultsForDisplay(): string {
     return getMaxResultsForDisplay(this.maxResults);
@@ -797,27 +841,6 @@ export default class extends Vue {
           );
         });
       }
-    }
-  }
-
-  private filterVideos(): void {
-    for (const video of this.videos) {
-      let assignable_mapped_tags_cnt = 0;
-      for (const thumbnailOk of video.thumbnailsOk) {
-        assignable_mapped_tags_cnt += thumbnailOk.mappedTags.filter(
-          tag => !tag.assigned
-        ).length;
-      }
-
-      video.visible =
-        ((this.getHiddenTypes() == 0 ||
-          !this.songTypes
-            .filter(t => !t.show)
-            .map(t => t.name)
-            .includes(video.song.songType)) &&
-          (!this.hideEntriesWithNoTags || assignable_mapped_tags_cnt > 0)) ||
-        (this.showEntriesWithErrors &&
-          video.thumbnailsErr.filter(thumb => !thumb.community).length > 0);
     }
   }
 

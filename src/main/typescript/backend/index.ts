@@ -14,7 +14,6 @@ import {
   EntriesWithReleaseEventTag,
   AssignEventAndRemoveTagPayload,
   fetchReleaseEventWithNndTagsPayload,
-  ReleaseEventForApiContractSimplified,
   ReleaseEventForApiContractSimplifiedWithNndTags,
   FetchVideosByEventTagsPayload,
   AssignEventPayload

@@ -623,11 +623,7 @@
 
 <script lang="ts">
 import Vue from "vue";
-import {
-  DateComparisonResult,
-  MinimalTag,
-  ReleaseEventForDisplay
-} from "@/backend/dto";
+import { DateComparisonResult, ReleaseEventForDisplay } from "@/backend/dto";
 import { api } from "@/backend";
 import { DateTime } from "luxon";
 import Component from "vue-class-component";
@@ -677,7 +673,6 @@ export default class extends Vue {
     nndTags: []
   };
   private entries: VideoWithEntryAndVisibility[] = [];
-  private tag: MinimalTag = { name: "", id: -1, urlSlug: "" };
   private eventName: string = "";
   private scopeTagString: string = "";
   private scopeTagStringFrozen: string = "";
@@ -831,27 +826,6 @@ export default class extends Vue {
     this.sortingCondition = value;
   }
 
-  private filterVideos(): void {
-    for (const item of this.entries) {
-      item.rowVisible =
-        (this.currentEventFilled ||
-          item.songEntry == null ||
-          item.songEntry.releaseEvent == null ||
-          item.songEntry.releaseEvent.id != this.event.id) &&
-        (this.showVideosWithoutEntries ||
-          item.songEntry != null ||
-          (this.showVideosWithUploaderEntry && item.publisher != null)) &&
-        (this.showVideosWithOtherEvents ||
-          item.songEntry == null ||
-          item.songEntry.releaseEvent == null ||
-          item.songEntry.releaseEvent.id == this.event.id) &&
-        (this.showVideosWithNoEvents ||
-          item.songEntry == null ||
-          item.songEntry.releaseEvent != null);
-      item.toAssign = item.toAssign && item.rowVisible;
-    }
-  }
-
   private hasReleaseEvent(video: VideoWithEntryAndVisibility): boolean {
     return video.songEntry != null && video.songEntry.releaseEvent != null;
   }
@@ -864,6 +838,59 @@ export default class extends Vue {
     video: VideoWithEntryAndVisibility
   ): boolean {
     return video.songEntry != null && video.songEntry.taggedWithMultipleEvents;
+  }
+
+  // row filtering
+
+  private currentEventFilledFlag(item: VideoWithEntryAndVisibility): boolean {
+    return (
+      this.currentEventFilled ||
+      item.songEntry == null ||
+      item.songEntry.releaseEvent == null ||
+      item.songEntry.releaseEvent.id != this.event.id
+    );
+  }
+
+  private showVideosWithoutEntriesFlag(
+    item: VideoWithEntryAndVisibility
+  ): boolean {
+    return (
+      this.showVideosWithoutEntries ||
+      item.songEntry != null ||
+      (this.showVideosWithUploaderEntry && item.publisher != null)
+    );
+  }
+
+  private showVideosWithOtherEventsFlag(
+    item: VideoWithEntryAndVisibility
+  ): boolean {
+    return (
+      this.showVideosWithOtherEvents ||
+      item.songEntry == null ||
+      item.songEntry.releaseEvent == null ||
+      item.songEntry.releaseEvent.id == this.event.id
+    );
+  }
+
+  private showVideosWithNoEventsFlag(
+    item: VideoWithEntryAndVisibility
+  ): boolean {
+    return (
+      this.showVideosWithNoEvents ||
+      item.songEntry == null ||
+      item.songEntry.releaseEvent != null
+    );
+  }
+
+  private filterVideos(): void {
+    for (const item of this.entries) {
+      item.rowVisible =
+        this.currentEventFilledFlag(item) &&
+        this.showVideosWithoutEntriesFlag(item) &&
+        this.showVideosWithOtherEventsFlag(item) &&
+        this.showVideosWithNoEventsFlag(item);
+      item.toAssign = item.toAssign && item.rowVisible;
+    }
   }
 
   // error handling

@@ -698,25 +698,44 @@ export default class extends Vue {
     this.orderingCondition = value;
   }
 
+  // row filtering
+  private hiddenTypeFlag(entry: EntryWithReleaseEventAndVisibility): boolean {
+    return (
+      this.getHiddenTypes() == 0 ||
+      !this.songTypes
+        .filter(t => !t.show)
+        .map(t => t.name)
+        .includes(entry.songEntry.songType)
+    );
+  }
+
+  private timeDeltaFlag(entry: EntryWithReleaseEventAndVisibility): boolean {
+    return (
+      !this.timeDeltaEnabled ||
+      dateIsWithinTimeDelta(
+        this.timeDelta,
+        this.timeDeltaBefore,
+        this.timeDeltaAfter,
+        entry.songEntry.eventDateComparison
+      )
+    );
+  }
+
+  private otherEventsFlag(entry: EntryWithReleaseEventAndVisibility): boolean {
+    return (
+      this.otherEvents ||
+      entry.songEntry.releaseEvent == null ||
+      entry.songEntry.releaseEvent.id == this.event.id
+    );
+  }
+
   private filterEntries(): void {
-    for (const item of this.entries) {
-      item.rowVisible =
-        (this.getHiddenTypes() == 0 ||
-          !this.songTypes
-            .filter(t => !t.show)
-            .map(t => t.name)
-            .includes(item.songEntry.songType)) &&
-        (!this.timeDeltaEnabled ||
-          dateIsWithinTimeDelta(
-            this.timeDelta,
-            this.timeDeltaBefore,
-            this.timeDeltaAfter,
-            item.songEntry.eventDateComparison
-          )) &&
-        (this.otherEvents ||
-          item.songEntry.releaseEvent == null ||
-          item.songEntry.releaseEvent.id == this.event.id);
-      item.toAssign = item.toAssign && item.rowVisible;
+    for (const entry of this.entries) {
+      entry.rowVisible =
+        this.hiddenTypeFlag(entry) &&
+        this.timeDeltaFlag(entry) &&
+        this.otherEventsFlag(entry);
+      entry.toAssign = entry.toAssign && entry.rowVisible;
     }
   }
 
