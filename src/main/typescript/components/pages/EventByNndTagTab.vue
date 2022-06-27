@@ -191,59 +191,61 @@
         </b-collapse>
       </span>
     </b-row>
-    <b-row v-if="tagsLoaded && isActiveMode() && !tagsConfirmed" class="mt-5">
-      <b-col cols="3"></b-col>
-      <b-col>
-        <b-card>
-          <b-card-header>
-            Following tags are currently associated with
-            <b-link
-              :href="getVocaDBEventUrl(event.id, event.urlSlug)"
-              target="_blank"
-              >{{ event.name }}</b-link
-            >:
-          </b-card-header>
-          <b-card-body>
-            <span v-for="(tag, key) in event.nndTags" :key="key">
-              <b-link :href="getNicoTagUrl(tag)" target="_blank"
-                ><font-awesome-icon icon="fas fa-tag" class="mr-1" />{{
-                  tag
-                }}</b-link
-              >
-            </span>
-          </b-card-body>
-          <b-card-footer>
-            All good?
-            <b-row class="flex-fill mt-3">
-              <b-col cols="6">
-                <b-button
-                  :disabled="defaultDisableCondition()"
-                  block
-                  variant="success"
-                  @click="confirmAndLoad()"
-                  ><font-awesome-icon
-                    icon="fa-solid fa-check"
-                    class="mr-1"
-                  />Yes, continue</b-button
+    <Transition appear>
+      <b-row v-if="tagsLoaded && isActiveMode() && !tagsConfirmed" class="mt-5">
+        <b-col cols="3"></b-col>
+        <b-col>
+          <b-card>
+            <b-card-header>
+              Following tags are currently associated with
+              <b-link
+                :href="getVocaDBEventUrl(event.id, event.urlSlug)"
+                target="_blank"
+                >{{ event.name }}</b-link
+              >:
+            </b-card-header>
+            <b-card-body>
+              <span v-for="(tag, key) in event.nndTags" :key="key">
+                <b-link :href="getNicoTagUrl(tag)" target="_blank"
+                  ><font-awesome-icon icon="fas fa-tag" class="mr-1" />{{
+                    tag
+                  }}</b-link
                 >
-              </b-col>
-              <b-col cols="6">
-                <b-button
-                  :disabled="defaultDisableCondition()"
-                  block
-                  @click="fetchEvent(eventName)"
-                  ><font-awesome-icon
-                    icon="fa-solid fa-arrow-rotate-right"
-                    class="mr-1"
-                  />No, reload</b-button
-                >
-              </b-col>
-            </b-row>
-          </b-card-footer>
-        </b-card>
-      </b-col>
-      <b-col cols="3"></b-col>
-    </b-row>
+              </span>
+            </b-card-body>
+            <b-card-footer>
+              All good?
+              <b-row class="flex-fill mt-3">
+                <b-col cols="6">
+                  <b-button
+                    :disabled="defaultDisableCondition()"
+                    block
+                    variant="success"
+                    @click="confirmAndLoad()"
+                    ><font-awesome-icon
+                      icon="fa-solid fa-check"
+                      class="mr-1"
+                    />Yes, continue</b-button
+                  >
+                </b-col>
+                <b-col cols="6">
+                  <b-button
+                    :disabled="defaultDisableCondition()"
+                    block
+                    @click="fetchEvent(eventName)"
+                    ><font-awesome-icon
+                      icon="fa-solid fa-arrow-rotate-right"
+                      class="mr-1"
+                    />No, reload</b-button
+                  >
+                </b-col>
+              </b-row>
+            </b-card-footer>
+          </b-card>
+        </b-col>
+        <b-col cols="3"></b-col>
+      </b-row>
+    </Transition>
     <b-row v-if="eventInfoLoaded() && isActiveMode()">
       <b-row
         class="mt-lg-3 pt-lg-3 pb-lg-3 col-lg-12 text-center m-auto alert-primary rounded p-sm-2 bg-light progress-bar-striped"
@@ -1075,3 +1077,7 @@ export default class extends Vue {
   }
 }
 </script>
+
+<style lang="scss">
+@import "../style.scss";
+</style>

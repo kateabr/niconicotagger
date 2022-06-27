@@ -1,6 +1,5 @@
 <template>
   <b-row>
-    {{ timestampIsValid }}
     <progress-bar
       :distinct-song-count="distinctSongCount"
       :fetching="fetching"
@@ -323,7 +322,8 @@
               target="_blank"
               :href="getVocaDBEntryUrl(video.song.id)"
               v-html="video.song.name"
-            >
+            />
+            <b-link target="_blank" :href="getVocaDBEntryUrl(video.song.id)">
               <b-badge
                 class="badge text-center ml-2"
                 :variant="getSongTypeColorForDisplay(video.song.songType)"
