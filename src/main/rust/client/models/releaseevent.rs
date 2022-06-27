@@ -34,7 +34,7 @@ pub struct ReleaseEventForApiContract {
     main_picture: Option<EntryThumbForApiContract>,
     pub name: String,
     names: Option<Vec<LocalizedStringContract>>,
-    series: Option<ReleaseEventSeriesContract>,
+    pub series: Option<ReleaseEventSeriesContract>,
     #[serde(rename = "seriesId")]
     series_id: Option<i32>,
     #[serde(rename = "seriesNumber")]
@@ -50,7 +50,7 @@ pub struct ReleaseEventForApiContract {
     venue_name: Option<String>,
     version: i32,
     #[serde(rename = "webLinks")]
-    pub(crate) web_links: Option<Vec<WebLinkForApiContract>>,
+    pub web_links: Option<Vec<WebLinkForApiContract>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -77,7 +77,7 @@ pub struct ReleaseEventForApiContractSimplifiedWithNndTags {
 pub struct ReleaseEventSeriesContract {
     #[serde(rename = "additionalNames")]
     additional_names: String,
-    category: ReleaseEventCategory,
+    pub category: ReleaseEventCategory,
     // deleted: bool,
     description: String,
     id: i32,
@@ -89,7 +89,7 @@ pub struct ReleaseEventSeriesContract {
     url_slug: String,
     version: i32,
     #[serde(rename = "webLinks")]
-    web_links: Vec<WebLinkContract>,
+    web_links: Option<Vec<WebLinkContract>>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

@@ -532,7 +532,7 @@ impl<'a> Client<'a> {
                 ("query", event_name.clone()),
                 ("getTotalCount", String::from("true")),
                 ("lang", String::from("Default")),
-                ("fields", String::from("WebLinks"))
+                ("fields", String::from("WebLinks,Series"))
             ],
         ).await?;
 
@@ -543,7 +543,10 @@ impl<'a> Client<'a> {
                 id: response.items[0].id,
                 name: response.items[0].name.clone(),
                 url_slug: response.items[0].url_slug.clone(),
-                category: response.items[0].category.clone(),
+                category: match &response.items[0].series {
+                    Some(series) => series.category.clone(),
+                    None => response.items[0].category.clone()
+                },
                 web_links: response.items[0].web_links.clone()
             }),
             0 => Err(VocadbClientError::NotFoundError(format!("event \"{}\" does not exist", event_name.clone()))),
@@ -558,6 +561,7 @@ impl<'a> Client<'a> {
                 ("tagId[]", tag_id.to_string()),
                 ("getTotalCount", String::from("true")),
                 ("lang", String::from("Default")),
+                ("fields", String::from("Series"))
             ],
         ).await?;
 
@@ -568,7 +572,10 @@ impl<'a> Client<'a> {
                 id: response.items[0].id,
                 name: response.items[0].name.clone(),
                 url_slug: response.items[0].url_slug.clone(),
-                category: response.items[0].category.clone(),
+                category: match &response.items[0].series {
+                    Some(series) => series.category.clone(),
+                    None => response.items[0].category.clone()
+                },
                 web_links: None
             }),
             0 => Err(VocadbClientError::NotFoundError(format!("tag with id=\"{}\" does not exist", tag_id))),

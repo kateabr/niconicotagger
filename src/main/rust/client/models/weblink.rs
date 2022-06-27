@@ -23,5 +23,5 @@ pub struct WebLinkForApiContract {
     category: WebLinkCategory,
     description: String,
     id: i32,
-    pub(crate) url: String,
+    pub url: String,
 }

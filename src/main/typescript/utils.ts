@@ -8,7 +8,6 @@ import {
   NicoVideoWithTidyTags,
   Publisher,
   ReleaseEventForApiContractSimplified,
-  ReleaseEventForApiContractSimplifiedWithNndTags,
   ReleaseEventForDisplay,
   SongForApiContractSimplified,
   SongForApiContractSimplifiedWithReleaseEvent
@@ -127,8 +126,8 @@ export function getDateDisposition(
       return { dayDiff: 0, disposition: "perfect" };
     } else {
       return {
-        dayDiff: Math.round(dayDiff),
-        disposition: dayDiff > 0 ? "late" : "early"
+        dayDiff: dayDiff,
+        disposition: dayDiff > 0 ? "late" : dayDiff < 0 ? "early" : "perfect"
       };
     }
   }
@@ -138,13 +137,13 @@ export function getDateDisposition(
       return { dayDiff: 0, disposition: "perfect" };
     } else {
       return {
-        dayDiff: Math.round(subDates(date, dateEnd)),
+        dayDiff: subDates(date, dateEnd),
         disposition: "late"
       };
     }
   } else {
     return {
-      dayDiff: Math.round(subDates(dateStart, date)),
+      dayDiff: subDates(dateStart, date),
       disposition: "early"
     };
   }
@@ -228,7 +227,7 @@ export function validateTimestamp(timestamp: string): boolean | null {
 
 // other util methods
 function subDates(date1: DateTime, date2: DateTime): number {
-  return date1.diff(date2).as("day");
+  return Math.round(Math.abs(date1.diff(date2).as("day")));
 }
 
 export function toggleTagAssignation(tag: MappedTag, video: EntryWithVideosAndVisibility): void {

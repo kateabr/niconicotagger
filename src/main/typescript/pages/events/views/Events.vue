@@ -8,7 +8,7 @@
           <b-tab title="Browse by event tag (VocaDB)">
             <event-by-voca-db-tag-tab :mode="browseMode" this-mode="0" />
           </b-tab>
-          <b-tab title="Browse by event tag (NND)">
+          <b-tab title="Browse by event tags (NND)">
             <event-by-nnd-tag-tab :mode="browseMode" this-mode="1" />
           </b-tab>
         </b-tabs>

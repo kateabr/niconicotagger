@@ -358,40 +358,11 @@
               <span v-else class="text-muted">Unspecified</span>
             </td>
             <td>
-              <b-row>
-                <b-col cols="4">
-                  <span v-if="item.publishDate !== null">
-                    <font-awesome-icon
-                      icon="fa-solid fa-calendar"
-                      class="mr-1"
-                    />{{ item.publishDate.toLocaleString() }}
-                  </span>
-                  <span v-else class="text-muted">Unspecified</span>
-                </b-col>
-                <b-col>
-                  <b-badge
-                    :variant="
-                      getDispositionBadgeColorVariant(
-                        item.songEntry.eventDateComparison.disposition
-                      )
-                    "
-                    class="mr-1"
-                  >
-                    {{ item.songEntry.eventDateComparison.disposition }}
-                  </b-badge>
-                  <span
-                    v-if="
-                      item.songEntry.eventDateComparison.disposition !==
-                        'unknown' &&
-                      item.songEntry.eventDateComparison.disposition !==
-                        'perfect'
-                    "
-                    >(by
-                    {{ item.songEntry.eventDateComparison.dayDiff }}
-                    day(s))
-                  </span>
-                </b-col>
-              </b-row>
+              <date-disposition
+                v-if="item.publishDate !== null"
+                :release-date="item.songEntry.publishDate"
+                :event-date-comparison="item.songEntry.eventDateComparison"
+              />
             </td>
             <td>
               <b-row>
@@ -555,8 +526,9 @@ import {
   fillReleaseEventForDisplay
 } from "@/utils";
 import ErrorMessage from "@/components/ErrorMessage.vue";
+import DateDisposition from "@/components/DateDisposition.vue";
 
-@Component({ components: { ErrorMessage } })
+@Component({ components: { ErrorMessage, DateDisposition } })
 export default class extends Vue {
   @Prop()
   private readonly mode!: number;

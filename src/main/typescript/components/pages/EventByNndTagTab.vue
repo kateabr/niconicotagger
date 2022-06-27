@@ -271,7 +271,7 @@
               >
             </b-col>
             <b-col>
-              Songs found:<br />
+              Videos found:<br />
               <strong>{{ totalVideoCount }}</strong>
             </b-col>
             <b-col class="my-auto">
@@ -359,7 +359,7 @@
               @change="toggleCheckAll"
             />
           </b-th>
-          <b-th class="col-3 align-middle">Entry</b-th>
+          <b-th class="col-3 align-middle">Video</b-th>
           <b-th class="col-2 align-middle">Current release event</b-th>
           <b-th class="col-3 align-middle">Release date</b-th>
           <b-th class="col-4 align-middle">Proposed actions</b-th>
@@ -464,56 +464,17 @@
               <div class="text-muted mb-2">
                 {{ item.songEntry.artistString }}
               </div>
-              <span v-if="hasPublishDate(item)">
-                <font-awesome-icon icon="fa-solid fa-calendar" class="mr-1" />{{
-                  getReleaseDateFormatted(item.songEntry.publishDate)
-                }}
-              </span>
-              <span v-else class="text-muted">Unspecified</span>
-              <b-badge
-                :variant="
-                  getDispositionBadgeColorVariant(
-                    item.songEntry.eventDateComparison.disposition
-                  )
-                "
-                class="mr-1 ml-3"
-              >
-                {{ item.songEntry.eventDateComparison.disposition }}
-              </b-badge>
-              <span
-                v-if="
-                  item.songEntry.eventDateComparison.disposition !==
-                    'unknown' &&
-                  item.songEntry.eventDateComparison.disposition !== 'perfect'
-                "
-                >(by
-                {{ item.songEntry.eventDateComparison.dayDiff }}
-                day(s))
-              </span>
+              <date-disposition
+                v-if="hasPublishDate(item)"
+                :release-date="item.songEntry.publishDate"
+                :event-date-comparison="item.songEntry.eventDateComparison"
+              />
             </td>
             <td v-else>
-              <font-awesome-icon icon="fa-solid fa-calendar" class="mr-1" />{{
-                getReleaseDateFormatted(item.video.startTime)
-              }}
-              <b-badge
-                :variant="
-                  getDispositionBadgeColorVariant(
-                    item.video.eventDateComparison.disposition
-                  )
-                "
-                class="mr-1 ml-3"
-              >
-                {{ item.video.eventDateComparison.disposition }}
-              </b-badge>
-              <span
-                v-if="
-                  item.video.eventDateComparison.disposition !== 'unknown' &&
-                  item.video.eventDateComparison.disposition !== 'perfect'
-                "
-                >(by
-                {{ item.video.eventDateComparison.dayDiff }}
-                day(s))
-              </span>
+              <date-disposition
+                :release-date="item.video.startTime"
+                :event-date-comparison="item.video.eventDateComparison"
+              />
             </td>
             <td v-if="item.songEntry !== null">
               <b-row>
@@ -612,7 +573,7 @@
               :disabled="defaultDisableCondition()"
               @change="toggleCheckAll"
           /></b-th>
-          <b-th class="col-3 align-middle">Entry</b-th>
+          <b-th class="col-3 align-middle">Video</b-th>
           <b-th class="col-2 align-middle">Current release event</b-th>
           <b-th class="col-3 align-middle">Release date</b-th>
           <b-th class="col-4 align-middle">Proposed actions</b-th>
@@ -678,13 +639,9 @@ import {
   getVocaDBTagUrl,
   getDateDisposition,
   getMaxResultsForDisplay,
-  getSortingConditionForDisplay,
   getSongTypeColorForDisplay,
-  getSongTypeStatsForDisplay,
   pageStateIsValid,
   infoLoaded,
-  getDispositionBadgeColorVariant,
-  EntryWithReleaseEventAndVisibility,
   SongType,
   getUniqueElementId,
   allVideosInvisible,
@@ -695,13 +652,13 @@ import {
   VideoWithEntryAndVisibility,
   getNicoVideoUrl,
   getVocaDBArtistUrl,
-  getVocaDBAddSongUrl,
-  getTimeDeltaState
+  getVocaDBAddSongUrl
 } from "@/utils";
 import ErrorMessage from "@/components/ErrorMessage.vue";
 import NicoEmbed from "@/components/NicoEmbed.vue";
+import DateDisposition from "@/components/DateDisposition.vue";
 
-@Component({ components: { ErrorMessage, NicoEmbed } })
+@Component({ components: { ErrorMessage, NicoEmbed, DateDisposition } })
 export default class extends Vue {
   @Prop()
   private readonly mode!: number;
@@ -829,10 +786,6 @@ export default class extends Vue {
     );
   }
 
-  private getDispositionBadgeColorVariant(disposition: string): string {
-    return getDispositionBadgeColorVariant(disposition);
-  }
-
   private allInvisible(): boolean {
     return allVideosInvisible(this.entries);
   }
@@ -913,10 +866,6 @@ export default class extends Vue {
     return video.songEntry != null && video.songEntry.taggedWithMultipleEvents;
   }
 
-  private getReleaseDateFormatted(releaseDate: string): string {
-    return DateTime.fromISO(releaseDate).toLocaleString();
-  }
-
   // error handling
   private processError(err: any): void {
     this.$bvToast.show(getUniqueElementId("error_", this.thisMode.toString()));
@@ -935,6 +884,9 @@ export default class extends Vue {
       return;
     }
     this.showCollapse = false;
+    this.tagsLoaded = false;
+    this.tagsConfirmed = false;
+    this.entries = [];
     this.fetching = true;
     try {
       let response = await api.fetchReleaseEventWithNndTags({
@@ -997,7 +949,6 @@ export default class extends Vue {
             this.event.date!,
             this.event.endDate
           );
-          console.log(item.video.eventDateComparison);
         }
       }
       this.entries = response.items.map(vid => {
