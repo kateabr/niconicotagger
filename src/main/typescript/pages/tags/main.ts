@@ -7,7 +7,8 @@ import { far } from "@fortawesome/free-regular-svg-icons";
 import { fas } from "@fortawesome/free-solid-svg-icons";
 import "bootstrap/dist/css/bootstrap.css";
 import "bootstrap-vue/dist/bootstrap-vue.css";
-import Home from "@/pages/vocadb/views/VocaDB.vue";
+import App from "@/pages/tags/App.vue";
+import { router } from "./router";
 
 Vue.use(BootstrapVue);
 Vue.use(IconsPlugin);
@@ -16,6 +17,4 @@ library.add(far);
 library.add(fas);
 Vue.component("FontAwesomeIcon", FontAwesomeIcon);
 
-new Vue({
-  render: h => h(Home)
-}).$mount("#app");
+new Vue({ router, render: h => h(App) }).$mount("#app");

@@ -84,14 +84,14 @@
               <b-dropdown
                 block
                 :disabled="defaultDisableCondition()"
-                :text="getOrderingCondition()"
+                :text="getsortingCondition()"
                 variant="primary"
               >
                 <b-dropdown-item
                   v-for="(key, item) in orderOptionsNico"
                   :key="key"
-                  :disabled="orderingCondition === item"
-                  @click="setOrderingCondition(item)"
+                  :disabled="sortingCondition === item"
+                  @click="setSortingCondition(item)"
                 >
                   {{ orderOptionsNico[item] }}
                 </b-dropdown-item>
@@ -500,10 +500,10 @@ import { AxiosResponse } from "axios";
 @Component({ components: { NicoEmbed, ErrorMessage } })
 export default class extends Vue {
   @Prop()
-  private readonly mode!: number;
+  private readonly mode!: string;
 
   @Prop()
-  private readonly thisMode!: number;
+  private readonly thisMode!: string;
 
   // main variables
   private tagName: string = "";
@@ -517,7 +517,7 @@ export default class extends Vue {
   private pageToJump: number = 1;
   private startOffset: number = 0;
   private maxResults: number = 10;
-  private orderingCondition = "startTime";
+  private sortingCondition = "startTime";
   private fetching: boolean = false;
   private massAssigning: boolean = false;
   private assigning: boolean = false;
@@ -529,9 +529,9 @@ export default class extends Vue {
   private page: number = 0;
   private maxPage: number = 0;
   private numOfPages: number = 0;
-  private noEntry: boolean = true;
-  private showVideosWithUploaderEntry: boolean = false;
-  private tagged: boolean = true;
+  private noEntry: boolean = false;
+  private showVideosWithUploaderEntry: boolean = true;
+  private tagged: boolean = false;
   private tagMappings: string[] = [];
 
   // interface dictionaries
@@ -567,8 +567,8 @@ export default class extends Vue {
     return infoLoaded(this.videos.length, this.tagNameFrozen);
   }
 
-  private getOrderingCondition(): string {
-    return getSortingConditionForDisplayNico(this.orderingCondition);
+  private getsortingCondition(): string {
+    return getSortingConditionForDisplayNico(this.sortingCondition);
   }
 
   private setDefaultScopeTagString(): void {
@@ -638,8 +638,8 @@ export default class extends Vue {
     return this.songTypes.filter(t => !t.show).length;
   }
 
-  private setOrderingCondition(value: string): void {
-    this.orderingCondition = value;
+  private setSortingCondition(value: string): void {
+    this.sortingCondition = value;
   }
 
   private setMaxResults(maxResults: number): void {
@@ -714,7 +714,7 @@ export default class extends Vue {
         scopeTag: scopeString,
         startOffset: newStartOffset,
         maxResults: this.maxResults,
-        orderBy: this.orderingCondition
+        orderBy: this.sortingCondition
       });
       this.videos = response.items.map(vid => {
         return {
@@ -738,6 +738,8 @@ export default class extends Vue {
       this.numOfPages = this.totalVideoCount / this.maxResults + 1;
       this.startOffset = newStartOffset;
       this.allChecked = false;
+      localStorage.setItem("nicovideo_mapped_tag", targetTag);
+      localStorage.setItem("nicovideo_mapped_tag_scope", scopeString);
     } catch (err) {
       this.processError(err);
     } finally {
@@ -801,6 +803,28 @@ export default class extends Vue {
     } else {
       this.alertCode = err.response.data.code;
       this.alertMessage = err.response.data.message;
+    }
+  }
+
+  // session
+  created(): void {
+    let max_results = localStorage.getItem("max_results");
+    if (max_results != null) {
+      this.maxResults = parseInt(max_results);
+    }
+    let sort_by = localStorage.getItem("sort_by");
+    if (sort_by != null) {
+      this.sortingCondition = sort_by;
+    }
+    let nicovideo_mapped_tag = localStorage.getItem("nicovideo_mapped_tag");
+    if (nicovideo_mapped_tag != null) {
+      this.tagName = nicovideo_mapped_tag;
+    }
+    let nicovideo_mapped_tag_scope = localStorage.getItem(
+      "nicovideo_mapped_tag_scope"
+    );
+    if (nicovideo_mapped_tag_scope != null) {
+      this.scopeTagString = nicovideo_mapped_tag_scope;
     }
   }
 }

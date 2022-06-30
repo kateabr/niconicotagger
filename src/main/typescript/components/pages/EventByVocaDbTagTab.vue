@@ -24,7 +24,7 @@
             id="tag-form"
             v-model.trim="eventTagName"
             :disabled="defaultDisableCondition()"
-            placeholder="Event tag (VocaDB)"
+            placeholder="Event tag name"
             @keydown.enter.native="loadInitialPage"
           >
           </b-form-input>
@@ -57,7 +57,7 @@
                     number
                     type="range"
                     min="0"
-                    :max="event.endDate == null ? 7 : 1"
+                    :max="timeDeltaMax"
                     @change="filterEntriesIfValidState()"
                   />
                   <template #prepend>
@@ -519,10 +519,10 @@ import { AxiosResponse } from "axios";
 @Component({ components: { ErrorMessage, DateDisposition } })
 export default class extends Vue {
   @Prop()
-  private readonly mode!: number;
+  private readonly mode!: string;
 
   @Prop()
-  private readonly thisMode!: number;
+  private readonly thisMode!: string;
 
   // main variables
   private event: ReleaseEventForDisplay = {
@@ -552,10 +552,11 @@ export default class extends Vue {
   private allChecked: boolean = false;
   private showCollapse: boolean = false;
   private totalEntryCount: number = 0;
-  private timeDeltaEnabled: boolean = false;
-  private timeDeltaBefore: boolean = false;
-  private timeDeltaAfter: boolean = false;
+  private timeDeltaEnabled: boolean = true;
+  private timeDeltaBefore: boolean = true;
+  private timeDeltaAfter: boolean = true;
   private timeDelta: number = 0;
+  private timeDeltaMax: number = 0;
   private otherEvents: boolean = true;
   private page: number = 0;
   private maxPage: number = 0;
@@ -804,6 +805,9 @@ export default class extends Vue {
       this.numOfPages = this.totalEntryCount / this.maxResults + 1;
       this.startOffset = newStartOffset;
       this.allChecked = false;
+      this.timeDeltaMax = this.event.endDate == null ? 7 : 1;
+      this.timeDelta = this.timeDeltaMax;
+      localStorage.setItem("vocadb_event_tag_name", eventTagName);
     } catch (err) {
       this.processError(err);
     } finally {
@@ -875,9 +879,13 @@ export default class extends Vue {
     if (max_results != null) {
       this.maxResults = parseInt(max_results);
     }
-    let sort_by = localStorage.getItem("order_by");
-    if (sort_by != null) {
-      this.orderingCondition = sort_by;
+    let order_by = localStorage.getItem("order_by");
+    if (order_by != null) {
+      this.orderingCondition = order_by;
+    }
+    let event_tag_name = localStorage.getItem("vocadb_event_tag_name");
+    if (event_tag_name != null) {
+      this.eventTagName = event_tag_name;
     }
   }
 }

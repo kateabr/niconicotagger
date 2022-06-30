@@ -257,7 +257,7 @@ impl<'a> Client<'a> {
                 title: html_escape::decode_html_entities(&video.title).to_string(),
                 tags: video.tags.clone(),
                 user_id: video.user_id,
-                start_time: video.start_time
+                start_time: video.start_time,
             });
         }
 
@@ -369,7 +369,7 @@ impl<'a> Client<'a> {
         target_nico_tags: Vec<String>,
         normalized_target_mappings: Vec<String>,
         normalized_scope_tags: Vec<String>,
-        non_target_mappings: &Vec<String>
+        non_target_mappings: &Vec<String>,
     ) -> Vec<DisplayableTag> {
         target_nico_tags.iter().map(|t| {
             let normalized_t: String = normalize(t);
@@ -418,7 +418,7 @@ impl<'a> Client<'a> {
                 song_type: res.song_type,
                 artist_string: res.artist_string.clone(),
                 release_event: res.release_event,
-                publish_date: res.publish_date
+                publish_date: res.publish_date,
             }
         });
 
@@ -431,34 +431,8 @@ impl<'a> Client<'a> {
             },
             song_entry: entry,
             publisher,
-            processed: tag_in_tags
+            processed: tag_in_tags,
         });
-    }
-
-    fn get_release_event_from_albums_or_entry(&self, entry: SongForApiContract, event_id: i32) -> Option<ReleaseEventForApiContractSimplified> {
-        match entry.albums {
-            Some(albums) => {
-                for ref album in albums {
-                    if album.release_event.is_some() && album.release_event.as_ref().unwrap().id == event_id {
-                        return album.release_event.as_ref()
-                            .map(|release_event|
-                                ReleaseEventForApiContractSimplified {
-                                    date: release_event.date.clone(),
-                                    end_date: release_event.end_date.clone(),
-                                    id: release_event.id,
-                                    name: release_event.name.clone(),
-                                    url_slug: release_event.url_slug.clone(),
-                                    category: release_event.category.clone(),
-                                    web_links: release_event.web_links.clone()
-                                }).or(None);
-                    }
-                }
-                entry.release_event
-            }
-            None => {
-                entry.release_event
-            }
-        }
     }
 
     pub async fn lookup_video_by_event(&self, video: &NicoVideo, event_id: i32, nico_tags: Vec<String>, mappings: &Vec<String>, scope: String) -> Result<VideoWithEntry> {
@@ -477,21 +451,54 @@ impl<'a> Client<'a> {
 
         let tags = self.assign_colors(src_nico_tags, normalized_nico_mappings, normalized_scope_tags, mappings);
 
-        let mut processed = false;
-        let entry = response.map(|res| {
-            processed = res.release_event.is_some() && res.release_event.as_ref().unwrap().id == event_id;
-            let tagged_with_multiple_events: bool = res.tags.iter().map(|tag| tag.tag.id).any(|tag_id| tag_id == i32::from(8275)); // multiple events
+        let entry = response.map(|r| {
+            let event = r.albums.as_ref()
+                .and_then(|albums| {
+                    albums.iter()
+                        .flat_map(|album| &album.release_event)
+                        .find(|re| re.id == event_id)
+                });
 
-            SongForApiContractSimplifiedWithMultipleEventInfo {
-                id: res.id,
-                name: res.name.clone(),
+            let tagged_with_multiple_events = r.tags.iter()
+                .any(|tag| tag.tag.id == 8275);
+
+            let re = match event {
+                None => r.release_event,
+                Some(e) => Some(
+                    ReleaseEventForApiContractSimplified {
+                        date: e.date.clone(),
+                        end_date: e.end_date.clone(),
+                        id: e.id,
+                        name: format!("{} (inherited)", e.name.clone()),
+                        url_slug: e.url_slug.clone(),
+                        category: e.category.clone(),
+                        web_links: e.web_links.clone(),
+                    }
+                ),
+            };
+
+            let entry = SongForApiContractSimplifiedWithMultipleEventInfo {
+                id: r.id,
+                name: r.name.clone(),
                 tagged_with_multiple_events,
-                song_type: res.song_type.clone(),
-                artist_string: res.artist_string.clone(),
-                publish_date: res.publish_date.clone(),
-                release_event: self.get_release_event_from_albums_or_entry(res, event_id)
-            }
+                song_type: r.song_type.clone(),
+                artist_string: r.artist_string.clone(),
+                publish_date: r.publish_date.clone(),
+                release_event: re,
+            };
+
+            entry
         });
+
+        let processed = match &entry {
+            None => false,
+            Some(e) => {
+                match &e.release_event {
+                    None => false,
+                    Some(event) => event.id == event_id
+                }
+            }
+        };
 
         return Ok(VideoWithEntry {
             video: NicoVideoWithTidyTags {
@@ -502,7 +509,7 @@ impl<'a> Client<'a> {
             },
             song_entry: entry,
             publisher,
-            processed
+            processed,
         });
     }
 
@@ -560,7 +567,7 @@ impl<'a> Client<'a> {
             })
         } else {
             Err(VocadbClientError::NotFoundError(format!("tag \"{}\" does not exist", tag_name)))
-        }
+        };
     }
 
     pub async fn get_event_by_name(&self, event_name: String) -> Result<ReleaseEventForApiContractSimplified> {
@@ -570,7 +577,7 @@ impl<'a> Client<'a> {
                 ("query", event_name.clone()),
                 ("getTotalCount", String::from("true")),
                 ("lang", String::from("Default")),
-                ("fields", String::from("WebLinks,Series"))
+                ("fields", String::from("WebLinks,Series")),
             ],
         ).await?;
 
@@ -585,7 +592,7 @@ impl<'a> Client<'a> {
                     Some(series) => series.category.clone(),
                     None => response.items[0].category.clone()
                 },
-                web_links: response.items[0].web_links.clone()
+                web_links: response.items[0].web_links.clone(),
             }),
             0 => Err(VocadbClientError::NotFoundError(format!("event \"{}\" does not exist", event_name.clone()))),
             _ => Err(VocadbClientError::AmbiguousResponseError)
@@ -599,7 +606,7 @@ impl<'a> Client<'a> {
                 ("tagId[]", tag_id.to_string()),
                 ("getTotalCount", String::from("true")),
                 ("lang", String::from("Default")),
-                ("fields", String::from("Series"))
+                ("fields", String::from("Series")),
             ],
         ).await?;
 
@@ -614,7 +621,7 @@ impl<'a> Client<'a> {
                     Some(series) => series.category.clone(),
                     None => response.items[0].category.clone()
                 },
-                web_links: None
+                web_links: None,
             }),
             0 => Err(VocadbClientError::NotFoundError(format!("tag with id=\"{}\" does not exist", tag_id))),
             _ => Err(VocadbClientError::AmbiguousResponseError)
@@ -844,7 +851,7 @@ impl<'a> Client<'a> {
                                         rating_score: Some(0),
                                         release_event: None,
                                         publish_date: None,
-                                        albums: None
+                                        albums: None,
                                     });
                                 } else {
                                     response_entries.push(SongForApiContract {
@@ -858,7 +865,7 @@ impl<'a> Client<'a> {
                                         rating_score: Some(0),
                                         release_event: None,
                                         publish_date: None,
-                                        albums: None
+                                        albums: None,
                                     });
                                 };
                             }
@@ -985,7 +992,7 @@ impl<'a> Client<'a> {
                     pvs: Some(nico_pvs),
                     release_event: song.release_event.clone(),
                     publish_date: song.publish_date.clone(),
-                    albums: None
+                    albums: None,
                 },
                 thumbnails_ok: ok,
                 thumbnails_error: err,

@@ -84,14 +84,14 @@
               <b-dropdown
                 block
                 :disabled="defaultDisableCondition()"
-                :text="getOrderingCondition()"
+                :text="getSortingCondition()"
                 variant="primary"
               >
                 <b-dropdown-item
                   v-for="(key, item) in orderOptionsNico"
                   :key="key"
-                  :disabled="orderingCondition === item"
-                  @click="setOrderingCondition(item)"
+                  :disabled="sortingCondition === item"
+                  @click="setSortingCondition(item)"
                 >
                   {{ orderOptionsNico[item] }}
                 </b-dropdown-item>
@@ -503,10 +503,10 @@ import { AxiosResponse } from "axios";
 @Component({ components: { ErrorMessage } })
 export default class extends Vue {
   @Prop()
-  private readonly mode!: number;
+  private readonly mode!: string;
 
   @Prop()
-  private readonly thisMode!: number;
+  private readonly thisMode!: string;
 
   // main variables
   private tagName: string = "";
@@ -520,7 +520,7 @@ export default class extends Vue {
   private pageToJump: number = 1;
   private startOffset: number = 0;
   private maxResults: number = 10;
-  private orderingCondition = "startTime";
+  private sortingCondition = "startTime";
   private fetching: boolean = false;
   private massAssigning: boolean = false;
   private assigning: boolean = false;
@@ -532,9 +532,9 @@ export default class extends Vue {
   private page: number = 0;
   private maxPage: number = 0;
   private numOfPages: number = 0;
-  private noEntry: boolean = true;
-  private showVideosWithUploaderEntry: boolean = false;
-  private tagged: boolean = true;
+  private noEntry: boolean = false;
+  private showVideosWithUploaderEntry: boolean = true;
+  private tagged: boolean = false;
   private tagMappings: string[] = [];
 
   // error handling
@@ -582,12 +582,12 @@ export default class extends Vue {
     this.scopeTagString = defaultScopeTagString;
   }
 
-  private getOrderingCondition(): string {
-    return getSortingConditionForDisplayNico(this.orderingCondition);
+  private getSortingCondition(): string {
+    return getSortingConditionForDisplayNico(this.sortingCondition);
   }
 
-  private setOrderingCondition(value: string): void {
-    this.orderingCondition = value;
+  private setSortingCondition(value: string): void {
+    this.sortingCondition = value;
   }
 
   private noVideosWithEntries(): boolean {
@@ -717,7 +717,7 @@ export default class extends Vue {
         scopeTag: scopeString,
         startOffset: newStartOffset,
         maxResults: this.maxResults,
-        orderBy: this.orderingCondition
+        orderBy: this.sortingCondition
       });
       this.videos = response.items.map(vid => {
         return {
@@ -743,6 +743,8 @@ export default class extends Vue {
       this.numOfPages = this.totalVideoCount / this.maxResults + 1;
       this.startOffset = newStartOffset;
       this.allChecked = false;
+      localStorage.setItem("vocadb_mapped_tag", targetTag);
+      localStorage.setItem("vocadb_mapped_tag_scope", scopeString);
     } catch (err) {
       this.processError(err);
     } finally {
@@ -805,6 +807,28 @@ export default class extends Vue {
     } else {
       this.alertCode = err.response.data.code;
       this.alertMessage = err.response.data.message;
+    }
+  }
+
+  // session
+  created(): void {
+    let max_results = localStorage.getItem("max_results");
+    if (max_results != null) {
+      this.maxResults = parseInt(max_results);
+    }
+    let sort_by = localStorage.getItem("sort_by");
+    if (sort_by != null) {
+      this.sortingCondition = sort_by;
+    }
+    let vocadb_mapped_tag = localStorage.getItem("vocadb_mapped_tag");
+    if (vocadb_mapped_tag != null) {
+      this.tagName = vocadb_mapped_tag;
+    }
+    let vocadb_mapped_tag_scope = localStorage.getItem(
+      "vocadb_mapped_tag_scope"
+    );
+    if (vocadb_mapped_tag_scope != null) {
+      this.scopeTagString = vocadb_mapped_tag_scope;
     }
   }
 }

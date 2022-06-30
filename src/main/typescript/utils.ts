@@ -135,16 +135,32 @@ export function getDateDisposition(
     if (dateEnd >= date) {
       return { dayDiff: 0, disposition: "perfect" };
     } else {
-      return {
-        dayDiff: Math.abs(subDates(date, dateEnd)),
-        disposition: "late"
-      };
+      const dayDiff1 = Math.abs(subDates(date, dateEnd));
+      if (dayDiff1 > 0) {
+        return {
+          dayDiff: dayDiff1,
+          disposition: "late"
+        };
+      } else {
+        return {
+          dayDiff: 0,
+          disposition: "perfect"
+        };
+      }
     }
   } else {
-    return {
-      dayDiff: Math.abs(subDates(dateStart, date)),
-      disposition: "early"
-    };
+    const dayDiff2 = Math.abs(subDates(dateStart, date));
+    if (dayDiff2 > 0) {
+      return {
+        dayDiff: dayDiff2,
+        disposition: "early"
+      };
+    } else {
+      return {
+        dayDiff: 0,
+        disposition: "perfect"
+      };
+    }
   }
 }
 

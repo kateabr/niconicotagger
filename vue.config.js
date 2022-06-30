@@ -3,17 +3,13 @@ const path = require("path");
 
 module.exports = {
   pages: {
-    vocadb: {
-      title: "NicoNicoTagger (VocaDB)",
-      entry: "src/main/typescript/pages/vocadb/main.ts"
-    },
-    nicovideo: {
-      title: "NicoNicoTagger (Nico)",
-      entry: "src/main/typescript/pages/nicovideo/main.ts"
-    },
     events: {
       title: "NicoNicoTagger (Events)",
       entry: "src/main/typescript/pages/events/main.ts"
+    },
+    tags: {
+      title: "NicoNicoTagger (Tags)",
+      entry: "src/main/typescript/pages/tags/main.ts"
     },
     login: {
       title: "Login",

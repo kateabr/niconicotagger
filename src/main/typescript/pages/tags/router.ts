@@ -6,22 +6,22 @@ Vue.use(VueRouter);
 const routes: RouteConfig[] = [
   {
     path: "/:browseMode",
-    name: "events",
+    name: "tags",
     props: true,
-    component: () => import("@/pages/events/views/Events.vue")
+    component: () => import("@/pages/tags/views/Tags.vue")
   },
   {
     path: "/",
-    name: "events",
+    name: "tags",
     props: {
-      browseMode: "vocadb"
+      browseMode: "activity-entries"
     },
-    component: () => import("@/pages/events/views/Events.vue")
+    component: () => import("@/pages/tags/views/Tags.vue")
   }
 ];
 
 export const router = new VueRouter({
-  base: "/events",
+  base: "/tags",
   mode: "history",
   routes: routes
 });

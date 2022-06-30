@@ -6,24 +6,10 @@
 
     <b-collapse id="nav-collapse" is-nav>
       <b-navbar-nav>
-        <b-nav-item :active="activeMode === 'nicovideo'" to="nicovideo"
-          >Tags<font-awesome-icon
-            icon="fa-solid fa-angles-right"
-            size="xs"
-            class="mx-sm-1 mt-1"
-          />Nicovideo</b-nav-item
+        <b-nav-item :active="activeMode === 'tags'" href="/tags"
+          >Tags</b-nav-item
         >
-        <b-nav-item :active="activeMode === 'vocadb'" to="vocadb"
-          >Tags<font-awesome-icon
-            icon="fa-solid fa-angles-right"
-            size="xs"
-            class="mx-sm-1"
-          />VocaDB</b-nav-item
-        >
-        <b-nav-item disabled>
-          <font-awesome-icon class="mx-sm-1" icon="fas fa-ellipsis-vertical"
-        /></b-nav-item>
-        <b-nav-item :active="activeMode === 'events'" to="events"
+        <b-nav-item :active="activeMode === 'events'" href="/events"
           >Events</b-nav-item
         >
       </b-navbar-nav>

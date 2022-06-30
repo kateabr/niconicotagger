@@ -138,9 +138,9 @@
         <b-button
           variant="primary"
           block
-          :pressed="showEntriesWithErrors"
+          :pressed.sync="showEntriesWithErrors"
           :disabled="defaultDisableCondition()"
-          @click="toggleShowEntriesWithErrors"
+          @click="filterVideos()"
           >Entries with errors
         </b-button>
       </b-col>
@@ -148,9 +148,9 @@
         <b-button
           variant="primary"
           block
-          :pressed="!hideEntriesWithNoTags"
+          :pressed.sync="showEntriesWithNoTags"
           :disabled="defaultDisableCondition()"
-          @click="toggleHideEntriesWithNoTags"
+          @click="filterVideos()"
           >Entries with no tags to add
         </b-button>
       </b-col>
@@ -474,10 +474,10 @@ import { AxiosResponse } from "axios";
 @Component({ components: { ProgressBar, NicoEmbed, ErrorMessage } })
 export default class extends Vue {
   @Prop()
-  private readonly mode!: number;
+  private readonly mode!: string;
 
   @Prop()
-  private readonly thisMode!: number;
+  private readonly thisMode!: string;
 
   // main variables
   private videos: EntryWithVideosAndVisibility[] = [];
@@ -496,7 +496,7 @@ export default class extends Vue {
   private numOfPages: number = 1;
   private page: number = 1;
   private distinctSongCount: number = 0;
-  private hideEntriesWithNoTags: boolean = false;
+  private showEntriesWithNoTags: boolean = false;
   private showEntriesWithErrors: boolean = true;
   private sessionLocked: boolean = false;
 
@@ -581,16 +581,6 @@ export default class extends Vue {
     return this.songTypes.filter(t => !t.show).length;
   }
 
-  private toggleShowEntriesWithErrors() {
-    this.showEntriesWithErrors = !this.showEntriesWithErrors;
-    this.filterVideos();
-  }
-
-  private toggleHideEntriesWithNoTags() {
-    this.hideEntriesWithNoTags = !this.hideEntriesWithNoTags;
-    this.filterVideos();
-  }
-
   private countChecked(): number {
     return this.videos.filter(video => video.toAssign).length;
   }
@@ -619,7 +609,7 @@ export default class extends Vue {
   private hideEntriesWithNoTagsFlag(
     entry: EntryWithVideosAndVisibility
   ): boolean {
-    return !this.hideEntriesWithNoTags || this.hasTagsToAssign(entry);
+    return this.showEntriesWithNoTags || this.hasTagsToAssign(entry);
   }
 
   private showEntriesWithErrorsFlag(

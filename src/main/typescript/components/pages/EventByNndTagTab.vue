@@ -27,7 +27,7 @@
             id="tag-form"
             v-model.trim="eventName"
             :disabled="defaultDisableCondition()"
-            placeholder="Event name (VocaDB)"
+            placeholder="Event name"
             @keydown.enter.native="fetchEvent(eventName)"
           >
           </b-form-input>
@@ -170,9 +170,9 @@
                 :disabled="defaultDisableCondition()"
                 variant="primary"
                 block
-                :pressed.sync="showVideosWithNoEvents"
+                :pressed.sync="currentEventFilled"
                 @click="filterVideos()"
-                >Songs with no events
+                >Songs with current event
               </b-button>
             </b-col>
           </b-row>
@@ -199,7 +199,7 @@
                     number
                     type="range"
                     min="0"
-                    :max="event.endDate == null ? 7 : 1"
+                    :max="timeDeltaMax"
                     @change="filterEntriesIfValidState()"
                   />
                   <template #prepend>
@@ -371,9 +371,9 @@
                 :disabled="defaultDisableCondition()"
                 variant="primary"
                 block
-                :pressed.sync="currentEventFilled"
+                :pressed.sync="showVideosWithNoEvents"
                 @click="filterVideos()"
-                >Songs with current event
+                >Songs with no events
               </b-button>
             </b-col>
             <b-col class="my-auto">
@@ -541,7 +541,8 @@
                       v-if="
                         hasReleaseEvent(item) &&
                         item.songEntry.releaseEvent.id !== event.id &&
-                        !isTaggedWithMultipleEvents(item)
+                        !isTaggedWithMultipleEvents(item) &&
+                        !item.processed
                       "
                     >
                       Tag with "<b-link
@@ -550,7 +551,7 @@
                         >multiple events</b-link
                       >" and update description
                     </li>
-                    <li v-else-if="!hasReleaseEvent(item)">
+                    <li v-else-if="!hasReleaseEvent(item) && !item.processed">
                       Set "<b-link
                         :href="getVocaDBEventUrl(event.id, event.urlSlug)"
                         target="_blank"
@@ -694,7 +695,6 @@ import {
   getMaxResultsForDisplay,
   getSongTypeColorForDisplay,
   pageStateIsValid,
-  infoLoaded,
   SongType,
   getUniqueElementId,
   allVideosInvisible,
@@ -718,10 +718,10 @@ import { AxiosResponse } from "axios";
 @Component({ components: { ErrorMessage, NicoEmbed, DateDisposition } })
 export default class extends Vue {
   @Prop()
-  private readonly mode!: number;
+  private readonly mode!: string;
 
   @Prop()
-  private readonly thisMode!: number;
+  private readonly thisMode!: string;
 
   // main variables
   private readonly event: ReleaseEventForDisplay = {
@@ -754,18 +754,19 @@ export default class extends Vue {
   private allChecked: boolean = false;
   private showCollapse: boolean = false;
   private totalVideoCount: number = 0;
-  private currentEventFilled: boolean = true;
   private page: number = 0;
   private maxPage: number = 0;
   private numOfPages: number = 0;
-  private showVideosWithoutEntries: boolean = true;
-  private showVideosWithUploaderEntry: boolean = false;
+  private currentEventFilled: boolean = false;
+  private showVideosWithoutEntries: boolean = false;
+  private showVideosWithUploaderEntry: boolean = true;
   private showVideosWithOtherEvents: boolean = true;
   private showVideosWithNoEvents: boolean = true;
-  private timeDeltaEnabled: boolean = false;
+  private timeDeltaEnabled: boolean = true;
   private timeDeltaBefore: boolean = true;
   private timeDeltaAfter: boolean = true;
   private timeDelta: number = 0;
+  private timeDeltaMax: number = 0;
 
   // error handling
   private alertCode: number = 0;
@@ -841,9 +842,7 @@ export default class extends Vue {
   }
 
   private eventInfoLoaded(): boolean {
-    return (
-      this.tagsConfirmed && infoLoaded(this.entries.length, this.event.name)
-    );
+    return this.tagsConfirmed && this.numOfPages > 0;
   }
 
   private allInvisible(): boolean {
@@ -1033,6 +1032,9 @@ export default class extends Vue {
       this.event.nndTags = response.tags;
       this.eventTagsJoint = this.event.nndTags.join(" OR ");
       this.tagsLoaded = true;
+      this.timeDeltaMax = this.event.endDate == null ? 7 : 1;
+      this.timeDelta = this.timeDeltaMax;
+      localStorage.setItem("vocadb_event_name", eventName);
     } catch (err) {
       this.processError(err);
     } finally {
@@ -1168,6 +1170,7 @@ export default class extends Vue {
 
   private confirmAndLoad(): void {
     this.tagsConfirmed = true;
+    this.numOfPages = 0;
     this.loadPage(1);
   }
 
@@ -1185,6 +1188,14 @@ export default class extends Vue {
     let max_results = localStorage.getItem("max_results");
     if (max_results != null) {
       this.maxResults = parseInt(max_results);
+    }
+    let event_name = localStorage.getItem("vocadb_event_name");
+    if (event_name != null) {
+      this.eventName = event_name;
+    }
+    let sort_by = localStorage.getItem("sort_by");
+    if (sort_by != null) {
+      this.sortingCondition = sort_by;
     }
   }
 }
