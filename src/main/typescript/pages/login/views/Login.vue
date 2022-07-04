@@ -72,7 +72,7 @@ export default class extends Vue {
         database: "VocaDb"
       });
       localStorage.setItem("accessToken", response.data.token);
-      window.location.href = "/nicovideo";
+      window.location.href = "/tags";
     } catch (err) {
       this.$bvToast.show("error");
       this.alertMessage = err.response.data.message;

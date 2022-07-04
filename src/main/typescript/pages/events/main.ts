@@ -8,7 +8,8 @@ import { fas } from "@fortawesome/free-solid-svg-icons";
 
 import "bootstrap/dist/css/bootstrap.css";
 import "bootstrap-vue/dist/bootstrap-vue.css";
-import Home from "@/pages/events/views/Events.vue";
+import App from "@/pages/events/App.vue";
+import { router } from "./router";
 
 Vue.use(BootstrapVue);
 Vue.use(IconsPlugin);
@@ -18,5 +19,6 @@ library.add(fas);
 Vue.component("FontAwesomeIcon", FontAwesomeIcon);
 
 new Vue({
-  render: h => h(Home)
+  router,
+  render: h => h(App)
 }).$mount("#app");

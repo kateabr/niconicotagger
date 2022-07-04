@@ -10,7 +10,7 @@
         <b-input-group inline class="mt-lg-3">
           <template #prepend>
             <b-button
-              v-b-toggle.scope-collapse
+              v-b-toggle="'scope-collapse-' + thisMode"
               variant="primary"
               style="width: 80px"
               :disabled="defaultDisableCondition() || event.id < 0"
@@ -24,7 +24,7 @@
             id="tag-form"
             v-model.trim="eventTagName"
             :disabled="defaultDisableCondition()"
-            placeholder="Event tag"
+            placeholder="Event tag name"
             @keydown.enter.native="loadInitialPage"
           >
           </b-form-input>
@@ -42,22 +42,22 @@
             ></b-button>
           </template>
         </b-input-group>
-        <b-collapse id="scope-collapse" v-model="showCollapse" class="mt-2">
+        <b-collapse
+          :id="'scope-collapse-' + thisMode"
+          v-model="showCollapse"
+          class="mt-2"
+        >
           <b-row>
             <b-col>
               <template>
                 <b-input-group inline>
                   <b-form-input
                     v-model="timeDelta"
-                    :disabled="
-                      !timeDeltaEnabled ||
-                      defaultDisableCondition() ||
-                      !isActiveMode()
-                    "
+                    :disabled="defaultDisableCondition() || !isActiveMode()"
                     number
                     type="range"
                     min="0"
-                    max="7"
+                    :max="timeDeltaMax"
                     @change="filterEntriesIfValidState()"
                   />
                   <template #prepend>
@@ -72,7 +72,7 @@
                   </template>
                   <template #append>
                     <b-input-group-text class="justify-content-center"
-                      >{{ timeDeltaEnabled ? timeDelta : "-" }}
+                      >{{ timeDelta }}
                       day(s)
                     </b-input-group-text>
                   </template>
@@ -311,19 +311,14 @@
               <b-link
                 target="_blank"
                 :href="getVocaDBEntryUrl(item.songEntry.id)"
-                v-html="item.songEntry.name"
-              />
-              <b-link
-                target="_blank"
-                :href="getVocaDBEntryUrl(item.songEntry.id)"
-              >
-                <b-badge
+                >{{ item.songEntry.name
+                }}<b-badge
                   class="badge text-center ml-2"
                   :variant="getSongTypeColorForDisplay(item.songEntry.songType)"
                 >
                   {{ getShortenedSongType(item.songEntry.songType) }}
-                </b-badge>
-              </b-link>
+                </b-badge></b-link
+              >
               <div class="text-muted">
                 {{ item.songEntry.artistString }}
               </div>
@@ -354,40 +349,11 @@
               <span v-else class="text-muted">Unspecified</span>
             </td>
             <td>
-              <b-row>
-                <b-col cols="4">
-                  <span v-if="item.publishDate !== null">
-                    <font-awesome-icon
-                      icon="fa-solid fa-calendar"
-                      class="mr-1"
-                    />{{ item.publishDate.toLocaleString() }}
-                  </span>
-                  <span v-else class="text-muted">Unspecified</span>
-                </b-col>
-                <b-col>
-                  <b-badge
-                    :variant="
-                      getDispositionBadgeColorVariant(
-                        item.songEntry.eventDateComparison.disposition
-                      )
-                    "
-                    class="mr-1"
-                  >
-                    {{ item.songEntry.eventDateComparison.disposition }}
-                  </b-badge>
-                  <span
-                    v-if="
-                      item.songEntry.eventDateComparison.disposition !==
-                        'unknown' &&
-                      item.songEntry.eventDateComparison.disposition !==
-                        'perfect'
-                    "
-                    >(by
-                    {{ item.songEntry.eventDateComparison.dayDiff }}
-                    day(s))
-                  </span>
-                </b-col>
-              </b-row>
+              <date-disposition
+                v-if="item.publishDate !== null"
+                :release-date="item.songEntry.publishDate"
+                :event-date-comparison="item.songEntry.eventDateComparison"
+              />
             </td>
             <td>
               <b-row>
@@ -520,11 +486,7 @@
 
 <script lang="ts">
 import Vue from "vue";
-import {
-  DateComparisonResult,
-  MinimalTag,
-  ReleaseEventForDisplay
-} from "@/backend/dto";
+import { MinimalTag, ReleaseEventForDisplay } from "@/backend/dto";
 import { api } from "@/backend";
 import { DateTime } from "luxon";
 import Component from "vue-class-component";
@@ -541,32 +503,36 @@ import {
   getSongTypeStatsForDisplay,
   pageStateIsValid,
   infoLoaded,
-  getDispositionBadgeColorVariant,
   EntryWithReleaseEventAndVisibility,
   SongType,
   getUniqueElementId,
   allVideosInvisible,
   dateIsWithinTimeDelta,
-  getTimeDeltaState
+  getTimeDeltaState,
+  fillReleaseEventForDisplay,
+  DateComparisonResult
 } from "@/utils";
 import ErrorMessage from "@/components/ErrorMessage.vue";
+import DateDisposition from "@/components/DateDisposition.vue";
+import { AxiosResponse } from "axios";
 
-@Component({ components: { ErrorMessage } })
+@Component({ components: { ErrorMessage, DateDisposition } })
 export default class extends Vue {
   @Prop()
-  private readonly mode!: number;
+  private readonly mode!: string;
 
   @Prop()
-  private readonly thisMode!: number;
+  private readonly thisMode!: string;
 
   // main variables
-  private readonly event: ReleaseEventForDisplay = {
+  private event: ReleaseEventForDisplay = {
     id: -1,
     name: "",
     category: "",
     date: null,
     endDate: null,
-    urlSlug: ""
+    urlSlug: "",
+    nndTags: []
   };
   private entries: EntryWithReleaseEventAndVisibility[] = [];
   private tag: MinimalTag = { name: "", id: -1, urlSlug: "" };
@@ -586,10 +552,11 @@ export default class extends Vue {
   private allChecked: boolean = false;
   private showCollapse: boolean = false;
   private totalEntryCount: number = 0;
-  private timeDeltaEnabled: boolean = false;
-  private timeDeltaBefore: boolean = false;
-  private timeDeltaAfter: boolean = false;
+  private timeDeltaEnabled: boolean = true;
+  private timeDeltaBefore: boolean = true;
+  private timeDeltaAfter: boolean = true;
   private timeDelta: number = 0;
+  private timeDeltaMax: number = 0;
   private otherEvents: boolean = true;
   private page: number = 0;
   private maxPage: number = 0;
@@ -662,10 +629,6 @@ export default class extends Vue {
     return infoLoaded(this.entries.length, this.eventTagNameFrozen);
   }
 
-  private getDispositionBadgeColorVariant(disposition: string): string {
-    return getDispositionBadgeColorVariant(disposition);
-  }
-
   private allInvisible(): boolean {
     return allVideosInvisible(this.entries);
   }
@@ -720,30 +683,49 @@ export default class extends Vue {
     this.orderingCondition = value;
   }
 
+  // row filtering
+  private hiddenTypeFlag(entry: EntryWithReleaseEventAndVisibility): boolean {
+    return (
+      this.getHiddenTypes() == 0 ||
+      !this.songTypes
+        .filter(t => !t.show)
+        .map(t => t.name)
+        .includes(entry.songEntry.songType)
+    );
+  }
+
+  private timeDeltaFlag(eventDateComparison: DateComparisonResult): boolean {
+    return (
+      !this.timeDeltaEnabled ||
+      dateIsWithinTimeDelta(
+        this.timeDelta,
+        this.timeDeltaBefore,
+        this.timeDeltaAfter,
+        eventDateComparison
+      )
+    );
+  }
+
+  private otherEventsFlag(entry: EntryWithReleaseEventAndVisibility): boolean {
+    return (
+      this.otherEvents ||
+      entry.songEntry.releaseEvent == null ||
+      entry.songEntry.releaseEvent.id == this.event.id
+    );
+  }
+
   private filterEntries(): void {
-    for (const item of this.entries) {
-      item.rowVisible =
-        (this.getHiddenTypes() == 0 ||
-          !this.songTypes
-            .filter(t => !t.show)
-            .map(t => t.name)
-            .includes(item.songEntry.songType)) &&
-        (!this.timeDeltaEnabled ||
-          dateIsWithinTimeDelta(
-            this.timeDelta,
-            this.timeDeltaBefore,
-            this.timeDeltaAfter,
-            item.songEntry.eventDateComparison
-          )) &&
-        (this.otherEvents ||
-          item.songEntry.releaseEvent == null ||
-          item.songEntry.releaseEvent.id == this.event.id);
-      item.toAssign = item.toAssign && item.rowVisible;
+    for (const entry of this.entries) {
+      entry.rowVisible =
+        this.hiddenTypeFlag(entry) &&
+        this.timeDeltaFlag(entry.songEntry.eventDateComparison) &&
+        this.otherEventsFlag(entry);
+      entry.toAssign = entry.toAssign && entry.rowVisible;
     }
   }
 
   private filterEntriesIfValidState(): void {
-    if (this.getTimeDeltaState() && this.timeDelta != 0) {
+    if (this.getTimeDeltaState()) {
       if (!this.timeDeltaEnabled) {
         this.timeDeltaBefore = false;
         this.timeDeltaAfter = false;
@@ -753,7 +735,9 @@ export default class extends Vue {
   }
 
   // error handling
-  private processError(err: any): void {
+  private processError(
+    err: { response: AxiosResponse } | { response: undefined; message: string }
+  ): void {
     this.$bvToast.show(getUniqueElementId("error_", this.thisMode.toString()));
     if (err.response == undefined) {
       this.alertCode = 0;
@@ -807,18 +791,7 @@ export default class extends Vue {
       this.totalEntryCount = response.totalCount;
       this.entries = entries_temp;
       this.tag = response.eventTag;
-      this.event.id = response.releaseEvent.id;
-      this.event.name = response.releaseEvent.name;
-      this.event.urlSlug = response.releaseEvent.urlSlug;
-      this.event.category = response.releaseEvent.category;
-      this.event.date =
-        response.releaseEvent.date == null
-          ? null
-          : DateTime.fromISO(response.releaseEvent.date);
-      this.event.endDate =
-        response.releaseEvent.endDate == null
-          ? null
-          : DateTime.fromISO(response.releaseEvent.endDate);
+      fillReleaseEventForDisplay(response.releaseEvent, this.event);
       this.entries.forEach(
         value =>
           (value.songEntry.eventDateComparison = this.getDateDisposition(
@@ -829,10 +802,12 @@ export default class extends Vue {
       );
       this.filterEntries();
       this.eventTagNameFrozen = this.event.name;
-      this.page = newStartOffset / this.maxResults + 1;
       this.numOfPages = this.totalEntryCount / this.maxResults + 1;
       this.startOffset = newStartOffset;
       this.allChecked = false;
+      this.timeDeltaMax = this.event.endDate == null ? 7 : 1;
+      this.timeDelta = this.timeDeltaMax;
+      localStorage.setItem("vocadb_event_tag_name", eventTagName);
     } catch (err) {
       this.processError(err);
     } finally {
@@ -858,6 +833,17 @@ export default class extends Vue {
         tagId: this.tag.id
       });
       song.processed = true;
+      if (song.songEntry.releaseEvent == null) {
+        song.songEntry.releaseEvent = {
+          id: this.event.id,
+          date: null,
+          nndTags: this.event.nndTags,
+          name: this.event.name,
+          urlSlug: this.event.urlSlug,
+          category: this.event.category,
+          endDate: null
+        };
+      }
       song.toAssign = false;
     } catch (err) {
       this.processError(err);
@@ -893,9 +879,13 @@ export default class extends Vue {
     if (max_results != null) {
       this.maxResults = parseInt(max_results);
     }
-    let sort_by = localStorage.getItem("order_by");
-    if (sort_by != null) {
-      this.orderingCondition = sort_by;
+    let order_by = localStorage.getItem("order_by");
+    if (order_by != null) {
+      this.orderingCondition = order_by;
+    }
+    let event_tag_name = localStorage.getItem("vocadb_event_tag_name");
+    if (event_tag_name != null) {
+      this.eventTagName = event_tag_name;
     }
   }
 }

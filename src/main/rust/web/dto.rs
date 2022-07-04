@@ -50,6 +50,21 @@ pub struct TagFetchRequest {
 }
 
 #[derive(Deserialize, Debug)]
+pub struct EventByTagsFetchRequest {
+    #[serde(rename = "startOffset")]
+    pub start_offset: i32,
+    #[serde(rename = "maxResults")]
+    pub max_results: i32,
+    pub tags: String,
+    #[serde(rename = "scopeTag")]
+    pub scope_tag: String,
+    #[serde(rename = "orderBy")]
+    pub order_by: String,
+    #[serde(rename = "eventId")]
+    pub event_id: i32,
+}
+
+#[derive(Deserialize, Debug)]
 pub struct SongsByEventTagFetchRequest {
     #[serde(rename = "startOffset")]
     pub start_offset: i32,
@@ -59,6 +74,24 @@ pub struct SongsByEventTagFetchRequest {
     #[serde(rename = "orderBy")]
     pub order_by: String,
 }
+
+#[derive(Deserialize, Debug)]
+pub struct ReleaseEventWithNndTagsFetchRequest {
+    #[serde(rename = "eventName")]
+    pub event_name: String,
+}
+
+// #[derive(Deserialize, Debug)]
+// pub struct ReleaseEventWithNndTagsFetchRequest {
+//     #[serde(rename = "eventName")]
+//     pub event_name: String,
+//     #[serde(rename = "startOffset")]
+//     pub start_offset: i32,
+//     #[serde(rename = "maxResults")]
+//     pub max_results: i32,
+//     #[serde(rename = "orderBy")]
+//     pub order_by: String,
+// }
 
 #[derive(Deserialize, Debug)]
 pub struct AssignTagRequest {
@@ -78,12 +111,14 @@ pub struct LookupAndAssignTagRequest {
 pub struct SongForApiContractSimplified {
     pub id: i32,
     pub name: String,
-    #[serde(rename = "tagInTags")]
-    pub tag_in_tags: bool,
     #[serde(rename = "songType")]
     pub song_type: String,
     #[serde(rename = "artistString")]
     pub artist_string: String,
+    #[serde(rename = "releaseEvent")]
+    pub release_event: Option<ReleaseEventForApiContractSimplified>,
+    #[serde(rename = "publishDate")]
+    pub publish_date: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -119,8 +154,9 @@ pub struct DisplayableTag {
 pub struct VideoWithEntry {
     pub video: NicoVideoWithTidyTags,
     #[serde(rename = "songEntry")]
-    pub song_entry: Option<SongForApiContractSimplified>,
+    pub song_entry: Option<SongForApiContractSimplifiedWithMultipleEventInfo>,
     pub publisher: Option<NicoPublisher>,
+    pub processed: bool,
 }
 
 #[derive(Serialize)]
@@ -162,6 +198,8 @@ pub struct NicoVideo {
     pub tags: String,
     #[serde(rename = "userId")]
     pub user_id: Option<i32>,
+    #[serde(rename = "startTime")]
+    pub start_time: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -169,6 +207,8 @@ pub struct NicoVideoWithTidyTags {
     #[serde(rename = "contentId")]
     pub id: String,
     pub title: String,
+    #[serde(rename = "startTime")]
+    pub start_time: String,
     pub tags: Vec<DisplayableTag>,
 }
 
@@ -294,6 +334,13 @@ pub struct AssignEventAndRemoveTagPayload {
     pub tag_id: i64,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct AssignEventPayload {
+    #[serde(rename = "songId")]
+    pub song_id: i32,
+    pub event: MinimalEvent,
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct MinimalEvent {
     pub id: i64,
@@ -308,4 +355,10 @@ pub enum EventAssigningResult {
     AlreadyAssigned,
     MultipleEvents,
     AlreadyTaggedWithMultipleEvents
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ReleaseEventWithNndTagsFetchResponse {
+    pub event: ReleaseEventForApiContractSimplified,
+    pub tags: Vec<String>
 }

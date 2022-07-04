@@ -1,6 +1,5 @@
 <template>
   <b-row>
-    {{ timestampIsValid }}
     <progress-bar
       :distinct-song-count="distinctSongCount"
       :fetching="fetching"
@@ -125,9 +124,9 @@
           <b-button
             variant="primary"
             block
-            :pressed="showEntriesWithErrors"
             :disabled="defaultDisableCondition()"
-            @click="toggleShowEntriesWithErrors"
+            :pressed.sync="showEntriesWithErrors"
+            @click="filterVideos()"
             >Entries with errors
           </b-button>
         </b-col>
@@ -135,14 +134,15 @@
           <b-button
             variant="primary"
             block
-            :pressed="!hideEntriesWithNoTags"
+            :pressed.sync="showEntriesWithNoTags"
             :disabled="defaultDisableCondition()"
-            @click="toggleHideEntriesWithNoTags"
+            @click="filterVideos()"
             >Entries with no tags to add
           </b-button>
         </b-col>
       </b-row>
       <b-row class="mt-3">
+        <b-col cols="2" class="my-auto"></b-col>
         <b-col class="my-auto">
           <template>
             <b-input-group inline>
@@ -169,21 +169,6 @@
                   "
                   hide-header
                   style="width: 80px"
-                  @input="refreshTimestamp()"
-                />
-                <b-form-timepicker
-                  v-model="timeBound"
-                  button-only
-                  show-seconds
-                  style="width: 80px"
-                  hide-header
-                  no-close-button
-                  :disabled="
-                    fetching ||
-                    dateBound === '' ||
-                    timestampPickerIsDisabled ||
-                    (isActiveMode() && sessionLocked)
-                  "
                   @input="refreshTimestamp()"
                 />
               </template>
@@ -225,6 +210,7 @@
             </b-dropdown-item>
           </b-dropdown>
         </b-col>
+        <b-col cols="2" class="my-auto"></b-col>
       </b-row>
     </div>
     <b-row v-if="songsInfoLoaded()" class="col-12">
@@ -252,7 +238,7 @@
     </b-row>
     <b-row v-if="songsInfoLoaded()" class="flex-fill text-center">
       <div class="overflow-auto mx-auto flex-fill my-3">
-        <b-button-group class="col-2 my-1">
+        <b-button-group class="my-1">
           <b-button
             variant="link"
             :disabled="defaultDisableCondition() || !timestampIsValid"
@@ -319,18 +305,15 @@
             </div>
           </td>
           <td>
-            <b-link
-              target="_blank"
-              :href="getVocaDBEntryUrl(video.song.id)"
-              v-html="video.song.name"
-            >
-              <b-badge
+            <b-link target="_blank" :href="getVocaDBEntryUrl(video.song.id)"
+              >{{ video.song.name
+              }}<b-badge
                 class="badge text-center ml-2"
                 :variant="getSongTypeColorForDisplay(video.song.songType)"
               >
                 {{ getShortenedSongType(video.song.songType) }}
-              </b-badge>
-            </b-link>
+              </b-badge></b-link
+            >
             <b-badge
               v-clipboard:copy="video.song.createDate"
               class="m-sm-1"
@@ -362,8 +345,8 @@
                 <b-link
                   target="_blank"
                   :href="getNicoVideoUrl(thumbnail.thumbnail.id)"
-                  v-html="thumbnail.thumbnail.title"
-                />
+                  >{{ thumbnail.thumbnail.title }}</b-link
+                >
                 <div>
                   <b-badge
                     v-for="(nico_tag, key) in thumbnail.nicoTags"
@@ -541,7 +524,7 @@
     </b-row>
     <b-row v-if="songsInfoLoaded()" class="flex-fill text-center mb-3">
       <div class="overflow-auto mx-auto flex-fill my-3">
-        <b-button-group class="col-2 my-1">
+        <b-button-group class="my-1">
           <b-button
             variant="link"
             :disabled="defaultDisableCondition() || !timestampIsValid"
@@ -615,14 +598,15 @@ import { MappedTag, MinimalTag } from "@/backend/dto";
 import NicoEmbed from "@/components/NicoEmbed.vue";
 import ProgressBar from "@/components/ProgressBar.vue";
 import ErrorMessage from "@/components/ErrorMessage.vue";
+import { AxiosResponse } from "axios";
 
 @Component({ components: { NicoEmbed, ProgressBar, ErrorMessage } })
 export default class extends Vue {
   @Prop()
-  private readonly mode!: number;
+  private readonly mode!: string;
 
   @Prop()
-  private readonly thisMode!: number;
+  private readonly thisMode!: string;
 
   // main variables
   private videos: EntryWithVideosAndVisibility[] = [];
@@ -639,15 +623,13 @@ export default class extends Vue {
   private totalVideoCount: number = 0;
   private maxPage: number = 0;
   private numOfPages: number = 1;
-  private page: number = 1;
-  private timeBound = "00:00:00";
   private dateBound = "";
   private now = new Date();
   private min = new Date("2012-02-23T09:58:03");
   private timestampIsValid = false;
   private timestampPickerIsDisabled = false;
   private distinctSongCount: number = 0;
-  private hideEntriesWithNoTags: boolean = false;
+  private showEntriesWithNoTags: boolean = false;
   private showEntriesWithErrors: boolean = true;
   private sessionLocked: boolean = false;
 
@@ -809,16 +791,6 @@ export default class extends Vue {
     this.sortingCondition = value;
   }
 
-  private toggleShowEntriesWithErrors() {
-    this.showEntriesWithErrors = !this.showEntriesWithErrors;
-    this.filterVideos();
-  }
-
-  private toggleHideEntriesWithNoTags() {
-    this.hideEntriesWithNoTags = !this.hideEntriesWithNoTags;
-    this.filterVideos();
-  }
-
   private getHiddenTypes(): number {
     return this.songTypes.filter(t => !t.show).length;
   }
@@ -850,7 +822,7 @@ export default class extends Vue {
   }
 
   private refreshTimestamp() {
-    const temp = DateTime.fromISO(this.dateBound + "T" + this.timeBound)
+    const temp = DateTime.fromISO(this.dateBound + "T00:00:00")
       .toJSON()
       .split("+")[0];
     if (this.timestamp !== temp) {
@@ -860,11 +832,54 @@ export default class extends Vue {
 
   private clearTimestamp() {
     this.dateBound = "";
-    this.timeBound = "00:00:00";
     this.timestamp = "";
     this.timestampIsValid = false;
     this.videos = [];
     this.timestampPickerIsDisabled = false;
+  }
+
+  // row filtering
+  private hiddenTypeFlag(video: EntryWithVideosAndVisibility): boolean {
+    return (
+      this.getHiddenTypes() == 0 ||
+      !this.songTypes
+        .filter(t => !t.show)
+        .map(t => t.name)
+        .includes(video.song.songType)
+    );
+  }
+
+  private hasTagsToAssign(entry: EntryWithVideosAndVisibility): boolean {
+    let assignable_mapped_tags_cnt = 0;
+    for (const thumbnailOk of entry.thumbnailsOk) {
+      assignable_mapped_tags_cnt += thumbnailOk.mappedTags.filter(
+        tag => !tag.assigned
+      ).length;
+    }
+    return assignable_mapped_tags_cnt > 0;
+  }
+
+  private hideEntriesWithNoTagsFlag(
+    entry: EntryWithVideosAndVisibility
+  ): boolean {
+    return this.showEntriesWithNoTags || this.hasTagsToAssign(entry);
+  }
+
+  private showEntriesWithErrorsFlag(
+    entry: EntryWithVideosAndVisibility
+  ): boolean {
+    return (
+      this.showEntriesWithErrors &&
+      entry.thumbnailsErr.filter(thumb => !thumb.community).length > 0
+    );
+  }
+
+  private filterVideos(): void {
+    for (const video of this.videos) {
+      video.visible =
+        (this.hiddenTypeFlag(video) && this.hideEntriesWithNoTagsFlag(video)) ||
+        this.showEntriesWithErrorsFlag(video);
+    }
   }
 
   // api methods
@@ -874,7 +889,7 @@ export default class extends Vue {
     this.additionMode = payload.mode;
     localStorage.setItem("max_results", this.maxResults.toString());
     localStorage.setItem("timestamp", this.timestamp);
-    localStorage.setItem("sort_by", this.sortingCondition);
+    localStorage.setItem("sort_by_vocadb", this.sortingCondition);
     localStorage.setItem("added_mode", this.additionMode);
     const reverse = payload.reverse;
     try {
@@ -1026,29 +1041,10 @@ export default class extends Vue {
     }
   }
 
-  private filterVideos(): void {
-    for (const video of this.videos) {
-      let assignable_mapped_tags_cnt = 0;
-      for (const thumbnailOk of video.thumbnailsOk) {
-        assignable_mapped_tags_cnt += thumbnailOk.mappedTags.filter(
-          tag => !tag.assigned
-        ).length;
-      }
-
-      video.visible =
-        ((this.getHiddenTypes() == 0 ||
-          !this.songTypes
-            .filter(t => !t.show)
-            .map(t => t.name)
-            .includes(video.song.songType)) &&
-          (!this.hideEntriesWithNoTags || assignable_mapped_tags_cnt > 0)) ||
-        (this.showEntriesWithErrors &&
-          video.thumbnailsErr.filter(thumb => !thumb.community).length > 0);
-    }
-  }
-
   // error handling
-  private processError(err: any): void {
+  private processError(
+    err: { response: AxiosResponse } | { response: undefined; message: string }
+  ): void {
     this.$bvToast.show("error_" + this.thisMode);
     if (err.response == undefined) {
       this.alertCode = 0;
@@ -1070,7 +1066,7 @@ export default class extends Vue {
       this.timestamp = timestamp;
       this.timestampIsValid = true;
     }
-    let sort_by = localStorage.getItem("sort_by");
+    let sort_by = localStorage.getItem("sort_by_vocadb");
     if (sort_by != null) {
       this.sortingCondition = sort_by;
     }

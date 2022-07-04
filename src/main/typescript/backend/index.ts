@@ -12,7 +12,11 @@ import {
   VideosWithEntriesByVocaDbTag,
   FetchVideosByEventTagPayload,
   EntriesWithReleaseEventTag,
-  AssignEventAndRemoveTagPayload
+  AssignEventAndRemoveTagPayload,
+  fetchReleaseEventWithNndTagsPayload,
+  ReleaseEventForApiContractSimplifiedWithNndTags,
+  FetchVideosByEventTagsPayload,
+  AssignEventPayload
 } from "@/backend/dto";
 import { AxiosResponse } from "axios";
 
@@ -49,5 +53,18 @@ export const api = {
     payload: AssignEventAndRemoveTagPayload
   ): Promise<EntriesWithReleaseEventTag> {
     return axios.post("/api/assign_event_and_remove_tag", payload).then(value => value.data);
+  },
+  async fetchReleaseEventWithNndTags(
+    payload: fetchReleaseEventWithNndTagsPayload
+  ): Promise<ReleaseEventForApiContractSimplifiedWithNndTags> {
+    return axios.post("/api/fetch_release_event_with_nnd_tags", payload).then(value => value.data);
+  },
+  async fetchVideosByEventNndTags(
+    payload: FetchVideosByEventTagsPayload
+  ): Promise<VideosWithEntries> {
+    return axios.post("/api/fetch_videos_by_event_nnd_tags", payload).then(value => value.data);
+  },
+  async assignEvent(payload: AssignEventPayload): Promise<EntriesWithReleaseEventTag> {
+    return axios.post("/api/assign_event", payload).then(value => value.data);
   }
 };

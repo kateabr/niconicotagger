@@ -1,3 +1,5 @@
+extern crate core;
+
 use actix_web::{App, Error, HttpRequest, HttpResponse, HttpServer, middleware};
 use actix_web::error::{InternalError, JsonPayloadError};
 use actix_web::http::StatusCode;
@@ -33,6 +35,9 @@ async fn main() -> std::io::Result<()> {
                     .service(web::controller::get_mapped_tags)
                     .service(web::controller::fetch_from_db_by_event_tag)
                     .service(web::controller::assign_event_and_remove_tag)
+                    .service(web::controller::assign_event)
+                    .service(web::controller::fetch_release_event_with_nnd_tags)
+                    .service(web::controller::fetch_videos_by_event_nnd_tags)
             )
     })
     .bind("127.0.0.1:8080")?

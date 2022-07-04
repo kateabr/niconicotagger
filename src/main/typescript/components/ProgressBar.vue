@@ -1,14 +1,16 @@
 <template>
-  <div class="flex-fill fixed-top mb-3">
-    <b-progress
-      height="5px"
-      :value="distinctSongCount"
-      :max="maxResults"
-      :precision="0"
-      :animated="fetching"
-      striped
-    />
-  </div>
+  <Transition appear>
+    <div v-if="fetching && maxResults > 10" class="flex-fill fixed-top mb-3">
+      <b-progress
+        height="5px"
+        :value="distinctSongCount"
+        :max="maxResults"
+        :precision="0"
+        striped
+        animated
+      />
+    </div>
+  </Transition>
 </template>
 
 <script lang="ts">
@@ -27,3 +29,7 @@ export default class extends Vue {
   private readonly fetching!: boolean;
 }
 </script>
+
+<style>
+@import "style.scss";
+</style>

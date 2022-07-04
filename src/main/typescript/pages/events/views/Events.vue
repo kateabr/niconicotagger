@@ -4,11 +4,28 @@
     <b-toaster class="b-toaster-top-center" name="toaster-events" />
     <div style="display: flex; align-items: center">
       <b-container class="col-lg-11">
-        <b-tabs v-model="browseMode" class="mt-3" content-class="mt-3">
-          <b-tab title="Browse by event tag (VocaDB)">
-            <event-by-voca-db-tag-tab :mode="browseMode" this-mode="0" />
-          </b-tab>
-        </b-tabs>
+        <b-nav tabs class="mb-2">
+          <b-nav-item
+            :to="{ name: 'events', params: { browseMode: 'vocadb' } }"
+            :active="browseMode === 'vocadb'"
+          >
+            Replace an event tag (VocaDB)
+          </b-nav-item>
+          <b-nav-item
+            :to="{ name: 'events', params: { browseMode: 'nicovideo' } }"
+            :active="browseMode === 'nicovideo'"
+          >
+            Add event by associated tags (NND)
+          </b-nav-item>
+        </b-nav>
+        <div class="tab-content">
+          <div :class="['tab-pane', { active: browseMode === 'vocadb' }]">
+            <event-by-voca-db-tag-tab :mode="browseMode" this-mode="vocadb" />
+          </div>
+          <div :class="['tab-pane', { active: browseMode === 'nicovideo' }]">
+            <event-by-nnd-tag-tab :mode="browseMode" this-mode="nicovideo" />
+          </div>
+        </div>
       </b-container>
     </div>
   </div>
@@ -16,15 +33,19 @@
 
 <script lang="ts">
 import Vue from "vue";
-import { Component } from "vue-property-decorator";
+import { Component, Prop } from "vue-property-decorator";
 import VueClipboard from "vue-clipboard2";
 import NavBarMenu from "@/components/NavBarMenu.vue";
 import EventByVocaDbTagTab from "@/components/pages/EventByVocaDbTagTab.vue";
+import EventByNndTagTab from "@/components/pages/EventByNndTagTab.vue";
 
 Vue.use(VueClipboard);
 
-@Component({ components: { NavBarMenu, EventByVocaDbTagTab } })
+@Component({
+  components: { NavBarMenu, EventByVocaDbTagTab, EventByNndTagTab }
+})
 export default class extends Vue {
-  private browseMode = 0;
+  @Prop()
+  private browseMode!: "vocadb" | "nicovideo";
 }
 </script>

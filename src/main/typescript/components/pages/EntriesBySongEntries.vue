@@ -138,9 +138,9 @@
         <b-button
           variant="primary"
           block
-          :pressed="showEntriesWithErrors"
+          :pressed.sync="showEntriesWithErrors"
           :disabled="defaultDisableCondition()"
-          @click="toggleShowEntriesWithErrors"
+          @click="filterVideos()"
           >Entries with errors
         </b-button>
       </b-col>
@@ -148,9 +148,9 @@
         <b-button
           variant="primary"
           block
-          :pressed="!hideEntriesWithNoTags"
+          :pressed.sync="showEntriesWithNoTags"
           :disabled="defaultDisableCondition()"
-          @click="toggleHideEntriesWithNoTags"
+          @click="filterVideos()"
           >Entries with no tags to add
         </b-button>
       </b-col>
@@ -224,11 +224,8 @@
             </div>
           </td>
           <td>
-            <b-link
-              target="_blank"
-              :href="getVocaDBEntryUrl(video.song.id)"
-              v-html="video.song.name"
-            >
+            <b-link target="_blank" :href="getVocaDBEntryUrl(video.song.id)"
+              >{{ video.song.name }}
               <b-badge
                 class="badge text-center ml-2"
                 :variant="getSongTypeColorForDisplay(video.song.songType)"
@@ -258,8 +255,8 @@
                 <b-link
                   target="_blank"
                   :href="getNicoVideoUrl(thumbnail.thumbnail.id)"
-                  v-html="thumbnail.thumbnail.title"
-                />
+                  >{{ thumbnail.thumbnail.title }}</b-link
+                >
                 <div>
                   <b-badge
                     v-for="(nico_tag, key) in thumbnail.nicoTags"
@@ -472,14 +469,15 @@ import { MappedTag, MinimalTag } from "@/backend/dto";
 import NicoEmbed from "@/components/NicoEmbed.vue";
 import ProgressBar from "@/components/ProgressBar.vue";
 import ErrorMessage from "@/components/ErrorMessage.vue";
+import { AxiosResponse } from "axios";
 
 @Component({ components: { ProgressBar, NicoEmbed, ErrorMessage } })
 export default class extends Vue {
   @Prop()
-  private readonly mode!: number;
+  private readonly mode!: string;
 
   @Prop()
-  private readonly thisMode!: number;
+  private readonly thisMode!: string;
 
   // main variables
   private videos: EntryWithVideosAndVisibility[] = [];
@@ -498,7 +496,7 @@ export default class extends Vue {
   private numOfPages: number = 1;
   private page: number = 1;
   private distinctSongCount: number = 0;
-  private hideEntriesWithNoTags: boolean = false;
+  private showEntriesWithNoTags: boolean = false;
   private showEntriesWithErrors: boolean = true;
   private sessionLocked: boolean = false;
 
@@ -583,18 +581,52 @@ export default class extends Vue {
     return this.songTypes.filter(t => !t.show).length;
   }
 
-  private toggleShowEntriesWithErrors() {
-    this.showEntriesWithErrors = !this.showEntriesWithErrors;
-    this.filterVideos();
-  }
-
-  private toggleHideEntriesWithNoTags() {
-    this.hideEntriesWithNoTags = !this.hideEntriesWithNoTags;
-    this.filterVideos();
-  }
-
   private countChecked(): number {
     return this.videos.filter(video => video.toAssign).length;
+  }
+
+  // row filtering
+  private hiddenTypeFlag(entry: EntryWithVideosAndVisibility): boolean {
+    return (
+      this.getHiddenTypes() == 0 ||
+      !this.songTypes
+        .filter(t => !t.show)
+        .map(t => t.name)
+        .includes(entry.song.songType)
+    );
+  }
+
+  private hasTagsToAssign(entry: EntryWithVideosAndVisibility): boolean {
+    let assignable_mapped_tags_cnt = 0;
+    for (const thumbnailOk of entry.thumbnailsOk) {
+      assignable_mapped_tags_cnt += thumbnailOk.mappedTags.filter(
+        tag => !tag.assigned
+      ).length;
+    }
+    return assignable_mapped_tags_cnt > 0;
+  }
+
+  private hideEntriesWithNoTagsFlag(
+    entry: EntryWithVideosAndVisibility
+  ): boolean {
+    return this.showEntriesWithNoTags || this.hasTagsToAssign(entry);
+  }
+
+  private showEntriesWithErrorsFlag(
+    entry: EntryWithVideosAndVisibility
+  ): boolean {
+    return (
+      this.showEntriesWithErrors &&
+      entry.thumbnailsErr.filter(thumb => !thumb.community).length > 0
+    );
+  }
+
+  private filterVideos(): void {
+    for (const video of this.videos) {
+      video.visible =
+        (this.hiddenTypeFlag(video) && this.hideEntriesWithNoTagsFlag(video)) ||
+        this.showEntriesWithErrorsFlag(video);
+    }
   }
 
   // proxy methods
@@ -728,7 +760,6 @@ export default class extends Vue {
       this.postProcessVideos();
       this.filterVideos();
       this.distinctSongCount = this.maxResults;
-      this.page = newStartOffset / this.maxResults + 1;
       this.numOfPages = this.totalVideoCount / this.maxResults + 1;
       this.startOffset = newStartOffset;
     } catch (err) {
@@ -800,33 +831,14 @@ export default class extends Vue {
     }
   }
 
-  private filterVideos(): void {
-    for (const video of this.videos) {
-      let assignable_mapped_tags_cnt = 0;
-      for (const thumbnailOk of video.thumbnailsOk) {
-        assignable_mapped_tags_cnt += thumbnailOk.mappedTags.filter(
-          tag => !tag.assigned
-        ).length;
-      }
-
-      video.visible =
-        ((this.getHiddenTypes() == 0 ||
-          !this.songTypes
-            .filter(t => !t.show)
-            .map(t => t.name)
-            .includes(video.song.songType)) &&
-          (!this.hideEntriesWithNoTags || assignable_mapped_tags_cnt > 0)) ||
-        (this.showEntriesWithErrors &&
-          video.thumbnailsErr.filter(thumb => !thumb.community).length > 0);
-    }
-  }
-
   private loadPage(pgNum: number): void {
     this.fetch((pgNum - 1) * this.maxResults, pgNum);
   }
 
   // error handling
-  private processError(err: any): void {
+  private processError(
+    err: { response: AxiosResponse } | { response: undefined; message: string }
+  ): void {
     this.$bvToast.show(getUniqueElementId("error_", this.thisMode.toString()));
     if (err.response == undefined) {
       this.alertCode = 0;

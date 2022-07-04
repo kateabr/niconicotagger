@@ -5,11 +5,14 @@ use actix_web::web::Json;
 use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use anyhow::Context;
 use futures::future;
+use url::Url;
 
 use crate::client::client::Client;
 use crate::client::errors::VocadbClientError;
+use crate::client::models::releaseevent::ReleaseEventForApiContractSimplifiedWithNndTags;
 use crate::client::models::tag::{AssignableTag, TagBaseContract};
-use crate::web::dto::{AssignEventAndRemoveTagPayload, AssignTagRequest, Database, DBBeforeSinceFetchRequest, DBFetchRequest, EventAssigningResult, LoginRequest, LoginResponse, LookupAndAssignTagRequest, SongsByEventTagFetchRequest, SongsByEventTagFetchResponse, TagFetchRequest, Token, VideosWithEntries, VideosWithEntriesByVocaDbTag};
+use crate::client::models::weblink::WebLinkForApiContract;
+use crate::web::dto::{AssignEventAndRemoveTagPayload, AssignTagRequest, Database, DBBeforeSinceFetchRequest, DBFetchRequest, ReleaseEventWithNndTagsFetchRequest, EventAssigningResult, LoginRequest, LoginResponse, LookupAndAssignTagRequest, SongsByEventTagFetchRequest, SongsByEventTagFetchResponse, TagFetchRequest, Token, VideosWithEntries, VideosWithEntriesByVocaDbTag, EventByTagsFetchRequest, AssignEventPayload};
 use crate::web::errors::AppResponseError;
 use crate::web::errors::Result;
 use crate::web::middleware::auth_token;
@@ -215,6 +218,121 @@ pub async fn assign_event_and_remove_tag(_req: HttpRequest, payload: Json<Assign
     client.remove_tag(payload.song_id, payload.tag_id).await?;
 
     return Ok(Json(result));
+}
+
+#[post("/assign_event")]
+pub async fn assign_event(_req: HttpRequest, payload: Json<AssignEventPayload>) -> Result<impl Responder> {
+    if payload.song_id < 0 || payload.event.id < 0 || payload.event.name.is_empty() || payload.event.url_slug.is_empty() {
+        return Err(AppResponseError::ConstraintViolationError(String::from("Invalid arguments")));
+    }
+
+    let token = extract_token(&_req)?;
+    let client = client_from_token(&token)?;
+
+    let result = client.fill_in_event(payload.song_id, payload.event.clone()).await?;
+    match result {
+        EventAssigningResult::MultipleEvents => {
+            let response_code = client.assign(vec![TagBaseContract {
+                id: 8275,
+                name: String::from("multiple events"),
+                category_name: Some(String::from("Editor notes")),
+                additional_names: Some(String::from("")),
+                url_slug: String::from("multiple-events")
+            }], payload.song_id).await;
+            if response_code.is_err() {
+                return Err(
+                    AppResponseError::VocadbClientError(
+                        VocadbClientError::NotFoundError(
+                            format!("Could not find tag \"multiple events\" (id={})", 8275)
+                        )
+                    )
+                );
+            }
+        }
+        EventAssigningResult::AlreadyTaggedWithMultipleEvents => {
+            // did nothing, but need to tell the user to check whether song description mentions the event
+        }
+        _ => {
+            // EventAssigningResult::Assigned => filled the event
+            // EventAssigningResult::AlreadyAssigned => the event is already filled
+        }
+    }
+
+    return Ok(Json(result));
+}
+
+#[post("/fetch_release_event_with_nnd_tags")]
+pub async fn fetch_release_event_with_nnd_tags(_req: HttpRequest, payload: Json<ReleaseEventWithNndTagsFetchRequest>) -> Result<impl Responder> {
+    pub fn clean_nnd_links(links: Vec<WebLinkForApiContract>) -> Result<Vec<String>> {
+        let mut result: Vec<String> = vec![];
+        for link in links {
+            let parsed_link = Url::parse(&link.url).context(format!("invalid url: \"{}\"", &link.url))?;
+            let host = parsed_link.host_str().context(format!("invalid url: \"{}\"", &link.url))?;
+            if host != "nicovideo.jp" && host != "www.nicovideo.jp" { continue }
+            let path_segments = parsed_link.path_segments().map(|c| c.collect::<Vec<_>>()).context(format!("invalid url: \"{}\"", &link.url))?;
+            if path_segments[0] != "tag" { continue }
+            if path_segments.len() < 2 { continue }
+            let tag = url_escape::decode(path_segments[1]).to_string();
+            result.push(tag);
+        }
+        return Ok(result);
+    }
+
+    if payload.event_name.is_empty() {
+        return Err(AppResponseError::ConstraintViolationError(String::from("Invalid arguments")));
+    }
+
+    let token = extract_token(&_req)?;
+    let client = client_from_token(&token)?;
+
+    let event = client.get_event_by_name(payload.event_name.clone()).await?;
+    let links = event.web_links.clone()
+        .ok_or(AppResponseError::NotFoundError(
+            format!(
+                "event \"{}\" does not have any associated NND tags",
+                payload.event_name.clone()
+            )
+        ))?;
+    let clean_tags = clean_nnd_links(links)?;
+    if !clean_tags.is_empty() {
+        Ok(Json(ReleaseEventForApiContractSimplifiedWithNndTags {
+            event,
+            tags: clean_tags.clone()
+        }))
+    } else {
+        Err(AppResponseError::BadRequestError(format!("event \"{}\" has no associated NND tags", payload.event_name)))
+    }
+}
+
+#[post("/fetch_videos_by_event_nnd_tags")]
+pub async fn fetch_videos_by_event_nnd_tags(_req: HttpRequest, payload: Json<EventByTagsFetchRequest>) -> Result<impl Responder> {
+    if payload.start_offset < 0 || payload.max_results < 0 || payload.max_results > 100 || payload.event_id < 0 || payload.tags.is_empty() || payload.order_by.is_empty() {
+        return Err(AppResponseError::ConstraintViolationError(String::from("Invalid arguments")));
+    }
+
+    let token = extract_token(&_req)?;
+    let client = client_from_token(&token)?;
+
+    let mappings = client.get_mapped_tags().await?;
+    let response = client
+                .get_videos(payload.tags.clone(), payload.scope_tag.clone(), payload.start_offset, payload.max_results, payload.order_by.clone()).await?;
+
+    let futures = response.data.iter()
+                .map(|video|
+                    client.lookup_video_by_event(video,
+                                        payload.event_id,
+                                        payload.tags.split(" OR ").map(|tag| String::from(tag)).collect(),
+                                        &mappings, payload.scope_tag.clone()));
+
+            let video_entries = future::try_join_all(futures).await?;
+
+            return Ok(Json(VideosWithEntries {
+                items: video_entries,
+                total_video_count: response.meta.total_count,
+                tags: vec![],
+                tag_mappings: payload.tags.split(" ").map(|spl| spl.to_string()).collect(),
+                safe_scope: response.safe_scope,
+            }));
 }
 
 #[post("/assign")]

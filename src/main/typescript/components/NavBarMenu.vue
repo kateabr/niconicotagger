@@ -6,13 +6,10 @@
 
     <b-collapse id="nav-collapse" is-nav>
       <b-navbar-nav>
-        <b-nav-item :disabled="activeMode === 'nicovideo'" to="nicovideo"
-          >Nicovideo</b-nav-item
+        <b-nav-item :active="activeMode === 'tags'" href="/tags"
+          >Tags</b-nav-item
         >
-        <b-nav-item :disabled="activeMode === 'vocadb'" to="vocadb"
-          >VocaDB</b-nav-item
-        >
-        <b-nav-item :disabled="activeMode === 'events'" to="events"
+        <b-nav-item :active="activeMode === 'events'" href="/events"
           >Events</b-nav-item
         >
       </b-navbar-nav>

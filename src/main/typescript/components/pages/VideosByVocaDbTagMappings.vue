@@ -10,7 +10,7 @@
         <b-input-group inline class="mt-lg-3">
           <template #prepend>
             <b-button
-              v-b-toggle.scope-collapse
+              v-b-toggle="'scope-collapse-' + thisMode"
               variant="primary"
               style="width: 80px"
               :disabled="defaultDisableCondition()"
@@ -42,7 +42,11 @@
             ></b-button>
           </template>
         </b-input-group>
-        <b-collapse id="scope-collapse" v-model="showCollapse" class="mt-2">
+        <b-collapse
+          :id="'scope-collapse-' + thisMode"
+          v-model="showCollapse"
+          class="mt-2"
+        >
           <b-row>
             <b-col>
               <b-input-group inline>
@@ -80,14 +84,14 @@
               <b-dropdown
                 block
                 :disabled="defaultDisableCondition()"
-                :text="getOrderingCondition()"
+                :text="getSortingCondition()"
                 variant="primary"
               >
                 <b-dropdown-item
                   v-for="(key, item) in orderOptionsNico"
                   :key="key"
-                  :disabled="orderingCondition === item"
-                  @click="setOrderingCondition(item)"
+                  :disabled="sortingCondition === item"
+                  @click="setSortingCondition(item)"
                 >
                   {{ orderOptionsNico[item] }}
                 </b-dropdown-item>
@@ -296,7 +300,7 @@
             :style="item.rowVisible ? '' : 'display: none'"
           >
             <b-td>
-              <div v-if="item.songEntry != null && !item.songEntry.tagInTags">
+              <div v-if="item.songEntry != null && !item.processed">
                 <b-form-checkbox
                   v-model="item.toAssign"
                   size="lg"
@@ -317,8 +321,8 @@
               <b-link
                 target="_blank"
                 :href="getNicoVideoUrl(item.video.contentId)"
-                v-html="item.video.title"
-              ></b-link>
+                >{{ item.video.title }}</b-link
+              >
               <div>
                 <b-badge
                   v-for="(item1, key1) in item.video.tags"
@@ -347,21 +351,16 @@
                 <b-link
                   target="_blank"
                   :href="getVocaDBEntryUrl(item.songEntry.id)"
-                  v-html="item.songEntry.name"
-                ></b-link>
-                <b-link
-                  target="_blank"
-                  :href="getVocaDBEntryUrl(item.songEntry.id)"
-                >
-                  <b-badge
+                  >{{ item.songEntry.name
+                  }}<b-badge
                     class="badge text-center ml-2"
                     :variant="
                       getSongTypeColorForDisplay(item.songEntry.songType)
                     "
                   >
                     {{ getShortenedSongType(item.songEntry.songType) }}
-                  </b-badge>
-                </b-link>
+                  </b-badge></b-link
+                >
                 <div class="text-muted">
                   {{ item.songEntry.artistString }}
                 </div>
@@ -391,7 +390,7 @@
               <div v-if="item.songEntry != null">
                 <b-button-toolbar key-nav>
                   <b-button
-                    v-if="item.songEntry.tagInTags"
+                    v-if="item.processed"
                     style="pointer-events: none"
                     class="btn disabled"
                     variant="success"
@@ -485,7 +484,7 @@ import {
   getSongTypeColorForDisplay,
   defaultScopeTagString,
   getSongTypeStatsForDisplay,
-  getOrderingConditionForDisplayNico,
+  getSortingConditionForDisplayNico,
   pageStateIsValid,
   allVideosInvisible,
   getUniqueElementId,
@@ -496,17 +495,18 @@ import {
   getVocaDBArtistUrl,
   VideoWithEntryAndVisibility
 } from "@/utils";
-import { AssignableTag, SongForApiContractSimplified } from "@/backend/dto";
+import { AssignableTag } from "@/backend/dto";
 import { api } from "@/backend";
 import ErrorMessage from "@/components/ErrorMessage.vue";
+import { AxiosResponse } from "axios";
 
 @Component({ components: { ErrorMessage } })
 export default class extends Vue {
   @Prop()
-  private readonly mode!: number;
+  private readonly mode!: string;
 
   @Prop()
-  private readonly thisMode!: number;
+  private readonly thisMode!: string;
 
   // main variables
   private tagName: string = "";
@@ -520,7 +520,7 @@ export default class extends Vue {
   private pageToJump: number = 1;
   private startOffset: number = 0;
   private maxResults: number = 10;
-  private orderingCondition = "startTime";
+  private sortingCondition = "startTime";
   private fetching: boolean = false;
   private massAssigning: boolean = false;
   private assigning: boolean = false;
@@ -532,9 +532,9 @@ export default class extends Vue {
   private page: number = 0;
   private maxPage: number = 0;
   private numOfPages: number = 0;
-  private noEntry: boolean = true;
-  private showVideosWithUploaderEntry: boolean = false;
-  private tagged: boolean = true;
+  private noEntry: boolean = false;
+  private showVideosWithUploaderEntry: boolean = true;
+  private tagged: boolean = false;
   private tagMappings: string[] = [];
 
   // error handling
@@ -582,12 +582,12 @@ export default class extends Vue {
     this.scopeTagString = defaultScopeTagString;
   }
 
-  private getOrderingCondition(): string {
-    return getOrderingConditionForDisplayNico(this.orderingCondition);
+  private getSortingCondition(): string {
+    return getSortingConditionForDisplayNico(this.sortingCondition);
   }
 
-  private setOrderingCondition(value: string): void {
-    this.orderingCondition = value;
+  private setSortingCondition(value: string): void {
+    this.sortingCondition = value;
   }
 
   private noVideosWithEntries(): boolean {
@@ -596,10 +596,7 @@ export default class extends Vue {
 
   private toggleCheckAll(): void {
     for (const item of this.videos.filter(
-      video =>
-        video.rowVisible &&
-        video.songEntry != null &&
-        !video.songEntry.tagInTags
+      video => video.rowVisible && video.songEntry != null && !video.processed
     )) {
       item.toAssign = this.allChecked;
     }
@@ -607,6 +604,40 @@ export default class extends Vue {
 
   private countChecked(): number {
     return this.videos.filter(video => video.toAssign).length;
+  }
+
+  // row filtering
+  private hiddenTypeFlag(video: VideoWithEntryAndVisibility): boolean {
+    return (
+      this.getHiddenTypes() == 0 ||
+      (video.songEntry != null &&
+        !this.songTypes
+          .filter(t => !t.show)
+          .map(t => t.name)
+          .includes(video.songEntry.songType))
+    );
+  }
+
+  private noEntryFlag(video: VideoWithEntryAndVisibility): boolean {
+    return (
+      video.songEntry != null ||
+      this.noEntry ||
+      (video.publisher != null && this.showVideosWithUploaderEntry)
+    );
+  }
+
+  private taggedFlag(video: VideoWithEntryAndVisibility): boolean {
+    return video.songEntry == null || this.tagged || !video.processed;
+  }
+
+  private filterVideos(): void {
+    for (const item of this.videos) {
+      item.rowVisible =
+        this.hiddenTypeFlag(item) &&
+        this.noEntryFlag(item) &&
+        this.taggedFlag(item);
+      item.toAssign = item.toAssign && item.rowVisible;
+    }
   }
 
   // proxy methods
@@ -686,7 +717,7 @@ export default class extends Vue {
         scopeTag: scopeString,
         startOffset: newStartOffset,
         maxResults: this.maxResults,
-        orderBy: this.orderingCondition
+        orderBy: this.sortingCondition
       });
       this.videos = response.items.map(vid => {
         return {
@@ -695,7 +726,8 @@ export default class extends Vue {
           embedVisible: false,
           rowVisible: true,
           toAssign: false,
-          publisher: vid.publisher
+          publisher: vid.publisher,
+          processed: vid.processed
         };
       });
       this.filterVideos();
@@ -708,10 +740,11 @@ export default class extends Vue {
       this.tagNameFrozen = response.tags[0].name;
       this.scopeTagString = scopeString;
       this.scopeTagStringFrozen = scopeString;
-      this.page = newStartOffset / this.maxResults + 1;
       this.numOfPages = this.totalVideoCount / this.maxResults + 1;
       this.startOffset = newStartOffset;
       this.allChecked = false;
+      localStorage.setItem("vocadb_mapped_tag", targetTag);
+      localStorage.setItem("vocadb_mapped_tag_scope", scopeString);
     } catch (err) {
       this.processError(err);
     } finally {
@@ -729,7 +762,7 @@ export default class extends Vue {
     this.assigning = true;
     try {
       await api.assignTag({ tags: this.tagInfo, songId: video.songEntry.id });
-      video.songEntry.tagInTags = true;
+      video.processed = true;
     } catch (err) {
       this.processError(err);
     } finally {
@@ -750,29 +783,6 @@ export default class extends Vue {
     }
   }
 
-  private filterVideos(): void {
-    const hiddenTypes = this.getHiddenTypes() > 0;
-
-    for (const item of this.videos) {
-      item.rowVisible =
-        (item.songEntry != null ||
-          this.noEntry ||
-          (item.publisher != null && this.showVideosWithUploaderEntry)) &&
-        (item.songEntry == null || this.tagged || !item.songEntry?.tagInTags);
-      item.toAssign = item.toAssign && item.rowVisible;
-
-      if (hiddenTypes) {
-        const songEntryTemp = item.songEntry;
-        if (songEntryTemp != null) {
-          item.rowVisible = !this.songTypes
-            .filter(t => !t.show)
-            .map(t => t.name)
-            .includes(songEntryTemp.songType);
-        }
-      }
-    }
-  }
-
   private loadInitialPage(): void {
     this.fetch(this.tagName, this.scopeTagString, 0, 1);
   }
@@ -787,7 +797,9 @@ export default class extends Vue {
   }
 
   // error handling
-  private processError(err: any): void {
+  private processError(
+    err: { response: AxiosResponse } | { response: undefined; message: string }
+  ): void {
     this.$bvToast.show(getUniqueElementId("error_", this.thisMode.toString()));
     if (err.response == undefined) {
       this.alertCode = 0;
@@ -795,6 +807,28 @@ export default class extends Vue {
     } else {
       this.alertCode = err.response.data.code;
       this.alertMessage = err.response.data.message;
+    }
+  }
+
+  // session
+  created(): void {
+    let max_results = localStorage.getItem("max_results");
+    if (max_results != null) {
+      this.maxResults = parseInt(max_results);
+    }
+    let sort_by = localStorage.getItem("sort_by");
+    if (sort_by != null) {
+      this.sortingCondition = sort_by;
+    }
+    let vocadb_mapped_tag = localStorage.getItem("vocadb_mapped_tag");
+    if (vocadb_mapped_tag != null) {
+      this.tagName = vocadb_mapped_tag;
+    }
+    let vocadb_mapped_tag_scope = localStorage.getItem(
+      "vocadb_mapped_tag_scope"
+    );
+    if (vocadb_mapped_tag_scope != null) {
+      this.scopeTagString = vocadb_mapped_tag_scope;
     }
   }
 }

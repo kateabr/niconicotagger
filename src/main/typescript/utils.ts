@@ -1,12 +1,13 @@
 import { DateTime } from "luxon";
 import {
-  DateComparisonResult,
   MappedTag,
   MinimalTag,
   NicoVideoWithError,
   NicoVideoWithMappedTags,
   NicoVideoWithTidyTags,
   Publisher,
+  ReleaseEventForApiContractSimplified,
+  ReleaseEventForDisplay,
   SongForApiContractSimplified,
   SongForApiContractSimplifiedWithReleaseEvent
 } from "@/backend/dto";
@@ -73,7 +74,7 @@ export function getOrderingConditionForDisplay(orderingCondition: string): strin
   return "Arrange by: " + orderOptions[orderingCondition];
 }
 
-export function getOrderingConditionForDisplayNico(orderingCondition: string): string {
+export function getSortingConditionForDisplayNico(orderingCondition: string): string {
   return "Arrange by: " + orderOptionsNico[orderingCondition];
 }
 
@@ -125,7 +126,7 @@ export function getDateDisposition(
     } else {
       return {
         dayDiff: Math.abs(dayDiff),
-        disposition: dayDiff > 0 ? "late" : "early"
+        disposition: dayDiff > 0 ? "late" : dayDiff < 0 ? "early" : "perfect"
       };
     }
   }
@@ -134,17 +135,45 @@ export function getDateDisposition(
     if (dateEnd >= date) {
       return { dayDiff: 0, disposition: "perfect" };
     } else {
-      return {
-        dayDiff: subDates(date, dateEnd),
-        disposition: "late"
-      };
+      const dayDiff1 = Math.abs(subDates(date, dateEnd));
+      if (dayDiff1 > 0) {
+        return {
+          dayDiff: dayDiff1,
+          disposition: "late"
+        };
+      } else {
+        return {
+          dayDiff: 0,
+          disposition: "perfect"
+        };
+      }
     }
   } else {
-    return {
-      dayDiff: subDates(dateStart, date),
-      disposition: "early"
-    };
+    const dayDiff2 = Math.abs(subDates(dateStart, date));
+    if (dayDiff2 > 0) {
+      return {
+        dayDiff: dayDiff2,
+        disposition: "early"
+      };
+    } else {
+      return {
+        dayDiff: 0,
+        disposition: "perfect"
+      };
+    }
   }
+}
+
+export function fillReleaseEventForDisplay(
+  src: ReleaseEventForApiContractSimplified,
+  trg: ReleaseEventForDisplay
+): void {
+  trg.id = src.id;
+  trg.name = src.name;
+  trg.urlSlug = src.urlSlug;
+  trg.category = src.category;
+  trg.date = src.date == null ? null : DateTime.fromISO(src.date);
+  trg.endDate = src.endDate == null ? null : DateTime.fromISO(src.endDate);
 }
 
 export const defaultScopeTagString: string =
@@ -192,12 +221,14 @@ export function getSongTypeColorForDisplay(typeString: string): string {
   }
 }
 
-export function getDispositionBadgeColorVariant(disposition: string): string {
-  return disposition === "perfect"
+export function getDispositionBadgeColorVariant(eventDateComparison: DateComparisonResult): string {
+  return eventDateComparison.disposition === "perfect"
     ? "success"
-    : disposition === "unknown"
+    : eventDateComparison.disposition === "unknown"
     ? "secondary"
-    : "warning";
+    : eventDateComparison.dayDiff <= 7
+    ? "warning"
+    : "danger";
 }
 
 export function getSongTypeStatsForDisplay(type: string, number: number): string {
@@ -213,7 +244,7 @@ export function validateTimestamp(timestamp: string): boolean | null {
 
 // other util methods
 function subDates(date1: DateTime, date2: DateTime): number {
-  return date1.diff(date2).as("day");
+  return Math.round(date1.diff(date2).as("day"));
 }
 
 export function toggleTagAssignation(tag: MappedTag, video: EntryWithVideosAndVisibility): void {
@@ -371,11 +402,12 @@ export interface EntryWithReleaseEventAndVisibility {
 
 export interface VideoWithEntryAndVisibility {
   video: NicoVideoWithTidyTags;
-  songEntry: SongForApiContractSimplified | null;
+  songEntry: SongForApiContractSimplifiedWithReleaseEvent | null;
   embedVisible: boolean;
   rowVisible: boolean;
   toAssign: boolean;
   publisher: Publisher | null;
+  processed: boolean;
 }
 
 export interface SongType {
@@ -398,4 +430,9 @@ export interface EntryWithVideosAndVisibility {
   visible: boolean;
   toAssign: boolean;
   tagsToAssign: MinimalTag[];
+}
+
+export interface DateComparisonResult {
+  dayDiff: number;
+  disposition: "perfect" | "late" | "early" | "unknown";
 }

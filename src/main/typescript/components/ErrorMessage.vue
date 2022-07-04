@@ -28,7 +28,7 @@ import Vue from "vue";
 @Component({ components: {} })
 export default class extends Vue {
   @Prop()
-  private readonly thisMode!: number;
+  private readonly thisMode!: string;
 
   @Prop()
   private readonly alertCode!: number;

@@ -53,46 +53,46 @@ pub struct AlbumDiscPropertiesContract {
 pub struct AlbumForApiContract {
     #[serde(rename = "additionalNames")]
     additional_names: String,
-    artists: Vec<ArtistForAlbumForApiContract>,
+    artists: Option<Vec<ArtistForAlbumForApiContract>>,
     #[serde(rename = "artistString")]
     artist_string: String,
-    barcode: String,
+    barcode: Option<String>,
     #[serde(rename = "catalogNumber")]
-    catalog_number: String,
+    catalog_number: Option<String>,
     #[serde(rename = "createDate")]
     create_date: String,
     #[serde(rename = "defaultName")]
-    default_name: String,
+    default_name: Option<String>,
     #[serde(rename = "defaultNameLanguage")]
-    default_name_language: Language,
+    default_name_language: Option<Language>,
     // deleted: bool,
-    description: String,
-    discs: Vec<AlbumDiscPropertiesContract>,
+    description: Option<String>,
+    discs: Option<Vec<AlbumDiscPropertiesContract>>,
     #[serde(rename = "discType")]
     disc_type: DiscType,
     id: i32,
-    identifiers: Vec<AlbumIdentifierContract>,
+    identifiers: Option<Vec<AlbumIdentifierContract>>,
     #[serde(rename = "mainPicture")]
-    main_picture: EntryThumbForApiContract,
+    main_picture: Option<EntryThumbForApiContract>,
     #[serde(rename = "mergedTo")]
-    merged_to: i32,
+    merged_to: Option<i32>,
     name: String,
-    names: Vec<LocalizedStringContract>,
-    pvs: Vec<PVContract>,
+    names: Option<Vec<LocalizedStringContract>>,
+    pvs: Option<Vec<PVContract>>,
     #[serde(rename = "ratingAverage")]
     rating_average: f64,
     #[serde(rename = "ratingCount")]
     rating_count: i32,
     #[serde(rename = "releaseDate")]
-    release_date: OptionalDateTimeContract,
+    pub release_date: OptionalDateTimeContract,
     #[serde(rename = "releaseEvent")]
-    release_event: ReleaseEventForApiContract,
+    pub release_event: Option<ReleaseEventForApiContract>,
     status: Status,
-    tags: Vec<TagUsageForApiContract>,
-    tracks: Vec<SongInAlbumForApiContract>,
+    tags: Option<Vec<TagUsageForApiContract>>,
+    tracks: Option<Vec<SongInAlbumForApiContract>>,
     version: i32,
     #[serde(rename = "webLinks")]
-    web_links: Vec<WebLinkForApiContract>,
+    web_links: Option<Vec<WebLinkForApiContract>>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

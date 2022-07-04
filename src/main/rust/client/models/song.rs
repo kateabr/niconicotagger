@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use crate::client::models::album::AlbumForApiContract;
 
 
 use crate::client::models::entrythumb::{EntryThumbContract, EntryThumbForApiContract};
@@ -92,7 +93,7 @@ pub enum SongFeaturedCategory {
     Other,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct SongForApiContract {
     pub id: i32,
     pub name: String,
@@ -111,6 +112,7 @@ pub struct SongForApiContract {
     pub rating_score: Option<i32>,
     #[serde(rename = "publishDate")]
     pub publish_date: Option<String>,
+    pub albums: Option<Vec<AlbumForApiContract>>
 }
 
 #[derive(Serialize, Deserialize, Debug)]
