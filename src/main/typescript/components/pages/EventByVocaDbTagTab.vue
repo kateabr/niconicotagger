@@ -358,7 +358,7 @@
             <td>
               <b-row>
                 <b-col cols="10">
-                  <ol class="ml-n4">
+                  <ol class="ml-n4" v-if="!item.processed">
                     <li
                       v-if="
                         !item.songEntry.taggedWithMultipleEvents &&
@@ -726,10 +726,6 @@ export default class extends Vue {
 
   private filterEntriesIfValidState(): void {
     if (this.getTimeDeltaState()) {
-      if (!this.timeDeltaEnabled) {
-        this.timeDeltaBefore = false;
-        this.timeDeltaAfter = false;
-      }
       this.filterEntries();
     }
   }
