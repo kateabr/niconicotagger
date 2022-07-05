@@ -5,17 +5,23 @@ Vue.use(VueRouter);
 
 const routes: RouteConfig[] = [
   {
-    path: "/:browseMode",
-    name: "events",
-    props: true,
-    component: () => import("@/pages/events/views/Events.vue")
-  },
-  {
     path: "/",
     name: "events",
     props: {
       browseMode: "vocadb"
     },
+    component: () => import("@/pages/events/views/Events.vue")
+  },
+  {
+    path: "/:browseMode",
+    name: "events-mode",
+    props: true,
+    component: () => import("@/pages/events/views/Events.vue")
+  },
+  {
+    path: "/:browseMode/:targName",
+    name: "events-full",
+    props: true,
     component: () => import("@/pages/events/views/Events.vue")
   }
 ];

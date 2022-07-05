@@ -34,7 +34,7 @@
               variant="primary"
               style="width: 80px"
               :disabled="tagName === '' || defaultDisableCondition()"
-              @click="loadInitialPage"
+              @click="loadInitialPage()"
               >Load</b-button
             >
             <b-button v-else variant="primary" style="width: 80px" disabled
@@ -505,6 +505,9 @@ export default class extends Vue {
   @Prop()
   private readonly thisMode!: string;
 
+  @Prop()
+  private readonly targName: string | undefined;
+
   // main variables
   private tagName: string = "";
   private tagNameFrozen: string = "";
@@ -696,6 +699,13 @@ export default class extends Vue {
     }
   }
 
+  private updateUrl(): void {
+    this.$router.push({
+      name: "tags-full",
+      params: { browseMode: this.thisMode, targName: this.tagName }
+    });
+  }
+
   // api methods
   async fetch(
     targetTag: string,
@@ -780,10 +790,12 @@ export default class extends Vue {
   }
 
   private loadInitialPage(): void {
+    this.updateUrl();
     this.fetch(this.tagName, this.scopeTagString, 0, 1);
   }
 
   private loadPage(page: number): void {
+    this.updateUrl();
     this.fetch(
       this.tagNameFrozen,
       this.scopeTagStringFrozen,
@@ -825,6 +837,14 @@ export default class extends Vue {
     );
     if (nicovideo_mapped_tag_scope != null) {
       this.scopeTagString = nicovideo_mapped_tag_scope;
+    }
+  }
+
+  // fill tag name from address params (override local storage)
+  mounted(): void {
+    let targName = this.$route.params["targName"];
+    if (targName != undefined) {
+      this.tagName = targName;
     }
   }
 }

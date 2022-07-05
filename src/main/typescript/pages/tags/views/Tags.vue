@@ -9,7 +9,7 @@
             <b-nav tabs class="mb-2">
               <b-nav-item
                 :to="{
-                  name: 'tags',
+                  name: 'tags-mode',
                   params: { browseMode: 'activity-entries' }
                 }"
                 :active="browseMode === 'activity-entries'"
@@ -17,19 +17,22 @@
                 By activity entries
               </b-nav-item>
               <b-nav-item
-                :to="{ name: 'tags', params: { browseMode: 'song-entries' } }"
+                :to="{
+                  name: 'tags-mode',
+                  params: { browseMode: 'song-entries' }
+                }"
                 :active="browseMode === 'song-entries'"
               >
                 By song entries
               </b-nav-item>
               <b-nav-item
-                :to="{ name: 'tags', params: { browseMode: 'vocadb' } }"
+                :to="{ name: 'tags-mode', params: { browseMode: 'vocadb' } }"
                 :active="browseMode === 'vocadb'"
               >
                 By mapped VocaDB tag
               </b-nav-item>
               <b-nav-item
-                :to="{ name: 'tags', params: { browseMode: 'nicovideo' } }"
+                :to="{ name: 'tags-mode', params: { browseMode: 'nicovideo' } }"
                 :active="browseMode === 'nicovideo'"
               >
                 By mapped NND tag
@@ -59,6 +62,7 @@
                 <videos-by-voca-db-tag-mappings
                   :mode="browseMode"
                   this-mode="vocadb"
+                  :targ-name="targName"
                 />
               </div>
               <div
@@ -67,6 +71,7 @@
                 <videos-by-mapped-nico-nico-tag
                   :mode="browseMode"
                   this-mode="nicovideo"
+                  :targ-name="targName"
                 />
               </div>
             </div>
@@ -107,5 +112,8 @@ export default class extends Vue {
     | "activity-entries"
     | "vocadb"
     | "nicovideo";
+
+  @Prop()
+  private targName!: string;
 }
 </script>

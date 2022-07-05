@@ -6,13 +6,13 @@
       <b-container class="col-lg-11">
         <b-nav tabs class="mb-2">
           <b-nav-item
-            :to="{ name: 'events', params: { browseMode: 'vocadb' } }"
+            :to="{ name: 'events-mode', params: { browseMode: 'vocadb' } }"
             :active="browseMode === 'vocadb'"
           >
             Replace an event tag (VocaDB)
           </b-nav-item>
           <b-nav-item
-            :to="{ name: 'events', params: { browseMode: 'nicovideo' } }"
+            :to="{ name: 'events-mode', params: { browseMode: 'nicovideo' } }"
             :active="browseMode === 'nicovideo'"
           >
             Add event by associated tags (NND)
@@ -23,7 +23,11 @@
             <event-by-voca-db-tag-tab :mode="browseMode" this-mode="vocadb" />
           </div>
           <div :class="['tab-pane', { active: browseMode === 'nicovideo' }]">
-            <event-by-nnd-tag-tab :mode="browseMode" this-mode="nicovideo" />
+            <event-by-nnd-tag-tab
+              :mode="browseMode"
+              this-mode="nicovideo"
+              :targ-name="targName"
+            />
           </div>
         </div>
       </b-container>
@@ -46,6 +50,9 @@ Vue.use(VueClipboard);
 })
 export default class extends Vue {
   @Prop()
-  private browseMode!: "vocadb" | "nicovideo";
+  private readonly browseMode!: "vocadb" | "nicovideo";
+
+  @Prop()
+  private readonly targName: string | undefined;
 }
 </script>

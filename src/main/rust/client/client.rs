@@ -599,7 +599,7 @@ impl<'a> Client<'a> {
         };
     }
 
-    pub async fn get_event_by_tag(&self, tag_id: i32) -> Result<ReleaseEventForApiContractSimplified> {
+    pub async fn get_event_by_tag(&self, tag_id: i32, tag_name: &str) -> Result<ReleaseEventForApiContractSimplified> {
         let response: EventSearchResult = self.http_get(
             &String::from("https://vocadb.net/api/releaseEvents"),
             &vec![
@@ -623,7 +623,7 @@ impl<'a> Client<'a> {
                 },
                 web_links: None,
             }),
-            0 => Err(VocadbClientError::NotFoundError(format!("tag with id=\"{}\" does not exist", tag_id))),
+            0 => Err(VocadbClientError::NotFoundError(format!("no events associated with tag \"{}\"", tag_name))),
             _ => Err(VocadbClientError::AmbiguousResponseError)
         };
     }

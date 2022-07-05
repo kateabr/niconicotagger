@@ -25,7 +25,7 @@
             v-model.trim="eventTagName"
             :disabled="defaultDisableCondition()"
             placeholder="Event tag name"
-            @keydown.enter.native="loadInitialPage"
+            @keydown.enter.native="loadInitialPage()"
           >
           </b-form-input>
           <template #append>
@@ -34,7 +34,7 @@
               variant="primary"
               style="width: 80px"
               :disabled="eventTagName === '' || defaultDisableCondition()"
-              @click="loadInitialPage"
+              @click="loadInitialPage()"
               >Load</b-button
             >
             <b-button v-else variant="primary" style="width: 80px" disabled
@@ -358,7 +358,7 @@
             <td>
               <b-row>
                 <b-col cols="10">
-                  <ol class="ml-n4" v-if="!item.processed">
+                  <ol v-if="!item.processed" class="ml-n4">
                     <li
                       v-if="
                         !item.songEntry.taggedWithMultipleEvents &&
@@ -523,6 +523,9 @@ export default class extends Vue {
 
   @Prop()
   private readonly thisMode!: string;
+
+  @Prop()
+  private readonly targName: string | undefined;
 
   // main variables
   private event: ReleaseEventForDisplay = {
@@ -730,6 +733,17 @@ export default class extends Vue {
     }
   }
 
+  private updateUrl(): void {
+    this.$router
+      .push({
+        name: "events-full",
+        params: { browseMode: this.thisMode, targName: this.eventTagName }
+      })
+      .catch(err => {
+        return false;
+      });
+  }
+
   // error handling
   private processError(
     err: { response: AxiosResponse } | { response: undefined; message: string }
@@ -862,10 +876,12 @@ export default class extends Vue {
   }
 
   private loadInitialPage(): void {
+    this.updateUrl();
     this.fetch(this.eventTagName, 0, 1);
   }
 
   private loadPage(page: number): void {
+    this.updateUrl();
     this.fetch(this.event.name, (page - 1) * this.maxResults, page);
   }
 
@@ -879,9 +895,20 @@ export default class extends Vue {
     if (order_by != null) {
       this.orderingCondition = order_by;
     }
+    if (this.targName != undefined) {
+      this.eventTagName = this.targName;
+    }
     let event_tag_name = localStorage.getItem("vocadb_event_tag_name");
     if (event_tag_name != null) {
       this.eventTagName = event_tag_name;
+    }
+  }
+
+  // fill event tag name from address params (override local storage)
+  mounted(): void {
+    let targName = this.$route.params["targName"];
+    if (targName != undefined) {
+      this.eventTagName = targName;
     }
   }
 }

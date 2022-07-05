@@ -723,6 +723,9 @@ export default class extends Vue {
   @Prop()
   private readonly thisMode!: string;
 
+  @Prop()
+  private readonly targName: string | undefined;
+
   // main variables
   private readonly event: ReleaseEventForDisplay = {
     id: -1,
@@ -1000,6 +1003,17 @@ export default class extends Vue {
     );
   }
 
+  private updateUrl(eventName: string): void {
+    this.$router
+      .push({
+        name: "events-full",
+        params: { browseMode: this.thisMode, targName: eventName }
+      })
+      .catch(err => {
+        return false;
+      });
+  }
+
   // error handling
   private processError(
     err: { response: AxiosResponse } | { response: undefined; message: string }
@@ -1016,6 +1030,7 @@ export default class extends Vue {
 
   // api methods
   async fetchEvent(eventName: string): Promise<void> {
+    this.updateUrl(eventName);
     if (eventName == "") {
       return;
     }
@@ -1196,6 +1211,14 @@ export default class extends Vue {
     let sort_by = localStorage.getItem("sort_by");
     if (sort_by != null) {
       this.sortingCondition = sort_by;
+    }
+  }
+
+  // fill event name from address params (override local storage)
+  mounted(): void {
+    let targName = this.$route.params["targName"];
+    if (targName != undefined) {
+      this.eventName = targName;
     }
   }
 }

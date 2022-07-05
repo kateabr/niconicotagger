@@ -5,8 +5,14 @@ Vue.use(VueRouter);
 
 const routes: RouteConfig[] = [
   {
+    path: "/:browseMode/:targName",
+    name: "tags-full",
+    props: true,
+    component: () => import("@/pages/tags/views/Tags.vue")
+  },
+  {
     path: "/:browseMode",
-    name: "tags",
+    name: "tags-mode",
     props: true,
     component: () => import("@/pages/tags/views/Tags.vue")
   },

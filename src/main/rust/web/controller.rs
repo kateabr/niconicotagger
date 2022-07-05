@@ -166,7 +166,7 @@ pub async fn fetch_from_db_by_event_tag(_req: HttpRequest, payload: Json<SongsBy
     if vocadb_tag.category_name != "Event" {
         return Err(AppResponseError::BadRequestError(format!("\"{}\" is not an event", vocadb_tag.name)));
     }
-    let vocadb_event = client.get_event_by_tag(vocadb_tag.id).await?;
+    let vocadb_event = client.get_event_by_tag(vocadb_tag.id, vocadb_tag.name.as_str()).await?;
 
     let songs = client.get_songs_by_vocadb_event_tag(vocadb_tag.id, payload.start_offset, payload.max_results, payload.order_by.clone()).await?;
 

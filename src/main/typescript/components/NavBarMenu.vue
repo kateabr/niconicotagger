@@ -1,6 +1,6 @@
 <template>
   <b-navbar print toggleable="lg" variant="faded" type="light">
-    <b-navbar-brand tag="h1" to="login">NicoNicoTagger</b-navbar-brand>
+    <b-navbar-brand tag="h1" href="/login">NicoNicoTagger</b-navbar-brand>
 
     <b-navbar-toggle target="nav-collapse"></b-navbar-toggle>
 
