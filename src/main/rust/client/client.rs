@@ -329,13 +329,20 @@ impl<'a> Client<'a> {
 
     pub async fn get_current_tags(&self, song_id: i32) -> Result<Vec<SelectedTag>> {
         let q: Vec<String> = vec![];
-        let result: Vec<SelectedTag> = self.http_get(&format!("https://vocadb.net/api/users/current/songTags/{}", song_id.clone()), &q).await?;
+        let result: Vec<SelectedTag> = self.http_get(&format!("https://vocadb.net/api/users/current/songTags/{}", song_id), &q).await?;
         return Ok(result);
     }
 
-    pub async fn assign(&self, tags: Vec<TagBaseContract>, song_id: i32) -> Result<()> {
+    pub async fn add_tags(&self, tags: Vec<TagBaseContract>, song_id: i32) -> Result<()> {
+        let current_tags = self.get_current_tags(song_id).await?;
+        let mut new_tags: Vec<TagBaseContract> = current_tags
+            .iter()
+            .filter(|tag| tag.selected)
+            .map(|tag| tag.tag.clone())
+            .collect();
+        new_tags.extend(tags);
         let _response = self.http_put::<Vec<TagBaseContract>, Vec<TagUsageForApiContract>>(
-            &format!("https://vocadb.net/api/users/current/songTags/{}", song_id), &vec![], tags)
+            &format!("https://vocadb.net/api/users/current/songTags/{}", song_id), &vec![], new_tags)
             .await?;
         return Ok(());
     }

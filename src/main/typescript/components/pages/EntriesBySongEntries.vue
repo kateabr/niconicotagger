@@ -695,8 +695,20 @@ export default class extends Vue {
     toggleTagAssignation(tag, video);
   }
 
+  private updateUrl(): void {
+    this.$router
+      .push({
+        name: "tags-mode",
+        params: { browseMode: this.thisMode }
+      })
+      .catch(err => {
+        return false;
+      });
+  }
+
   // api methods
   async fetch(newStartOffset: number, newPage: number): Promise<void> {
+    this.updateUrl();
     this.fetching = true;
     localStorage.setItem("max_results", this.maxResults.toString());
     localStorage.setItem("start_offset", newStartOffset.toString());

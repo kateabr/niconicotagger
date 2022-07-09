@@ -613,8 +613,8 @@ export default class extends Vue {
 
   // api variables
   private maxResults: number = 0;
-  private additionMode = "since";
-  private sortingCondition: string = "CreateDate";
+  private additionMode = "before";
+  private sortingCondition: string = "CreateDateDescending";
   private timestamp = "";
 
   // interface variables
@@ -882,8 +882,20 @@ export default class extends Vue {
     }
   }
 
+  private updateUrl(): void {
+    this.$router
+      .push({
+        name: "tags-mode",
+        params: { browseMode: this.thisMode }
+      })
+      .catch(err => {
+        return false;
+      });
+  }
+
   // api methods
   async fetch(direction: string, payload: Fetch1Payload): Promise<void> {
+    this.updateUrl();
     this.fetching = true;
     this.timestamp = payload.createDate;
     this.additionMode = payload.mode;

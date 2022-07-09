@@ -190,7 +190,7 @@ pub async fn assign_event_and_remove_tag(_req: HttpRequest, payload: Json<Assign
     let result = client.fill_in_event(payload.song_id, payload.event.clone()).await?;
     match result {
         EventAssigningResult::MultipleEvents => {
-            let response_code = client.assign(vec![TagBaseContract {
+            let response_code = client.add_tags(vec![TagBaseContract {
                 id: 8275,
                 name: String::from("multiple events"),
                 category_name: Some(String::from("Editor notes")),
@@ -232,7 +232,7 @@ pub async fn assign_event(_req: HttpRequest, payload: Json<AssignEventPayload>) 
     let result = client.fill_in_event(payload.song_id, payload.event.clone()).await?;
     match result {
         EventAssigningResult::MultipleEvents => {
-            let response_code = client.assign(vec![TagBaseContract {
+            let response_code = client.add_tags(vec![TagBaseContract {
                 id: 8275,
                 name: String::from("multiple events"),
                 category_name: Some(String::from("Editor notes")),
@@ -345,8 +345,7 @@ pub async fn assign_tag(_req: HttpRequest, payload: Json<AssignTagRequest>) -> R
     let client = client_from_token(&token)?;
 
 
-    let current_tags = client.get_current_tags(payload.song_id).await?;
-    let mut new_tags: Vec<TagBaseContract> = payload.tags.iter()
+    let new_tags: Vec<TagBaseContract> = payload.tags.iter()
         .map(|pt| TagBaseContract {
             id: pt.id.clone(),
             name: pt.name.clone(),
@@ -354,9 +353,7 @@ pub async fn assign_tag(_req: HttpRequest, payload: Json<AssignTagRequest>) -> R
             url_slug: pt.url_slug.clone(),
             additional_names: Some(pt.additional_names.clone()),
         }).collect();
-    new_tags.extend(current_tags.iter().filter(|ct| ct.selected)
-        .map(|ct| ct.tag.clone()));
-    let response = client.assign(new_tags, payload.song_id).await;
+    let response = client.add_tags(new_tags, payload.song_id).await;
 
     return if response.is_ok() {
         Ok(Json(()))
@@ -380,8 +377,7 @@ pub async fn lookup_and_assign_tag(_req: HttpRequest, payload: Json<LookupAndAss
         assignable_tags.push(assignable_tag);
     }
 
-    let current_tags = client.get_current_tags(payload.song_id).await?;
-    let mut new_tags: Vec<TagBaseContract> = assignable_tags.iter()
+    let new_tags: Vec<TagBaseContract> = assignable_tags.iter()
         .map(|pt| TagBaseContract {
             id: pt.id.clone(),
             name: pt.name.clone(),
@@ -389,10 +385,7 @@ pub async fn lookup_and_assign_tag(_req: HttpRequest, payload: Json<LookupAndAss
             url_slug: pt.url_slug.clone(),
             additional_names: Some(pt.additional_names.clone()),
         }).collect();
-    new_tags.extend(current_tags.iter().filter(|ct| ct.selected)
-        .map(|ct| ct.tag.clone()));
-
-    let response = client.assign(new_tags, payload.song_id).await;
+    let response = client.add_tags(new_tags, payload.song_id).await;
 
     return if response.is_ok() {
         Ok(Json(()))
