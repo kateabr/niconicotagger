@@ -5,7 +5,7 @@ use crate::client::models::entrythumb::EntryThumbForApiContract;
 use crate::client::models::misc::LocalizedStringContract;
 use crate::client::models::song::SongListBaseContract;
 use crate::client::models::status::Status;
-use crate::client::models::weblink::{WebLinkContract, WebLinkForApiContract};
+use crate::client::models::weblink::WebLinkForApiContract;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum ReleaseEventCategory {
@@ -76,12 +76,12 @@ pub struct ReleaseEventForApiContractSimplifiedWithNndTags {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ReleaseEventSeriesContract {
     #[serde(rename = "additionalNames")]
-    additional_names: String,
+    additional_names: Option<String>,
     pub category: ReleaseEventCategory,
     // deleted: bool,
-    description: String,
-    id: i32,
-    name: String,
+    description: Option<String>,
+    pub id: i32,
+    pub name: String,
     #[serde(rename = "pictureMime")]
     picture_mime: Option<String>,
     status: Status,
@@ -89,7 +89,7 @@ pub struct ReleaseEventSeriesContract {
     url_slug: String,
     version: i32,
     #[serde(rename = "webLinks")]
-    web_links: Option<Vec<WebLinkContract>>,
+    pub web_links: Option<Vec<WebLinkForApiContract>>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

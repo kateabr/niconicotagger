@@ -26,6 +26,8 @@ export interface FetchVideosByEventTagsPayload {
   maxResults: number;
   orderBy: string;
   eventId: number;
+  startTime: string | null;
+  endTime: string | null;
 }
 
 export interface FetchVideosByEventTagPayload {

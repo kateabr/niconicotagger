@@ -4,7 +4,9 @@ use actix_web::HttpRequest;
 use actix_web::web::Json;
 use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use anyhow::Context;
+use chrono::{DateTime, Duration, FixedOffset};
 use futures::future;
+use log::info;
 use url::Url;
 
 use crate::client::client::Client;
@@ -58,7 +60,7 @@ pub async fn fetch_videos(_req: HttpRequest, payload: Json<TagFetchRequest>) -> 
             }
 
             let response = client
-                .get_videos(payload.tag.clone(), payload.scope_tag.clone(), payload.start_offset, payload.max_results, payload.order_by.clone()).await?;
+                .get_videos(payload.tag.clone(), payload.scope_tag.clone(), payload.start_offset, payload.max_results, payload.order_by.clone(), vec![]).await?;
 
             let futures = response.data.iter()
                 .map(|video|
@@ -97,7 +99,7 @@ pub async fn fetch_videos_by_tag(_req: HttpRequest, payload: Json<TagFetchReques
         Some(nico_mappings) => {
             let scope_tag = nico_mappings.join(" OR ");
             let response = client
-                .get_videos(scope_tag.clone(), payload.scope_tag.clone(), payload.start_offset, payload.max_results, payload.order_by.clone()).await?;
+                .get_videos(scope_tag.clone(), payload.scope_tag.clone(), payload.start_offset, payload.max_results, payload.order_by.clone(), vec![]).await?;
 
             let mappings = client.get_mapped_tags().await?;
 
@@ -195,7 +197,7 @@ pub async fn assign_event_and_remove_tag(_req: HttpRequest, payload: Json<Assign
                 name: String::from("multiple events"),
                 category_name: Some(String::from("Editor notes")),
                 additional_names: Some(String::from("")),
-                url_slug: String::from("multiple-events")
+                url_slug: String::from("multiple-events"),
             }], payload.song_id).await;
             if response_code.is_err() {
                 return Err(
@@ -237,7 +239,7 @@ pub async fn assign_event(_req: HttpRequest, payload: Json<AssignEventPayload>) 
                 name: String::from("multiple events"),
                 category_name: Some(String::from("Editor notes")),
                 additional_names: Some(String::from("")),
-                url_slug: String::from("multiple-events")
+                url_slug: String::from("multiple-events"),
             }], payload.song_id).await;
             if response_code.is_err() {
                 return Err(
@@ -268,10 +270,10 @@ pub async fn fetch_release_event_with_nnd_tags(_req: HttpRequest, payload: Json<
         for link in links {
             let parsed_link = Url::parse(&link.url).context(format!("invalid url: \"{}\"", &link.url))?;
             let host = parsed_link.host_str().context(format!("invalid url: \"{}\"", &link.url))?;
-            if host != "nicovideo.jp" && host != "www.nicovideo.jp" { continue }
+            if host != "nicovideo.jp" && host != "www.nicovideo.jp" { continue; }
             let path_segments = parsed_link.path_segments().map(|c| c.collect::<Vec<_>>()).context(format!("invalid url: \"{}\"", &link.url))?;
-            if path_segments[0] != "tag" { continue }
-            if path_segments.len() < 2 { continue }
+            if path_segments[0] != "tag" { continue; }
+            if path_segments.len() < 2 { continue; }
             let tag = url_escape::decode(path_segments[1]).to_string();
             result.push(tag);
         }
@@ -293,11 +295,12 @@ pub async fn fetch_release_event_with_nnd_tags(_req: HttpRequest, payload: Json<
                 payload.event_name.clone()
             )
         ))?;
+    info!("{:?}", links);
     let clean_tags = clean_nnd_links(links)?;
     if !clean_tags.is_empty() {
         Ok(Json(ReleaseEventForApiContractSimplifiedWithNndTags {
             event,
-            tags: clean_tags.clone()
+            tags: clean_tags.clone(),
         }))
     } else {
         Err(AppResponseError::BadRequestError(format!("event \"{}\" has no associated NND tags", payload.event_name)))
@@ -314,25 +317,48 @@ pub async fn fetch_videos_by_event_nnd_tags(_req: HttpRequest, payload: Json<Eve
     let client = client_from_token(&token)?;
 
     let mappings = client.get_mapped_tags().await?;
+    let time_bound: Vec<String> = match &payload.start_time {
+        None => vec![],
+        Some(start_time) => {
+            match &payload.end_time {
+                None => {
+                    let ref_time = DateTime::parse_from_rfc3339(&start_time)
+                        .context(format!("Unable to parse {}", &start_time))?;
+
+                    vec![(ref_time.with_timezone(&FixedOffset::east(9 * 3600)) - Duration::days(7) - Duration::hours(9)).to_rfc3339(),
+                         (ref_time.with_timezone(&FixedOffset::east(9 * 3600)) + Duration::days(7) - Duration::hours(9)).to_rfc3339()]
+                }
+                Some(end_time) => {
+                    let ref_time_start = DateTime::parse_from_rfc3339(&start_time)
+                        .context(format!("Unable to parse {}", &start_time))?;
+                    let ref_time_end = DateTime::parse_from_rfc3339(&end_time)
+                        .context(format!("Unable to parse {}", &end_time))?;
+
+                    vec![(ref_time_start.with_timezone(&FixedOffset::east(9 * 3600)) - Duration::days(1) - Duration::hours(9)).to_rfc3339(),
+                         (ref_time_end.with_timezone(&FixedOffset::east(9 * 3600)) + Duration::days(1) - Duration::hours(9)).to_rfc3339()]
+                }
+            }
+        }
+    };
     let response = client
-                .get_videos(payload.tags.clone(), payload.scope_tag.clone(), payload.start_offset, payload.max_results, payload.order_by.clone()).await?;
+        .get_videos(payload.tags.clone(), payload.scope_tag.clone(), payload.start_offset, payload.max_results, payload.order_by.clone(), time_bound).await?;
 
     let futures = response.data.iter()
-                .map(|video|
-                    client.lookup_video_by_event(video,
-                                        payload.event_id,
-                                        payload.tags.split(" OR ").map(|tag| String::from(tag)).collect(),
-                                        &mappings, payload.scope_tag.clone()));
+        .map(|video|
+            client.lookup_video_by_event(video,
+                                         payload.event_id,
+                                         payload.tags.split(" OR ").map(|tag| String::from(tag)).collect(),
+                                         &mappings, payload.scope_tag.clone()));
 
-            let video_entries = future::try_join_all(futures).await?;
+    let video_entries = future::try_join_all(futures).await?;
 
-            return Ok(Json(VideosWithEntries {
-                items: video_entries,
-                total_video_count: response.meta.total_count,
-                tags: vec![],
-                tag_mappings: payload.tags.split(" ").map(|spl| spl.to_string()).collect(),
-                safe_scope: response.safe_scope,
-            }));
+    return Ok(Json(VideosWithEntries {
+        items: video_entries,
+        total_video_count: response.meta.total_count,
+        tags: vec![],
+        tag_mappings: payload.tags.split(" ").map(|spl| spl.to_string()).collect(),
+        safe_scope: response.safe_scope,
+    }));
 }
 
 #[post("/assign")]

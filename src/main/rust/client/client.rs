@@ -26,10 +26,11 @@ use crate::client::models::entrythumb::EntryType;
 use crate::client::models::misc::PartialFindResult;
 use crate::client::models::pv::{PVContract, PvService, PvType};
 use crate::client::models::query::OptionalFields;
-use crate::client::models::releaseevent::{EventSearchResult, ReleaseEventForApiContractSimplified};
+use crate::client::models::releaseevent::{EventSearchResult, ReleaseEventForApiContractSimplified, ReleaseEventSeriesContract};
 use crate::client::models::song::{SongForApiContract};
 use crate::client::models::tag::{AssignableTag, SelectedTag, TagBaseContract, TagForApiContract, TagSearchResult, TagUsageForApiContract};
 use crate::client::models::user::UserForApiContract;
+use crate::client::models::weblink::WebLinkForApiContract;
 use crate::client::nicomodels::{NicoTagWithVariant, SongForApiContractWithThumbnails, SongForApiContractWithThumbnailsAndMappedTags, SongsForApiContractWithThumbnailsAndTimestamp, Tag, TagBaseContractSimplified, ThumbnailError, ThumbnailOk, ThumbnailOkWithMappedTags, ThumbnailTagMappedWithAssignAndLockInfo};
 use crate::web::dto::{DBFetchResponseWithTimestamps, DisplayableTag, EventAssigningResult, MinimalEvent, NicoResponse, NicoResponseWithScope, NicoVideo, NicoVideoWithTidyTags, SongForApiContractSimplifiedWithMultipleEventInfo, SongForApiContractSimplifiedWithMultipleEventInfoSearchResult, TagMappingContract, VideoWithEntry};
 
@@ -224,6 +225,7 @@ impl<'a> Client<'a> {
         start_offset: i32,
         max_results: i32,
         order_by: String,
+        time_bounds: Vec<String>
     ) -> Result<NicoResponseWithScope> {
         let mut new_scope = scope_tag.clone();
         loop {
@@ -236,16 +238,30 @@ impl<'a> Client<'a> {
         new_scope = String::from(new_scope.trim_start());
 
         let q = if scope_tag != "" { format!("{} {}", tag, new_scope) } else { tag };
-        let response: NicoResponse = self.http_get(
-            &String::from("https://api.search.nicovideo.jp/api/v2/snapshot/video/contents/search"),
-            &vec![
+        let query = if time_bounds.is_empty() {
+            vec![
                 ("q", q),
                 ("_offset", start_offset.to_string()),
                 ("_limit", max_results.to_string()),
                 ("_sort", order_by),
                 ("targets", String::from("tagsExact")),
                 ("fields", String::from("contentId,title,tags,userId,startTime")),
-            ],
+            ]
+        } else {
+            vec![
+                ("q", q),
+                ("_offset", start_offset.to_string()),
+                ("_limit", max_results.to_string()),
+                ("_sort", order_by),
+                ("targets", String::from("tagsExact")),
+                ("fields", String::from("contentId,title,tags,userId,startTime")),
+                ("filters[startTime][gte]", String::from(&time_bounds[0])),
+                ("filters[startTime][lte]", String::from(&time_bounds[1])),
+            ]
+        };
+        let response: NicoResponse = self.http_get(
+            &String::from("https://api.search.nicovideo.jp/api/v2/snapshot/video/contents/search"),
+            &query,
         )
             .await?;
 
@@ -476,7 +492,7 @@ impl<'a> Client<'a> {
                         date: e.date.clone(),
                         end_date: e.end_date.clone(),
                         id: e.id,
-                        name: format!("{} (inherited)", e.name.clone()),
+                        name: e.name.clone(),
                         url_slug: e.url_slug.clone(),
                         category: e.category.clone(),
                         web_links: e.web_links.clone(),
@@ -577,6 +593,14 @@ impl<'a> Client<'a> {
         };
     }
 
+    pub async fn get_event_series(&self, series_id: i32) -> Result<ReleaseEventSeriesContract> {
+        self.http_get(
+            &String::from(format!("https://vocadb.net/api/releaseEventSeries/{}", series_id)),
+        &vec![
+            ("fields", String::from("WebLinks"))
+        ]).await
+    }
+
     pub async fn get_event_by_name(&self, event_name: String) -> Result<ReleaseEventForApiContractSimplified> {
         let response: EventSearchResult = self.http_get(
             &String::from("https://vocadb.net/api/releaseEvents"),
@@ -589,18 +613,36 @@ impl<'a> Client<'a> {
         ).await?;
 
         return match response.total_count {
-            1 => Ok(ReleaseEventForApiContractSimplified {
-                date: response.items[0].date.clone(),
-                end_date: response.items[0].end_date.clone(),
-                id: response.items[0].id,
-                name: response.items[0].name.clone(),
-                url_slug: response.items[0].url_slug.clone(),
-                category: match &response.items[0].series {
-                    Some(series) => series.category.clone(),
-                    None => response.items[0].category.clone()
-                },
-                web_links: response.items[0].web_links.clone(),
-            }),
+            1 => {
+                let mut web_links: Vec<WebLinkForApiContract> = match &response.items[0].series {
+                    None => vec![],
+                    Some(series) => {
+                        let series_with_links = self.get_event_series(series.id).await;
+                        match series_with_links {
+                            Ok(series_with_links_unwrapped) => match series_with_links_unwrapped.web_links {
+                                None => vec![],
+                                Some(series_links) => series_links.clone()
+                            }
+                            Err(_) => return Err(VocadbClientError::NotFoundError(format!("event series \"{}\" does not exist", series.name))),
+                        }
+                    }
+                };
+                if response.items[0].web_links.is_some() {
+                    web_links.append(&mut response.items[0].web_links.clone().unwrap());
+                }
+                Ok(ReleaseEventForApiContractSimplified {
+                    date: response.items[0].date.clone(),
+                    end_date: response.items[0].end_date.clone(),
+                    id: response.items[0].id,
+                    name: response.items[0].name.clone(),
+                    url_slug: response.items[0].url_slug.clone(),
+                    category: match &response.items[0].series {
+                        Some(series) => series.category.clone(),
+                        None => response.items[0].category.clone()
+                    },
+                    web_links: if web_links.is_empty() { None } else { Some(web_links) },
+                })
+            },
             0 => Err(VocadbClientError::NotFoundError(format!("event \"{}\" does not exist", event_name.clone()))),
             _ => Err(VocadbClientError::AmbiguousResponseError)
         };

@@ -301,7 +301,9 @@
           >
             <td>
               <b-form-checkbox
-                v-if="!item.processed"
+                v-if="
+                  !item.processed && item.songEntry.eventDateComparison.eligible
+                "
                 v-model="item.toAssign"
                 :disabled="defaultDisableCondition()"
                 size="lg"
@@ -358,7 +360,13 @@
             <td>
               <b-row>
                 <b-col cols="10">
-                  <ol v-if="!item.processed" class="ml-n4">
+                  <ol
+                    v-if="
+                      !item.processed &&
+                      item.songEntry.eventDateComparison.eligible
+                    "
+                    class="ml-n4"
+                  >
                     <li
                       v-if="
                         !item.songEntry.taggedWithMultipleEvents &&
@@ -396,8 +404,16 @@
                       >"
                     </li>
                   </ol>
+                  <span class="text-muted"
+                    >Entry is ineligible for participation</span
+                  >
                 </b-col>
-                <b-col>
+                <b-col
+                  v-if="
+                    item.songEntry != null &&
+                    item.songEntry.eventDateComparison.eligible
+                  "
+                >
                   <b-button
                     v-if="item.processed"
                     disabled
@@ -641,7 +657,7 @@ export default class extends Vue {
     dateStart: DateTime,
     dateEnd: DateTime | null
   ): DateComparisonResult {
-    return getDateDisposition(date, dateStart, dateEnd);
+    return getDateDisposition(date, dateStart, dateEnd, this.timeDeltaMax);
   }
 
   private getTimeDeltaState(): boolean {

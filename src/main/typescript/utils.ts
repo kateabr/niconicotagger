@@ -113,38 +113,42 @@ export function getShortenedSongType(typeString: string): string {
 export function getDateDisposition(
   date: DateTime | null,
   dateStart: DateTime,
-  dateEnd: DateTime | null
+  dateEnd: DateTime | null,
+  timeDeltaMax: number
 ): DateComparisonResult {
   if (date == null) {
-    return { disposition: "unknown", dayDiff: 0 };
+    return { disposition: "unknown", dayDiff: 0, eligible: false };
   }
 
   const dayDiff = subDates(date, dateStart);
   if (dateEnd === null) {
     if (dayDiff === 0) {
-      return { dayDiff: 0, disposition: "perfect" };
+      return { dayDiff: 0, disposition: "perfect", eligible: true };
     } else {
       return {
         dayDiff: Math.abs(dayDiff),
-        disposition: dayDiff > 0 ? "late" : dayDiff < 0 ? "early" : "perfect"
+        disposition: dayDiff > 0 ? "late" : dayDiff < 0 ? "early" : "perfect",
+        eligible: Math.abs(dayDiff) <= timeDeltaMax
       };
     }
   }
 
   if (dateStart <= date) {
     if (dateEnd >= date) {
-      return { dayDiff: 0, disposition: "perfect" };
+      return { dayDiff: 0, disposition: "perfect", eligible: true };
     } else {
       const dayDiff1 = Math.abs(subDates(date, dateEnd));
       if (dayDiff1 > 0) {
         return {
           dayDiff: dayDiff1,
-          disposition: "late"
+          disposition: "late",
+          eligible: dayDiff1 <= timeDeltaMax
         };
       } else {
         return {
           dayDiff: 0,
-          disposition: "perfect"
+          disposition: "perfect",
+          eligible: true
         };
       }
     }
@@ -153,12 +157,14 @@ export function getDateDisposition(
     if (dayDiff2 > 0) {
       return {
         dayDiff: dayDiff2,
-        disposition: "early"
+        disposition: "early",
+        eligible: dayDiff2 <= timeDeltaMax
       };
     } else {
       return {
         dayDiff: 0,
-        disposition: "perfect"
+        disposition: "perfect",
+        eligible: true
       };
     }
   }
@@ -177,7 +183,7 @@ export function fillReleaseEventForDisplay(
 }
 
 export const defaultScopeTagString: string =
-  "-歌ってみた VOCALOID OR UTAU OR CEVIO OR CeVIO_AI OR SYNTHV OR SYNTHESIZERV OR neutrino(歌声合成エンジン) OR DeepVocal OR Alter/Ego OR AlterEgo OR AquesTalk OR AquesTone OR AquesTone2 OR ボカロ OR ボーカロイド OR 合成音声 OR 歌唱合成 OR coefont OR coefont_studio OR VOICELOID OR VOICEROID OR ENUNU OR ソフトウェアシンガー OR VOICEVOX OR VoiSona";
+  "-歌ってみた VOCALOID OR UTAU OR CEVIO OR CeVIO_AI OR SYNTHV OR SYNTHESIZERV OR neutrino(歌声合成エンジン) OR DeepVocal OR Alter/Ego OR AlterEgo OR AquesTalk OR AquesTone OR AquesTone2 OR ボカロ OR ボーカロイド OR 合成音声 OR 歌唱合成 OR coefont OR coefont_studio OR VOICELOID OR VOICEROID OR ENUNU OR ソフトウェアシンガー OR VOICEVOX OR VoiSona OR COEROINK";
 
 // common interface methods & constants
 export const orderOptions = {
@@ -435,4 +441,5 @@ export interface EntryWithVideosAndVisibility {
 export interface DateComparisonResult {
   dayDiff: number;
   disposition: "perfect" | "late" | "early" | "unknown";
+  eligible: boolean;
 }

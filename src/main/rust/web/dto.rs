@@ -62,6 +62,10 @@ pub struct EventByTagsFetchRequest {
     pub order_by: String,
     #[serde(rename = "eventId")]
     pub event_id: i32,
+    #[serde(rename = "startTime")]
+    pub start_time: Option<String>,
+    #[serde(rename = "endTime")]
+    pub end_time: Option<String>,
 }
 
 #[derive(Deserialize, Debug)]

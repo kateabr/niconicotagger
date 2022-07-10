@@ -187,57 +187,12 @@
               >
                 Force show videos whose uploaders have entries at VocaDB
               </b-form-checkbox>
-            </b-col>
-          </b-row>
-          <b-row class="mt-2">
-            <b-col>
-              <template>
-                <b-input-group inline>
-                  <b-form-input
-                    v-model="timeDelta"
-                    :disabled="defaultDisableCondition() || !isActiveMode()"
-                    number
-                    type="range"
-                    min="0"
-                    :max="timeDeltaMax"
-                    @change="filterEntriesIfValidState()"
-                  />
-                  <template #prepend>
-                    <b-input-group-text class="justify-content-center">
-                      <b-form-checkbox
-                        v-model="timeDeltaEnabled"
-                        :disabled="fetching || !isActiveMode()"
-                        @change="filterEntriesIfValidState()"
-                      />
-                      Time delta
-                    </b-input-group-text>
-                  </template>
-                  <template #append>
-                    <b-input-group-text class="justify-content-center"
-                      >{{ timeDelta }}
-                      day(s)
-                    </b-input-group-text>
-                  </template>
-                </b-input-group>
-                <b-input-group inline class="mt-2 text-center">
-                  <b-checkbox
-                    v-model="timeDeltaBefore"
-                    :state="getTimeDeltaState()"
-                    :disabled="!timeDeltaEnabled"
-                    class="col-6"
-                    @change="filterEntriesIfValidState()"
-                    >before</b-checkbox
-                  >
-                  <b-checkbox
-                    v-model="timeDeltaAfter"
-                    :state="getTimeDeltaState()"
-                    :disabled="!timeDeltaEnabled"
-                    class="col-6"
-                    @change="filterEntriesIfValidState()"
-                    >after</b-checkbox
-                  >
-                </b-input-group>
-              </template>
+              <b-form-checkbox
+                v-model="showIneligibleVideos"
+                @change="filterVideos()"
+              >
+                Force show ineligible entries
+              </b-form-checkbox>
             </b-col>
           </b-row>
         </b-collapse>
@@ -274,6 +229,12 @@
               </div>
             </b-card-body>
             <b-card-footer>
+              <div class="mb-3 text-secondary">
+                <b-form-checkbox v-model="filterByEventDates"
+                  >Search strictly within the event date
+                  boundaries</b-form-checkbox
+                >
+              </div>
               All good?
               <b-row class="flex-fill mt-3">
                 <b-col cols="6">
@@ -333,7 +294,8 @@
               >
             </b-col>
             <b-col>
-              Videos found:<br />
+              Videos found (<span v-if="filterByEventDates">filtered</span
+              ><span v-else>not filtered</span>):<br />
               <strong>{{ totalVideoCount }}</strong>
             </b-col>
             <b-col class="my-auto">
@@ -533,7 +495,12 @@
                 :event-date-comparison="item.video.eventDateComparison"
               />
             </td>
-            <td v-if="item.songEntry !== null">
+            <td
+              v-if="
+                item.songEntry !== null &&
+                item.songEntry.eventDateComparison.eligible
+              "
+            >
               <b-row>
                 <b-col cols="10">
                   <ol class="ml-n4">
@@ -586,7 +553,9 @@
                       defaultDisableCondition() ||
                       (hasReleaseEvent(item) &&
                         item.songEntry.releaseEvent.id !== event.id &&
-                        isTaggedWithMultipleEvents(item))
+                        isTaggedWithMultipleEvents(item)) ||
+                      (item.songEntry != null &&
+                        !item.songEntry.eventDateComparison.eligible)
                     "
                     class="btn"
                     variant="outline-success"
@@ -597,7 +566,7 @@
                 </b-col>
               </b-row>
             </td>
-            <td v-else>
+            <td v-else-if="item.songEntry === null">
               <b-button
                 size="sm"
                 :disabled="fetching"
@@ -613,6 +582,9 @@
                   >{{ item.publisher.name.displayName }}</b-link
                 >
               </div>
+            </td>
+            <td v-else class="text-muted">
+              Entry is ineligible for participation
             </td>
           </tr>
         </b-tbody>
@@ -765,11 +737,13 @@ export default class extends Vue {
   private showVideosWithUploaderEntry: boolean = true;
   private showVideosWithOtherEvents: boolean = true;
   private showVideosWithNoEvents: boolean = true;
-  private timeDeltaEnabled: boolean = true;
+  private showIneligibleVideos: boolean = false;
+  private timeDeltaEnabled: boolean = false;
   private timeDeltaBefore: boolean = true;
   private timeDeltaAfter: boolean = true;
   private timeDelta: number = 0;
   private timeDeltaMax: number = 0;
+  private filterByEventDates: boolean = true;
 
   // error handling
   private alertCode: number = 0;
@@ -857,7 +831,7 @@ export default class extends Vue {
     dateStart: DateTime,
     dateEnd: DateTime | null
   ): DateComparisonResult {
-    return getDateDisposition(date, dateStart, dateEnd);
+    return getDateDisposition(date, dateStart, dateEnd, this.timeDeltaMax);
   }
 
   private setDefaultScopeTagString(): void {
@@ -907,19 +881,12 @@ export default class extends Vue {
     return video.songEntry != null && video.songEntry.taggedWithMultipleEvents;
   }
 
-  private getTimeDeltaState(): boolean {
-    return getTimeDeltaState(
-      this.timeDeltaEnabled,
-      this.timeDeltaBefore,
-      this.timeDeltaAfter,
-      this.timeDelta
+  private isEligible(video: VideoWithEntryAndVisibility): boolean {
+    return (
+      (video.video.eventDateComparison != null &&
+        video.video.eventDateComparison.eligible) ||
+      (video.songEntry != null && video.songEntry.eventDateComparison.eligible)
     );
-  }
-
-  private filterEntriesIfValidState(): void {
-    if (this.getTimeDeltaState()) {
-      this.filterVideos();
-    }
   }
 
   // row filtering
@@ -963,30 +930,19 @@ export default class extends Vue {
     );
   }
 
-  private timeDeltaFlag(eventDateComparison: DateComparisonResult): boolean {
-    return (
-      !this.timeDeltaEnabled ||
-      dateIsWithinTimeDelta(
-        this.timeDelta,
-        this.timeDeltaBefore,
-        this.timeDeltaAfter,
-        eventDateComparison
-      )
-    );
+  private showIneligibleVideosFlag(item: VideoWithEntryAndVisibility): boolean {
+    return this.showIneligibleVideos && !this.isEligible(item);
   }
 
   private filterVideos(): void {
     for (const item of this.entries) {
       item.rowVisible =
-        this.currentEventFilledFlag(item) &&
-        this.showVideosWithoutEntriesFlag(item) &&
-        this.showVideosWithOtherEventsFlag(item) &&
-        this.showVideosWithNoEventsFlag(item) &&
-        this.timeDeltaFlag(
-          item.songEntry != null
-            ? item.songEntry!.eventDateComparison
-            : item.video.eventDateComparison!
-        );
+        (this.currentEventFilledFlag(item) &&
+          this.showVideosWithoutEntriesFlag(item) &&
+          this.showVideosWithOtherEventsFlag(item) &&
+          this.showVideosWithNoEventsFlag(item) &&
+          this.isEligible(item)) ||
+        this.showIneligibleVideosFlag(item);
       item.toAssign = item.toAssign && item.rowVisible;
     }
   }
@@ -994,12 +950,13 @@ export default class extends Vue {
   private isSelectable(item: VideoWithEntryAndVisibility): boolean {
     return (
       !item.processed &&
-      item.songEntry !== null &&
+      item.songEntry != null &&
       !(
         this.hasReleaseEvent(item) &&
-        item.songEntry.releaseEvent!.id !== this.event.id &&
+        item.songEntry.releaseEvent!.id != this.event.id &&
         this.isTaggedWithMultipleEvents(item)
-      )
+      ) &&
+      item.songEntry.eventDateComparison.eligible
     );
   }
 
@@ -1050,6 +1007,7 @@ export default class extends Vue {
       this.timeDeltaMax = this.event.endDate == null ? 7 : 1;
       this.timeDelta = this.timeDeltaMax;
       localStorage.setItem("vocadb_event_name", eventName);
+      this.filterByEventDates = true;
     } catch (err) {
       this.processError(err);
     } finally {
@@ -1069,13 +1027,21 @@ export default class extends Vue {
     this.showCollapse = false;
     this.fetching = true;
     try {
+      if (this.event.date == null) {
+        return;
+      }
+      let startTime = this.event.date?.toISO();
+      let endTime =
+        this.event.endDate == null ? null : this.event.endDate.toISO();
       let response = await api.fetchVideosByEventNndTags({
         tags: targetTag,
         scopeTag: scopeString,
         startOffset: newStartOffset,
         maxResults: this.maxResults,
         orderBy: this.sortingCondition,
-        eventId: this.event.id
+        eventId: this.event.id,
+        startTime: this.filterByEventDates ? startTime : null,
+        endTime: endTime
       });
       for (const item of response.items) {
         let temp: VideoWithEntryAndVisibility = {
