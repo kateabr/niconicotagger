@@ -183,7 +183,7 @@ export function fillReleaseEventForDisplay(
 }
 
 export const defaultScopeTagString: string =
-  "-歌ってみた VOCALOID OR UTAU OR CEVIO OR CeVIO_AI OR SYNTHV OR SYNTHESIZERV OR neutrino(歌声合成エンジン) OR DeepVocal OR Alter/Ego OR AlterEgo OR AquesTalk OR AquesTone OR AquesTone2 OR ボカロ OR ボーカロイド OR 合成音声 OR 歌唱合成 OR coefont OR coefont_studio OR VOICELOID OR VOICEROID OR ENUNU OR ソフトウェアシンガー OR VOICEVOX OR VoiSona OR COEROINK";
+  "-歌ってみた VOCALOID OR UTAU OR CEVIO OR CeVIO_AI OR SYNTHV OR SYNTHESIZERV OR neutrino(歌声合成エンジン) OR DeepVocal OR Alter/Ego OR AlterEgo OR AquesTalk OR AquesTone OR AquesTone2 OR ボカロ OR ボーカロイド OR 合成音声 OR 歌唱合成 OR coefont OR coefont_studio OR VOICELOID OR VOICEROID OR ENUNU OR ソフトウェアシンガー OR VOICEVOX OR VoiSona OR COEROINK OR NNSVS OR ボイパロイド OR Voicing OR AmadeuSY";
 
 // common interface methods & constants
 export const orderOptions = {

@@ -609,6 +609,7 @@ impl<'a> Client<'a> {
                 ("getTotalCount", String::from("true")),
                 ("lang", String::from("Default")),
                 ("fields", String::from("WebLinks,Series")),
+                ("nameMatchMode", String::from("Exact"))
             ],
         ).await?;
 
