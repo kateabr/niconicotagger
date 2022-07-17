@@ -193,6 +193,12 @@
               >
                 Force show ineligible entries
               </b-form-checkbox>
+              <b-form-checkbox
+                v-model="showPerfectDispositionOnly"
+                @change="filterVideos()"
+              >
+                Show only perfect matches time-wise
+              </b-form-checkbox>
             </b-col>
           </b-row>
         </b-collapse>
@@ -678,9 +684,7 @@ import {
   getNicoVideoUrl,
   getVocaDBArtistUrl,
   getVocaDBAddSongUrl,
-  getTimeDeltaState,
-  DateComparisonResult,
-  dateIsWithinTimeDelta
+  DateComparisonResult
 } from "@/utils";
 import ErrorMessage from "@/components/ErrorMessage.vue";
 import NicoEmbed from "@/components/NicoEmbed.vue";
@@ -738,9 +742,7 @@ export default class extends Vue {
   private showVideosWithOtherEvents: boolean = true;
   private showVideosWithNoEvents: boolean = true;
   private showIneligibleVideos: boolean = false;
-  private timeDeltaEnabled: boolean = false;
-  private timeDeltaBefore: boolean = true;
-  private timeDeltaAfter: boolean = true;
+  private showPerfectDispositionOnly: boolean = false;
   private timeDelta: number = 0;
   private timeDeltaMax: number = 0;
   private filterByEventDates: boolean = true;
@@ -934,6 +936,17 @@ export default class extends Vue {
     return this.showIneligibleVideos && !this.isEligible(item);
   }
 
+  private showPerfectDispositionOnlyFlag(
+    item: VideoWithEntryAndVisibility
+  ): boolean {
+    return (
+      !this.showPerfectDispositionOnly ||
+      (item.songEntry == null &&
+        item.video.eventDateComparison?.disposition == "perfect") ||
+      item.songEntry?.eventDateComparison.disposition == "perfect"
+    );
+  }
+
   private filterVideos(): void {
     for (const item of this.entries) {
       item.rowVisible =
@@ -941,6 +954,7 @@ export default class extends Vue {
           this.showVideosWithoutEntriesFlag(item) &&
           this.showVideosWithOtherEventsFlag(item) &&
           this.showVideosWithNoEventsFlag(item) &&
+          this.showPerfectDispositionOnlyFlag(item) &&
           this.isEligible(item)) ||
         this.showIneligibleVideosFlag(item);
       item.toAssign = item.toAssign && item.rowVisible;
