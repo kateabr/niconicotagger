@@ -1072,14 +1072,19 @@ export default class extends Vue {
           item.songEntry != null &&
           item.songEntry.publishDate != null
         ) {
+          const minDate = DateTime.min(
+            DateTime.fromISO(item.songEntry.publishDate, { zone: "utc" }),
+            DateTime.fromISO(item.video.startTime, { zone: "utc" })
+          );
+          item.songEntry.publishDate = minDate.toISO();
           item.songEntry.eventDateComparison = this.getDateDisposition(
-            DateTime.fromISO(item.songEntry.publishDate),
+            minDate,
             this.event.date!,
             this.event.endDate
           );
         } else if (temp.songEntry == null && item.songEntry == null) {
           item.video.eventDateComparison = this.getDateDisposition(
-            DateTime.fromISO(item.video.startTime),
+            DateTime.fromISO(item.video.startTime, { zone: "utc" }),
             this.event.date!,
             this.event.endDate
           );

@@ -178,8 +178,8 @@ export function fillReleaseEventForDisplay(
   trg.name = src.name;
   trg.urlSlug = src.urlSlug;
   trg.category = src.category;
-  trg.date = src.date == null ? null : DateTime.fromISO(src.date);
-  trg.endDate = src.endDate == null ? null : DateTime.fromISO(src.endDate);
+  trg.date = src.date == null ? null : DateTime.fromISO(src.date, { zone: "utc" });
+  trg.endDate = src.endDate == null ? null : DateTime.fromISO(src.endDate, { zone: "utc" });
 }
 
 export const defaultScopeTagString: string =
@@ -250,7 +250,7 @@ export function validateTimestamp(timestamp: string): boolean | null {
 
 // other util methods
 function subDates(date1: DateTime, date2: DateTime): number {
-  return Math.round(date1.diff(date2).as("day"));
+  return Math.floor(date1.diff(date2).as("day"));
 }
 
 export function toggleTagAssignation(tag: MappedTag, video: EntryWithVideosAndVisibility): void {

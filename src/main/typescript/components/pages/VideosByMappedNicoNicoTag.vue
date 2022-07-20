@@ -764,7 +764,6 @@ export default class extends Vue {
     if (video.songEntry == null) {
       return;
     }
-    console.log("assign");
     this.assigning = true;
     try {
       await api.assignTag({ tags: this.tagInfo, songId: video.songEntry.id });

@@ -6,7 +6,6 @@ use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use anyhow::Context;
 use chrono::{DateTime, Duration, FixedOffset};
 use futures::future;
-use log::info;
 use url::Url;
 
 use crate::client::client::Client;
@@ -295,7 +294,6 @@ pub async fn fetch_release_event_with_nnd_tags(_req: HttpRequest, payload: Json<
                 payload.event_name.clone()
             )
         ))?;
-    info!("{:?}", links);
     let clean_tags = clean_nnd_links(links)?;
     if !clean_tags.is_empty() {
         Ok(Json(ReleaseEventForApiContractSimplifiedWithNndTags {
@@ -325,8 +323,8 @@ pub async fn fetch_videos_by_event_nnd_tags(_req: HttpRequest, payload: Json<Eve
                     let ref_time = DateTime::parse_from_rfc3339(&start_time)
                         .context(format!("Unable to parse {}", &start_time))?;
 
-                    vec![(ref_time.with_timezone(&FixedOffset::east(9 * 3600)) - Duration::days(7) - Duration::hours(9)).to_rfc3339(),
-                         (ref_time.with_timezone(&FixedOffset::east(9 * 3600)) + Duration::days(7) - Duration::hours(9)).to_rfc3339()]
+                    vec![(ref_time.with_timezone(&FixedOffset::east(9 * 3600)) - Duration::days(7)).to_rfc3339(),
+                         (ref_time.with_timezone(&FixedOffset::east(9 * 3600)) + Duration::days(7)).to_rfc3339()]
                 }
                 Some(end_time) => {
                     let ref_time_start = DateTime::parse_from_rfc3339(&start_time)
@@ -334,8 +332,8 @@ pub async fn fetch_videos_by_event_nnd_tags(_req: HttpRequest, payload: Json<Eve
                     let ref_time_end = DateTime::parse_from_rfc3339(&end_time)
                         .context(format!("Unable to parse {}", &end_time))?;
 
-                    vec![(ref_time_start.with_timezone(&FixedOffset::east(9 * 3600)) - Duration::days(1) - Duration::hours(9)).to_rfc3339(),
-                         (ref_time_end.with_timezone(&FixedOffset::east(9 * 3600)) + Duration::days(1) - Duration::hours(9)).to_rfc3339()]
+                    vec![(ref_time_start.with_timezone(&FixedOffset::east(9 * 3600)) - Duration::days(1)).to_rfc3339(),
+                         (ref_time_end.with_timezone(&FixedOffset::east(9 * 3600)) + Duration::days(1)).to_rfc3339()]
                 }
             }
         }

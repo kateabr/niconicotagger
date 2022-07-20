@@ -194,7 +194,7 @@ pub struct TagFetchResponse {
     pub total_count: i32,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct NicoVideo {
     #[serde(rename = "contentId")]
     pub id: String,

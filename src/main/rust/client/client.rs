@@ -9,6 +9,7 @@ use actix_web::http::Method;
 use actix_web::web::{Bytes};
 use anyhow::Context;
 use awc::error::HeaderValue;
+use chrono::{DateTime, DurationRound, FixedOffset};
 use log::{debug, info};
 use roxmltree::Document;
 use scraper::{ElementRef, Node};
@@ -268,12 +269,13 @@ impl<'a> Client<'a> {
         let mut escaped_data: Vec<NicoVideo> = vec![];
 
         for video in response.data {
+            let start_time = (DateTime::parse_from_rfc3339(&video.start_time).unwrap().with_timezone(&FixedOffset::east(0)).duration_trunc(chrono::Duration::days(1)).unwrap()).to_rfc3339();
             escaped_data.push(NicoVideo {
                 id: video.id,
                 title: html_escape::decode_html_entities(&video.title).to_string(),
                 tags: video.tags.clone(),
                 user_id: video.user_id,
-                start_time: video.start_time,
+                start_time,
             });
         }
 
