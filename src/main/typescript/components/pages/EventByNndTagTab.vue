@@ -403,7 +403,7 @@
               <b-form-checkbox
                 v-if="isSelectable(item)"
                 v-model="item.toAssign"
-                :disabled="defaultDisableCondition()"
+                :disabled="defaultDisableCondition() || !hasPublishDate(item)"
                 size="lg"
               />
             </td>
@@ -494,6 +494,9 @@
                 :release-date="item.songEntry.publishDate"
                 :event-date-comparison="item.songEntry.eventDateComparison"
               />
+              <b-badge v-else variant="danger"
+                >publish date not specified</b-badge
+              >
             </td>
             <td v-else>
               <date-disposition
@@ -557,6 +560,7 @@
                     v-else
                     :disabled="
                       defaultDisableCondition() ||
+                      !hasPublishDate(item) ||
                       (hasReleaseEvent(item) &&
                         item.songEntry.releaseEvent.id !== event.id &&
                         isTaggedWithMultipleEvents(item)) ||
@@ -851,7 +855,11 @@ export default class extends Vue {
 
   private toggleCheckAll(): void {
     for (const item of this.entries) {
-      if (item.rowVisible && this.isSelectable(item)) {
+      if (
+        item.rowVisible &&
+        this.isSelectable(item) &&
+        this.hasPublishDate(item)
+      ) {
         item.toAssign = this.allChecked;
       }
     }
@@ -887,7 +895,9 @@ export default class extends Vue {
     return (
       (video.video.eventDateComparison != null &&
         video.video.eventDateComparison.eligible) ||
-      (video.songEntry != null && video.songEntry.eventDateComparison.eligible)
+      (video.songEntry != null &&
+        video.songEntry.eventDateComparison != null &&
+        video.songEntry.eventDateComparison.eligible)
     );
   }
 
@@ -1084,6 +1094,12 @@ export default class extends Vue {
           );
         } else if (temp.songEntry == null && item.songEntry == null) {
           item.video.eventDateComparison = this.getDateDisposition(
+            DateTime.fromISO(item.video.startTime, { zone: "utc" }),
+            this.event.date!,
+            this.event.endDate
+          );
+        } else if (item.songEntry != null) {
+          item.songEntry.eventDateComparison = this.getDateDisposition(
             DateTime.fromISO(item.video.startTime, { zone: "utc" }),
             this.event.date!,
             this.event.endDate
