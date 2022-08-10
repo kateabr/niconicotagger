@@ -41,7 +41,7 @@ export function getVocaDBTagUrl(id: number, urlSlug: string): string {
 }
 
 export function getVocaDBAddSongUrl(pvLink: string): string {
-  return "https://vocadb.net/Song/Create?PVUrl=https://www.nicovideo.jp/watch/" + pvLink;
+  return "https://vocadb.net/Song/Create?pvUrl=https://www.nicovideo.jp/watch/" + pvLink;
 }
 
 export function getVocaDBArtistUrl(artistId: number): string {
