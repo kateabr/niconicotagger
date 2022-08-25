@@ -444,6 +444,7 @@ fn create_client<'a>(
 ) -> Result<Client<'a>, VocadbClientError> {
     return match database {
         Database::VocaDb => Client::vocadb(&cookies),
+        Database::VocaDbBeta => Client::vocadb_beta(&cookies),
         Database::TouhouDb => Client::touhoudb(&cookies),
         Database::UtaiteDb => Client::utaitedb(&cookies),
     };

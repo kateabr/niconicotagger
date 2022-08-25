@@ -181,6 +181,7 @@
                 :text="getMaxResultsForDisplay()"
                 class="my-auto"
                 variant="primary"
+                menu-class="w-100"
               >
                 <b-dropdown-item
                   :disabled="maxResults === 10"
@@ -210,6 +211,7 @@
                 :disabled="defaultDisableCondition() || !isActiveMode()"
                 :text="getOrderingConditionForDisplay()"
                 variant="primary"
+                menu-class="w-100"
               >
                 <b-dropdown-item
                   v-for="(key, value) in orderOptions"
@@ -566,6 +568,7 @@ export default class extends Vue {
   private fetching: boolean = false;
   private massAssigning: boolean = false;
   private assigning: boolean = false;
+  private dbAddress: string = "";
 
   // interface variables
   private allChecked: boolean = false;
@@ -610,15 +613,15 @@ export default class extends Vue {
   }
 
   private getVocaDBEventUrl(id: number, urlSlug: string): string {
-    return getVocaDBEventUrl(id, urlSlug);
+    return getVocaDBEventUrl(this.dbAddress, id, urlSlug);
   }
 
   private getVocaDBEntryUrl(id: number): string {
-    return getVocaDBEntryUrl(id);
+    return getVocaDBEntryUrl(this.dbAddress, id);
   }
 
   private getVocaDBTagUrl(id: number, urlSlug: string): string {
-    return getVocaDBTagUrl(id, urlSlug);
+    return getVocaDBTagUrl(this.dbAddress, id, urlSlug);
   }
 
   private getMaxResultsForDisplay(): string {
@@ -917,6 +920,10 @@ export default class extends Vue {
     let event_tag_name = localStorage.getItem("vocadb_event_tag_name");
     if (event_tag_name != null) {
       this.eventTagName = event_tag_name;
+    }
+    let dbAddress = localStorage.getItem("dbAddress");
+    if (this.dbAddress == "" && dbAddress != null) {
+      this.dbAddress = dbAddress;
     }
   }
 

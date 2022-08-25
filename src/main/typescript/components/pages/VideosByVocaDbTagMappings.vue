@@ -86,6 +86,7 @@
                 :disabled="defaultDisableCondition()"
                 :text="getSortingCondition()"
                 variant="primary"
+                menu-class="w-100"
               >
                 <b-dropdown-item
                   v-for="(key, item) in orderOptionsNico"
@@ -192,6 +193,7 @@
           :text="getResultNumberStr()"
           class="my-auto"
           variant="primary"
+          menu-class="w-100"
         >
           <b-dropdown-item
             :disabled="maxResults === 10"
@@ -527,6 +529,7 @@ export default class extends Vue {
   private fetching: boolean = false;
   private massAssigning: boolean = false;
   private assigning: boolean = false;
+  private dbAddress: string = "";
 
   // interface variables
   private allChecked: boolean = false;
@@ -649,7 +652,7 @@ export default class extends Vue {
   }
 
   private getVocaDBTagUrl(id: number, urlSlug: string): string {
-    return getVocaDBTagUrl(id, urlSlug);
+    return getVocaDBTagUrl(this.dbAddress, id, urlSlug);
   }
 
   private getNicoTagUrl(tagName: string, scopeTag: string): string {
@@ -687,7 +690,7 @@ export default class extends Vue {
   }
 
   private getVocaDBEntryUrl(id: number): string {
-    return getVocaDBEntryUrl(id);
+    return getVocaDBEntryUrl(this.dbAddress, id);
   }
 
   private getShortenedSongType(songType: string): string {
@@ -695,11 +698,11 @@ export default class extends Vue {
   }
 
   private getVocaDBAddSongUrl(contentId: string): string {
-    return getVocaDBAddSongUrl(contentId);
+    return getVocaDBAddSongUrl(this.dbAddress, contentId);
   }
 
   private getVocaDBArtistUrl(artistId: number): string {
-    return getVocaDBArtistUrl(artistId);
+    return getVocaDBArtistUrl(this.dbAddress, artistId);
   }
 
   private updateUrl(): void {
@@ -845,6 +848,10 @@ export default class extends Vue {
     );
     if (vocadb_mapped_tag_scope != null) {
       this.scopeTagString = vocadb_mapped_tag_scope;
+    }
+    let dbAddress = localStorage.getItem("dbAddress");
+    if (this.dbAddress == "" && dbAddress != null) {
+      this.dbAddress = dbAddress;
     }
   }
 

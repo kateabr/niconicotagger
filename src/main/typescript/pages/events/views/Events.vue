@@ -1,33 +1,33 @@
 <template>
   <div>
-    <nav-bar-menu active-mode="events" />
+    <nav-bar-menu active-mode="events" :db-address="dbAddress" />
     <b-toaster class="b-toaster-top-center" name="toaster-events" />
     <div style="display: flex; align-items: center">
       <b-container class="col-lg-11">
         <b-nav tabs class="mb-2">
-          <b-nav-item
-            :to="{ name: 'events-mode', params: { browseMode: 'vocadb' } }"
-            :active="browseMode === 'vocadb'"
-          >
-            Replace an event tag (VocaDB)
-          </b-nav-item>
           <b-nav-item
             :to="{ name: 'events-mode', params: { browseMode: 'nicovideo' } }"
             :active="browseMode === 'nicovideo'"
           >
             Add event by associated tags (NND)
           </b-nav-item>
+          <b-nav-item
+            :to="{ name: 'events-mode', params: { browseMode: 'vocadb' } }"
+            :active="browseMode === 'vocadb'"
+          >
+            Replace an event tag (VocaDB)
+          </b-nav-item>
         </b-nav>
         <div class="tab-content">
-          <div :class="['tab-pane', { active: browseMode === 'vocadb' }]">
-            <event-by-voca-db-tag-tab :mode="browseMode" this-mode="vocadb" />
-          </div>
           <div :class="['tab-pane', { active: browseMode === 'nicovideo' }]">
             <event-by-nnd-tag-tab
               :mode="browseMode"
               this-mode="nicovideo"
               :targ-name="targName"
             />
+          </div>
+          <div :class="['tab-pane', { active: browseMode === 'vocadb' }]">
+            <event-by-voca-db-tag-tab :mode="browseMode" this-mode="vocadb" />
           </div>
         </div>
       </b-container>
@@ -54,5 +54,14 @@ export default class extends Vue {
 
   @Prop()
   private readonly targName: string | undefined;
+
+  private dbAddress: string = "";
+
+  created(): void {
+    let dbAddress = localStorage.getItem("dbAddress");
+    if (this.dbAddress == "" && dbAddress != null) {
+      this.dbAddress = dbAddress;
+    }
+  }
 }
 </script>

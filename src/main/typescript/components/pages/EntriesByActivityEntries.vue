@@ -25,6 +25,7 @@
             :text="getMaxResultsForDisplay()"
             class="my-auto"
             variant="primary"
+            menu-class="w-100"
           >
             <b-dropdown-item
               :disabled="maxResults === 10"
@@ -58,6 +59,7 @@
             "
             :text="getSortingConditionForDisplay()"
             variant="primary"
+            menu-class="w-100"
           >
             <b-dropdown-item
               v-for="(key, value) in sortingOptions"
@@ -199,6 +201,7 @@
             "
             :text="getAdditionModeForDisplay()"
             variant="primary"
+            menu-class="w-100"
           >
             <b-dropdown-item
               v-for="(key, value) in additionOptions"
@@ -616,6 +619,7 @@ export default class extends Vue {
   private additionMode = "before";
   private sortingCondition: string = "CreateDateDescending";
   private timestamp = "";
+  private dbAddress: string = "";
 
   // interface variables
   private fetching: boolean = false;
@@ -747,11 +751,11 @@ export default class extends Vue {
   }
 
   private getVocaDBEntryUrl(id: number): string {
-    return getVocaDBEntryUrl(id);
+    return getVocaDBEntryUrl(this.dbAddress, id);
   }
 
   private getVocaDBTagUrl(id: number, urlSlug: string): string {
-    return getVocaDBTagUrl(id, urlSlug);
+    return getVocaDBTagUrl(this.dbAddress, id, urlSlug);
   }
 
   private getNicoVideoUrl(contentId: string): string {
@@ -1093,6 +1097,10 @@ export default class extends Vue {
       added_mode != null
     ) {
       this.sessionLocked = true;
+    }
+    let dbAddress = localStorage.getItem("dbAddress");
+    if (this.dbAddress == "" && dbAddress != null) {
+      this.dbAddress = dbAddress;
     }
   }
 

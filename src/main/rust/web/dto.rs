@@ -32,6 +32,7 @@ pub struct Token {
 #[derive(Deserialize, Serialize, Clone, Debug)]
 pub enum Database {
     VocaDb,
+    VocaDbBeta,
     TouhouDb,
     UtaiteDb,
 }
