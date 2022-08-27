@@ -28,24 +28,24 @@ export function getNicoEmbedUrl(videoId: string): string {
   return "https://embed.nicovideo.jp/watch/" + videoId + "?noRelatedVideo=1&enablejsapi=0";
 }
 
-export function getVocaDBEventUrl(id: number, urlSlug: string): string {
-  return "https://vocadb.net/E/" + id + "/" + urlSlug;
+export function getVocaDBEventUrl(dbAddress: string, id: number, urlSlug: string): string {
+  return dbAddress + "/E/" + id + "/" + urlSlug;
 }
 
-export function getVocaDBEntryUrl(id: number): string {
-  return "https://vocadb.net/S/" + id;
+export function getVocaDBEntryUrl(dbAddress: string, id: number): string {
+  return dbAddress + "/S/" + id;
 }
 
-export function getVocaDBTagUrl(id: number, urlSlug: string): string {
-  return "https://vocadb.net/T/" + id + "/" + urlSlug;
+export function getVocaDBTagUrl(dbAddress: string, id: number, urlSlug: string): string {
+  return dbAddress + "/T/" + id + "/" + urlSlug;
 }
 
-export function getVocaDBAddSongUrl(pvLink: string): string {
-  return "https://vocadb.net/Song/Create?pvUrl=https://www.nicovideo.jp/watch/" + pvLink;
+export function getVocaDBAddSongUrl(dbAddress: string, pvLink: string): string {
+  return dbAddress + "/Song/Create?pvUrl=https://www.nicovideo.jp/watch/" + pvLink;
 }
 
-export function getVocaDBArtistUrl(artistId: number): string {
-  return "https://vocadb.net/Ar/" + artistId;
+export function getVocaDBArtistUrl(dbAddress: string, artistId: number): string {
+  return dbAddress + "/Ar/" + artistId;
 }
 
 export function getDeletedVideoUrl(videoId: string): string {

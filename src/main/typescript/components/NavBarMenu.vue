@@ -14,6 +14,20 @@
         >
       </b-navbar-nav>
       <b-navbar-nav class="ml-auto">
+        <b-nav-text class="mr-2"
+          ><span
+            v-if="dbAddress !== ''"
+            class="border rounded-sm border-info p-2 text-info bg-light"
+            ><font-awesome-icon class="mr-2 ml-1" icon="fa-solid fa-key" />{{
+              getDbName()
+            }}</span
+          >
+          <span
+            v-else
+            class="border rounded-sm border-danger p-2 text-danger bg-light"
+            >PLEASE LOG IN</span
+          ></b-nav-text
+        >
         <b-nav-item
           href="https://github.com/kateabr/niconicotagger"
           target="_blank"
@@ -35,5 +49,18 @@ import Vue from "vue";
 export default class extends Vue {
   @Prop()
   private readonly activeMode!: string;
+
+  @Prop()
+  private readonly dbAddress!: string;
+
+  getDbName(): string {
+    return this.dbAddress
+      .replace("https://", "")
+      .replace(".net", "")
+      .toUpperCase()
+      .split(".")
+      .reverse()
+      .join(" ");
+  }
 }
 </script>

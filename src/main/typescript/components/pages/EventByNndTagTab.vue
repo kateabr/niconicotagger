@@ -96,6 +96,7 @@
                 :disabled="defaultDisableCondition()"
                 :text="getSortingConditionForDisplay()"
                 variant="primary"
+                menu-class="w-100"
               >
                 <b-dropdown-item
                   v-for="(key, item) in sortingOptions"
@@ -311,6 +312,7 @@
                 :text="getMaxResultsForDisplay()"
                 class="my-auto"
                 variant="primary"
+                menu-class="w-100"
               >
                 <b-dropdown-item
                   :disabled="maxResults === 10"
@@ -730,6 +732,7 @@ export default class extends Vue {
   private fetching: boolean = false;
   private massAssigning: boolean = false;
   private assigning: boolean = false;
+  private dbAddress: string = "";
 
   // interface variables
   private tagsLoaded: boolean = false;
@@ -781,15 +784,15 @@ export default class extends Vue {
   }
 
   private getVocaDBEventUrl(id: number, urlSlug: string): string {
-    return getVocaDBEventUrl(id, urlSlug);
+    return getVocaDBEventUrl(this.dbAddress, id, urlSlug);
   }
 
   private getVocaDBEntryUrl(id: number): string {
-    return getVocaDBEntryUrl(id);
+    return getVocaDBEntryUrl(this.dbAddress, id);
   }
 
   private getVocaDBTagUrl(id: number, urlSlug: string): string {
-    return getVocaDBTagUrl(id, urlSlug);
+    return getVocaDBTagUrl(this.dbAddress, id, urlSlug);
   }
 
   private getNicoVideoUrl(contentId: string): string {
@@ -805,11 +808,11 @@ export default class extends Vue {
   }
 
   private getVocaDBArtistUrl(artistId: number): string {
-    return getVocaDBArtistUrl(artistId);
+    return getVocaDBArtistUrl(this.dbAddress, artistId);
   }
 
   private getVocaDBAddSongUrl(contentId: string): string {
-    return getVocaDBAddSongUrl(contentId);
+    return getVocaDBAddSongUrl(this.dbAddress, contentId);
   }
 
   private getSongTypeColorForDisplay(typeString: string): string {
@@ -1212,6 +1215,10 @@ export default class extends Vue {
     let sort_by = localStorage.getItem("sort_by");
     if (sort_by != null) {
       this.sortingCondition = sort_by;
+    }
+    let dbAddress = localStorage.getItem("dbAddress");
+    if (this.dbAddress == "" && dbAddress != null) {
+      this.dbAddress = dbAddress;
     }
   }
 

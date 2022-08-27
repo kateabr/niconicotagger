@@ -1,6 +1,7 @@
 extern crate kana;
 
 use std::cmp::min;
+use std::ops::Deref;
 use std::str::FromStr;
 use std::time::Duration;
 
@@ -8,7 +9,6 @@ use actix_web::cookie::Cookie;
 use actix_web::http::Method;
 use actix_web::web::{Bytes};
 use anyhow::Context;
-use awc::error::HeaderValue;
 use chrono::{DateTime, DurationRound, FixedOffset};
 use log::{debug, info};
 use roxmltree::Document;
@@ -46,6 +46,10 @@ impl<'a> Client<'a> {
         return Client::new("https://vocadb.net", cookies);
     }
 
+    pub fn vocadb_beta(cookies: &Vec<String>) -> Result<Client<'a>> {
+        return Client::new("https://beta.vocadb.net", cookies);
+    }
+
     pub fn touhoudb(cookies: &Vec<String>) -> Result<Client<'a>> {
         return Client::new("https://touhoudb.com", cookies);
     }
@@ -75,8 +79,10 @@ impl<'a> Client<'a> {
         });
     }
 
-    fn add_cookie(&mut self, cookie: &Cookie<'a>) -> &Client {
-        self.cookies.push(cookie.clone());
+    fn add_cookies(&mut self, cookies: &Vec<Cookie<'a>>) -> &Client {
+        for cookie in cookies {
+            self.cookies.push(cookie.clone());
+        }
         return self;
     }
 
@@ -202,9 +208,9 @@ impl<'a> Client<'a> {
         let auth_cookie = cookies.iter().find(|c| c.name() == ".AspNetCore.Cookies");
         return match auth_cookie {
             None => Err(VocadbClientError::BadCredentialsError),
-            Some(cookie) => {
+            Some(_) => {
                 self.clear_cookie();
-                self.add_cookie(cookie);
+                self.add_cookies(cookies.deref());
                 Ok(())
             }
         };
@@ -226,7 +232,7 @@ impl<'a> Client<'a> {
         start_offset: i32,
         max_results: i32,
         order_by: String,
-        time_bounds: Vec<String>
+        time_bounds: Vec<String>,
     ) -> Result<NicoResponseWithScope> {
         let mut new_scope = scope_tag.clone();
         loop {
@@ -288,7 +294,7 @@ impl<'a> Client<'a> {
 
     pub async fn get_mappings_raw(&self) -> Result<Vec<TagMappingContract>> {
         let tags: PartialFindResult<TagMappingContract> = self.http_get(
-            &String::from("https://vocadb.net/api/tags/mappings"),
+            &format!("{}/api/tags/mappings", self.base_url),
             &vec![
                 ("start", String::from("0")),
                 ("maxEntries", String::from("10000")),
@@ -347,7 +353,7 @@ impl<'a> Client<'a> {
 
     pub async fn get_current_tags(&self, song_id: i32) -> Result<Vec<SelectedTag>> {
         let q: Vec<String> = vec![];
-        let result: Vec<SelectedTag> = self.http_get(&format!("https://vocadb.net/api/users/current/songTags/{}", song_id), &q).await?;
+        let result: Vec<SelectedTag> = self.http_get(&format!("{}/api/users/current/songTags/{}", self.base_url, song_id), &q).await?;
         return Ok(result);
     }
 
@@ -360,14 +366,14 @@ impl<'a> Client<'a> {
             .collect();
         new_tags.extend(tags);
         let _response = self.http_put::<Vec<TagBaseContract>, Vec<TagUsageForApiContract>>(
-            &format!("https://vocadb.net/api/users/current/songTags/{}", song_id), &vec![], new_tags)
+            &format!("{}/api/users/current/songTags/{}", self.base_url, song_id), &vec![], new_tags)
             .await?;
         return Ok(());
     }
 
     pub async fn get_song_by_nico_pv(&self, pv_id: &str) -> Result<Option<SongForApiContract>> {
         return self.http_get(
-            &String::from("https://vocadb.net/api/songs/byPv"),
+            &format!("{}/api/songs/byPv", self.base_url),
             &vec![
                 ("pvService", String::from("NicoNicoDouga")),
                 ("pvId", String::from(pv_id)),
@@ -378,7 +384,7 @@ impl<'a> Client<'a> {
 
     pub async fn lookup_artist_by_nico_account_id(&self, user_id: i32) -> Result<Option<NicoPublisher>> {
         let lookup_result: Vec<NicoArtistDuplicateResult> = self.http_post(
-            &String::from("https://vocadb.net/Artist/FindDuplicate"),
+            &format!("{}/Artist/FindDuplicate", self.base_url),
             &vec![
                 ("term1", ""),
                 ("term2", ""),
@@ -540,7 +546,7 @@ impl<'a> Client<'a> {
 
     pub async fn lookup_tag(&self, tag_id: i32) -> Result<AssignableTag> {
         let response: Option<TagForApiContract> = self.http_get(
-            &format!("https://vocadb.net/api/tags/{}", tag_id),
+            &format!("{}/api/tags/{}", self.base_url, tag_id),
             &vec![
                 ("fields", String::from("AdditionalNames"))
             ],
@@ -568,7 +574,7 @@ impl<'a> Client<'a> {
 
     pub async fn lookup_tag_by_name(&self, tag_name: String) -> Result<AssignableTag> {
         let response: TagSearchResult = self.http_get(
-            &String::from("https://vocadb.net/api/tags/"),
+            &format!("{}/api/tags/", self.base_url),
             &vec![
                 ("fields", String::from("AdditionalNames")),
                 ("query", tag_name.clone()),
@@ -597,21 +603,21 @@ impl<'a> Client<'a> {
 
     pub async fn get_event_series(&self, series_id: i32) -> Result<ReleaseEventSeriesContract> {
         self.http_get(
-            &String::from(format!("https://vocadb.net/api/releaseEventSeries/{}", series_id)),
-        &vec![
-            ("fields", String::from("WebLinks"))
-        ]).await
+            &format!("{}/api/releaseEventSeries/{}", self.base_url, series_id),
+            &vec![
+                ("fields", String::from("WebLinks"))
+            ]).await
     }
 
     pub async fn get_event_by_name(&self, event_name: String) -> Result<ReleaseEventForApiContractSimplified> {
         let response: EventSearchResult = self.http_get(
-            &String::from("https://vocadb.net/api/releaseEvents"),
+            &format!("{}/api/releaseEvents", self.base_url),
             &vec![
                 ("query", event_name.clone()),
                 ("getTotalCount", String::from("true")),
                 ("lang", String::from("Default")),
                 ("fields", String::from("WebLinks,Series")),
-                ("nameMatchMode", String::from("Exact"))
+                ("nameMatchMode", String::from("Exact")),
             ],
         ).await?;
 
@@ -645,7 +651,7 @@ impl<'a> Client<'a> {
                     },
                     web_links: if web_links.is_empty() { None } else { Some(web_links) },
                 })
-            },
+            }
             0 => Err(VocadbClientError::NotFoundError(format!("event \"{}\" does not exist", event_name.clone()))),
             _ => Err(VocadbClientError::AmbiguousResponseError)
         };
@@ -653,7 +659,7 @@ impl<'a> Client<'a> {
 
     pub async fn get_event_by_tag(&self, tag_id: i32, tag_name: &str) -> Result<ReleaseEventForApiContractSimplified> {
         let response: EventSearchResult = self.http_get(
-            &String::from("https://vocadb.net/api/releaseEvents"),
+            &format!("{}/api/releaseEvents", self.base_url),
             &vec![
                 ("tagId[]", tag_id.to_string()),
                 ("getTotalCount", String::from("true")),
@@ -685,15 +691,6 @@ impl<'a> Client<'a> {
     }
 
     pub async fn fill_in_event(&self, song_id: i32, event: MinimalEvent) -> Result<EventAssigningResult> {
-        #[derive(Serialize, Debug)]
-        struct EditForm {
-            #[serde(rename = "EditedSong")]
-            edited_song: String,
-            #[serde(rename = "AlbumId")]
-            album_id: Option<String>,
-            #[serde(rename = "ko_unique_1")]
-            ko_unique_1: bool,
-        }
         let mut song_data: Map<String, Value> = self.get_song_for_edit(song_id).await?;
         let mut final_result: EventAssigningResult = EventAssigningResult::Assigned;
         if song_data.contains_key("releaseEvent") {
@@ -703,8 +700,9 @@ impl<'a> Client<'a> {
                 }
                 let mut description_map = Map::new();
                 let src_description = self.get_2nd_level_value(&song_data, "notes", "original");
-                let additional_notes = Value::from(format!("Another event: [{}](https://vocadb.net/E/{}/{}).",
+                let additional_notes = Value::from(format!("Another event: [{}]({}/E/{}/{}).",
                                                            event.name,
+                                                           self.base_url,
                                                            event.id,
                                                            event.url_slug))
                     .as_str().unwrap().to_string();
@@ -735,15 +733,42 @@ impl<'a> Client<'a> {
             song_data.insert("releaseEvent".to_string(), Value::from(event_id_map));
         }
         song_data.insert("updateNotes".to_string(), Value::from(format!("Added event \"{}\" (via NicoNicoTagger)", event.name)));
-        let edited_song = serde_json::to_string(&song_data).context("Unable to serialize")?;
 
-        let request = self.create_request(&format!("https://vocadb.net/Song/Edit/{}", song_id), Method::POST);
-
-        let payload: EditForm = EditForm { edited_song, album_id: None, ko_unique_1: false };
-
-        request.content_type(HeaderValue::from_str("application/x-www-form-urlencoded").unwrap()).send_form(&payload).await?.body().await?;
+        self.http_post_with_antiforgery_token(song_data, song_id).await?;
 
         return Ok(final_result);
+    }
+
+    async fn http_post_with_antiforgery_token(&self, song_data: Map<String, Value>, song_id: i32) -> Result<()> {
+        #[derive(Serialize, Debug)]
+        struct FormData {
+            contract: String,
+        }
+        let atf_cookies = self.create_request(
+            &format!("{}/api/antiforgery/token", self.base_url),
+            Method::GET)
+            .send().await?
+            .cookies()
+            .context("Failed to obtain token")?
+            .to_vec();
+
+        let antiforgery_token = atf_cookies.deref().iter().find(|cookie| cookie.name() == "XSRF-TOKEN").unwrap().value().to_string();
+
+        let edited_song = serde_json::to_string(&song_data).context("Unable to serialize")?;
+
+        let mut request = self.create_request(&format!("{}/api/songs/{}", self.base_url, song_id), Method::POST);
+        for cookie in atf_cookies {
+            request = request.cookie(cookie.clone());
+        }
+        request.content_type("application/x-www-form-urlencoded")
+            .insert_header(("requestVerificationToken", antiforgery_token.as_str()))
+            .insert_header(("X-XSRF-TOKEN", antiforgery_token.as_str()))
+            .send_form(&FormData{contract: edited_song})
+            .await?
+            .body()
+            .await?;
+
+        Ok(())
     }
 
     pub async fn remove_tag(&self, song_id: i32, tag_id: i64) -> Result<()> {
@@ -812,13 +837,13 @@ impl<'a> Client<'a> {
         }
 
         let query = vec![];
-        let response_bytes = self.http_get_raw(&format!("https://vocadb.net/Song/ManageTagUsages/{}", song_id), &query).await?;
+        let response_bytes = self.http_get_raw(&format!("{}/Song/ManageTagUsages/{}", self.base_url, song_id), &query).await?;
         let html = String::from_utf8(response_bytes.to_vec()).context("Response is not a UTF-8 string")?;
 
         let tag_usage_id = extract_tag_usage_id(&html, tag_id)
             .context(format!("Failed to extract tag usage id for tag (id={})", tag_id))?;
         self.http_get_no_return_value(
-            &format!("https://vocadb.net/Song/RemoveTagUsage/{}", tag_usage_id),
+            &format!("{}/Song/RemoveTagUsage/{}", self.base_url, tag_usage_id),
             &query,
         ).await?;
 
@@ -827,7 +852,7 @@ impl<'a> Client<'a> {
 
     pub async fn get_songs_by_vocadb_event_tag(&self, tag_id: i32, start_offset: i32, max_results: i32, order_by: String) -> Result<SongForApiContractSimplifiedWithMultipleEventInfoSearchResult> {
         let response: PartialFindResult<SongForApiContract> = self.http_get(
-            &String::from("https://vocadb.net/api/songs"),
+            &format!("{}/api/songs", self.base_url),
             &vec![
                 ("tagId[]", tag_id.to_string()),
                 ("start", start_offset.to_string()),
@@ -865,7 +890,7 @@ impl<'a> Client<'a> {
         let mut response_entries: Vec<SongForApiContract> = vec![];
 
         let response: PartialFindResult<ActivityEntryForApiContract> = self.http_get(
-            &String::from("https://vocadb.net/api/activityEntries"),
+            &format!("{}/api/activityEntries", self.base_url),
             &vec![
                 (mode.as_ref(), date_time),
                 ("maxResults", String::from("200")),
@@ -1061,7 +1086,7 @@ impl<'a> Client<'a> {
         order_by: String,
     ) -> Result<SongsForApiContractWithThumbnailsAndTimestamp> {
         let response: PartialFindResult<SongForApiContract> = self.http_get(
-            &String::from("https://vocadb.net/api/songs"),
+            &format!("{}/api/songs", self.base_url),
             &vec![
                 ("onlyWithPvs", String::from("true")),
                 ("start", start_offset.to_string()),
@@ -1140,7 +1165,7 @@ impl<'a> Client<'a> {
     pub async fn get_song_for_edit(&self, song_id: i32) -> Result<Map<String, Value>> {
         let q: Vec<String> = vec![];
         let response: Value = self.http_get(
-            &format!("https://vocadb.net/api/songs/{}/for-edit", song_id), &q,
+            &format!("{}/api/songs/{}/for-edit", self.base_url, song_id), &q,
         ).await?;
         let map = response.as_object().context("Response is not a map")?;
 

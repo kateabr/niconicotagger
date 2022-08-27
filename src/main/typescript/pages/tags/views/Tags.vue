@@ -1,6 +1,6 @@
 <template>
   <div>
-    <nav-bar-menu active-mode="tags" />
+    <nav-bar-menu active-mode="tags" :db-address="dbAddress" />
     <b-row class="col-12 m-0">
       <b-toaster class="b-toaster-top-center" name="toaster-2"></b-toaster>
       <b-col>
@@ -115,5 +115,14 @@ export default class extends Vue {
 
   @Prop()
   private targName!: string;
+
+  private dbAddress: string = "";
+
+  created(): void {
+    let dbAddress = localStorage.getItem("dbAddress");
+    if (this.dbAddress == "" && dbAddress != null) {
+      this.dbAddress = dbAddress;
+    }
+  }
 }
 </script>

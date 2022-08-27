@@ -20,6 +20,7 @@
           :text="getMaxResultsForDisplay()"
           class="my-auto"
           variant="primary"
+          menu-class="w-100"
         >
           <b-dropdown-item
             :disabled="maxResults === 10"
@@ -49,6 +50,7 @@
           :disabled="defaultDisableCondition() || sessionLocked"
           :text="getOrderingConditionForDisplay()"
           variant="primary"
+          menu-class="w-100"
         >
           <b-dropdown-item
             v-for="(key, value) in orderOptions"
@@ -487,6 +489,7 @@ export default class extends Vue {
   private orderingCondition: string = "AdditionDate";
   private pageToJump: number = 0;
   private startOffset: number = 0;
+  private dbAddress: string = "";
 
   // interface variables
   private fetching: boolean = false;
@@ -654,11 +657,11 @@ export default class extends Vue {
   }
 
   private getVocaDBEntryUrl(id: number): string {
-    return getVocaDBEntryUrl(id);
+    return getVocaDBEntryUrl(this.dbAddress, id);
   }
 
   private getVocaDBTagUrl(id: number, urlSlug: string): string {
-    return getVocaDBTagUrl(id, urlSlug);
+    return getVocaDBTagUrl(this.dbAddress, id, urlSlug);
   }
 
   private getDeletedVideoUrl(videoId: string): string {
@@ -877,6 +880,10 @@ export default class extends Vue {
     }
     if (max_results != null && start_offset != null && order_by != null) {
       this.sessionLocked = true;
+    }
+    let dbAddress = localStorage.getItem("dbAddress");
+    if (this.dbAddress == "" && dbAddress != null) {
+      this.dbAddress = dbAddress;
     }
   }
 
