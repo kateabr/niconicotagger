@@ -325,11 +325,20 @@
                 <div>
                   <span
                     ><b-badge
-                      v-if="thumbnail.code === 'DELETED'"
+                      v-if="thumbnail.code === 'DELETED' && !thumbnail.disabled"
                       variant="warning"
                       class="m-1"
                     >
                       Needs to be disabled</b-badge
+                    >
+                    <b-badge
+                      v-else-if="
+                        thumbnail.code === 'DELETED' && thumbnail.disabled
+                      "
+                      variant="success"
+                      class="m-1"
+                    >
+                      Disabled</b-badge
                     >
                     <b-badge
                       v-else-if="
@@ -385,6 +394,18 @@
                     class="sm mr-sm-1"
                   />
                   {{ niconicoCommunityExclusive.name }}
+                </b-button>
+              </b-col>
+              <b-col
+                v-if="thumbnail.code === 'DELETED' && !thumbnail.disabled"
+                cols="4"
+              >
+                <b-button size="sm" class="m-1" disabled variant="secondary">
+                  <font-awesome-icon
+                    icon="fa-solid fa-eye-slash"
+                    class="sm mr-sm-1"
+                  />
+                  Disable video
                 </b-button>
               </b-col>
             </b-row>
@@ -620,7 +641,8 @@ export default class extends Vue {
   ): boolean {
     return (
       this.showEntriesWithErrors &&
-      entry.thumbnailsErr.filter(thumb => !thumb.community).length > 0
+      entry.thumbnailsErr.filter(thumb => !thumb.community && !thumb.disabled)
+        .length > 0
     );
   }
 
@@ -734,9 +756,12 @@ export default class extends Vue {
             entry.thumbnailsErr.filter(
               thumb => thumb.code == "COMMUNITY" && !thumb.community
             ).length > 0;
+          let deletedVideoIds = entry.thumbnailsErr
+            .filter(thumb => thumb.code == "DELETED")
+            .map(thumb => thumb.id);
           return {
             song: entry.song,
-            toAssign: commEx,
+            toAssign: commEx || deletedVideoIds.length > 0,
             visible: true,
             thumbnailsOk: entry.thumbnailsOk.map(t => {
               return {
@@ -753,7 +778,8 @@ export default class extends Vue {
               };
             }),
             thumbnailsErr: entry.thumbnailsErr,
-            tagsToAssign: commEx ? [this.niconicoCommunityExclusive] : []
+            tagsToAssign: commEx ? [this.niconicoCommunityExclusive] : [],
+            disable: deletedVideoIds
           };
         });
 
@@ -792,7 +818,8 @@ export default class extends Vue {
       for (const song of this.videos.filter(s => s.toAssign)) {
         await api.lookUpAndAssignTag({
           tags: song.tagsToAssign,
-          songId: song.song.id
+          songId: song.song.id,
+          disable: song.disable
         });
         song.toAssign = false;
         const assigned_ids = song.tagsToAssign.map(tta => tta.id);
@@ -813,6 +840,13 @@ export default class extends Vue {
               thumbnailErr.community = true;
             }
           });
+        }
+        if (song.disable.length > 0) {
+          for (let thumb of song.thumbnailsErr) {
+            if (song.disable.find(pvId => pvId == thumb.id) != undefined) {
+              thumb.disabled = true;
+            }
+          }
         }
         song.tagsToAssign.splice(0, song.tagsToAssign.length);
       }

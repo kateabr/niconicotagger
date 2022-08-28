@@ -7,7 +7,7 @@ use std::time::Duration;
 
 use actix_web::cookie::Cookie;
 use actix_web::http::Method;
-use actix_web::web::{Bytes};
+use actix_web::web::Bytes;
 use anyhow::Context;
 use chrono::{DateTime, DurationRound, FixedOffset};
 use log::{debug, info};
@@ -28,7 +28,7 @@ use crate::client::models::misc::PartialFindResult;
 use crate::client::models::pv::{PVContract, PvService, PvType};
 use crate::client::models::query::OptionalFields;
 use crate::client::models::releaseevent::{EventSearchResult, ReleaseEventForApiContractSimplified, ReleaseEventSeriesContract};
-use crate::client::models::song::{SongForApiContract};
+use crate::client::models::song::SongForApiContract;
 use crate::client::models::tag::{AssignableTag, SelectedTag, TagBaseContract, TagForApiContract, TagSearchResult, TagUsageForApiContract};
 use crate::client::models::user::UserForApiContract;
 use crate::client::models::weblink::WebLinkForApiContract;
@@ -601,6 +601,44 @@ impl<'a> Client<'a> {
         };
     }
 
+    pub async fn disable_videos(&self, song_id: i32, video_ids: Vec<String>) -> Result<()> {
+        let mut song_data = self.get_song_for_edit(song_id).await?;
+
+        let mut pvs_temp = vec![];
+
+        match song_data.get("pvs") {
+            None => return Err(VocadbClientError::NotFoundError(
+                format!("song with id={} does not have any PVs", song_id))),
+            Some(pvs) => {
+                let pvs_parsed = pvs.as_array()
+                    .context(format!("failed to parse PVs for song with id={}", song_id))?;
+
+                for pv in pvs_parsed {
+                    let parsed_pv = pv.as_object()
+                        .context(format!("failed to parse one of the PVs for song with id={}", song_id))?;
+
+                    let mut pv_temp = parsed_pv.clone();
+
+                    let pv_id = parsed_pv.get("pvId");
+                    match pv_id {
+                        None => {}
+                        Some(pv_id) => {
+                            let str = pv_id.as_str().context("")?.to_string();
+                            if video_ids.contains(&str) {
+                                pv_temp.insert(String::from("disabled"), Value::from(true));
+                            };
+                        }
+                    }
+                    pvs_temp.push(pv_temp);
+                }
+            }
+        }
+
+        song_data.insert(String::from("pvs"), Value::from(pvs_temp));
+
+        self.http_post_with_antiforgery_token(song_data, song_id).await
+    }
+
     pub async fn get_event_series(&self, series_id: i32) -> Result<ReleaseEventSeriesContract> {
         self.http_get(
             &format!("{}/api/releaseEventSeries/{}", self.base_url, series_id),
@@ -763,7 +801,7 @@ impl<'a> Client<'a> {
         request.content_type("application/x-www-form-urlencoded")
             .insert_header(("requestVerificationToken", antiforgery_token.as_str()))
             .insert_header(("X-XSRF-TOKEN", antiforgery_token.as_str()))
-            .send_form(&FormData{contract: edited_song})
+            .send_form(&FormData { contract: edited_song })
             .await?
             .body()
             .await?;

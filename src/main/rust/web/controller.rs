@@ -411,11 +411,12 @@ pub async fn lookup_and_assign_tag(_req: HttpRequest, payload: Json<LookupAndAss
         }).collect();
     let response = client.add_tags(new_tags, payload.song_id).await;
 
-    return if response.is_ok() {
+    if response.is_ok() {
+        client.disable_videos(payload.song_id, payload.disable.clone()).await?;
         Ok(Json(()))
     } else {
         Err(AppResponseError::VocadbClientError(VocadbClientError::NotFoundError(format!("song with id=\"{}\" does not exist", payload.song_id))))
-    };
+    }
 }
 
 #[get("/get_mapped_tags")]

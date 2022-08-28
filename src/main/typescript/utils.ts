@@ -436,6 +436,7 @@ export interface EntryWithVideosAndVisibility {
   visible: boolean;
   toAssign: boolean;
   tagsToAssign: MinimalTag[];
+  disable: string[];
 }
 
 export interface DateComparisonResult {

@@ -110,6 +110,7 @@ pub struct LookupAndAssignTagRequest {
     #[serde(rename = "songId")]
     pub song_id: i32,
     pub tags: Vec<TagBaseContractSimplified>,
+    pub disable: Vec<String>,
 }
 
 #[derive(Serialize)]

@@ -155,6 +155,7 @@ export interface AssignTagPayload {
 export interface LookupAndAssignTagPayload {
   songId: number;
   tags: MinimalTag[];
+  disable: string[];
 }
 
 export interface DisplayableTag {
