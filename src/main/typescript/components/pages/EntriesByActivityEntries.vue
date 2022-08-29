@@ -135,7 +135,7 @@
                 <b-button
                   style="width: 80px"
                   variant="danger"
-                  :disabled="timestamp === ''"
+                  :disabled="timestamp === '' || defaultDisableCondition()"
                   @click="clearTimestamp"
                 >
                   Clear
