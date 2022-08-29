@@ -335,7 +335,6 @@ export function getButtonPayload(
   sortingCondition: string,
   direction: string
 ): Fetch1Payload {
-  console.log(additionMode, sortingCondition, direction);
   if (direction == "Older") {
     if (additionMode == "before") {
       if (sortingCondition == "CreateDateDescending") {

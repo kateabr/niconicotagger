@@ -873,7 +873,6 @@ export default class extends Vue {
     if (payload.sortRule != this.sortingCondition) {
       reverseAll = !reverseAll;
     }
-    console.log("all", reverseAll, "each", reverseEach);
     try {
       let videos: EntryWithVideosAndVisibility[] = [];
       this.distinctSongCount = 0;
@@ -940,8 +939,6 @@ export default class extends Vue {
 
         this.distinctSongCount += videos_temp.length;
 
-        console.log(payload, direction);
-
         if (
           direction == "Newer" &&
           payload.mode == "since" &&
@@ -950,7 +947,6 @@ export default class extends Vue {
           direction = "Older";
           reverseEach = false;
           reverseAll = false;
-          console.log("MODIFIED", payload, direction);
         }
 
         // update payload
@@ -963,10 +959,7 @@ export default class extends Vue {
           direction
         );
 
-        console.log("new payload", payload, direction);
-
         if (reverseEach) {
-          console.log("reversing part");
           videos_temp = videos_temp.reverse();
         }
 
@@ -974,7 +967,6 @@ export default class extends Vue {
       }
       videos.splice(this.maxResults);
       if (reverseAll) {
-        console.log("reversing all");
         videos = videos.reverse();
       }
       this.videos = videos;
