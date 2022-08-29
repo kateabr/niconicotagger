@@ -207,6 +207,52 @@ export const additionOptions = {
   before: "before",
   since: "since"
 };
+export const directionMap = {
+  before: "Older",
+  since: "Newer"
+};
+
+export const reverseEachMap = {
+  before: {
+    CreateDateDescending: {
+      Older: false,
+      Newer: false
+    },
+    CreateDate: {
+      Older: false,
+      Newer: false
+    }
+  },
+  since: {
+    CreateDateDescending: {
+      Older: true
+    },
+    CreateDate: {
+      Older: true
+    }
+  }
+};
+
+export const reverseAllMap = {
+  before: {
+    CreateDateDescending: {
+      Older: false,
+      Newer: true
+    },
+    CreateDate: {
+      Older: false,
+      Newer: false
+    }
+  },
+  since: {
+    CreateDateDescending: {
+      Older: true
+    },
+    CreateDate: {
+      Older: false
+    }
+  }
+};
 
 export function getSongTypeColorForDisplay(typeString: string): string {
   if (typeString == "Original" || typeString == "Remaster") {
@@ -283,84 +329,163 @@ export function getTagIconForTagAssignationButton(
   }
 }
 
-export function getRightButtonPayload(
-  sortBy: string,
-  createDate: string,
-  id: number
+export function getButtonPayload(
+  videos: EntryWithVideosAndVisibility[],
+  additionMode: string,
+  sortingCondition: string,
+  direction: string
 ): Fetch1Payload {
-  if (sortBy === "CreateDate") {
-    return {
-      mode: "since",
-      createDate: createDate,
-      id: id,
-      sortRule: "CreateDate",
-      reverse: false
-    };
-  } else {
-    return {
-      mode: "before",
-      createDate: createDate,
-      id: id,
-      sortRule: "CreateDateDescending",
-      reverse: false
-    };
+  console.log(additionMode, sortingCondition, direction);
+  if (direction == "Older") {
+    if (additionMode == "before") {
+      if (sortingCondition == "CreateDateDescending") {
+        const song = videos[videos.length - 1].song;
+        return {
+          id: song.id,
+          createDate: song.createDate,
+          sortRule: "CreateDateDescending",
+          mode: "before"
+        };
+      } else if (sortingCondition == "CreateDate") {
+        const song = videos[0].song;
+        return {
+          id: song.id,
+          createDate: song.createDate,
+          sortRule: "CreateDateDescending",
+          mode: "before"
+        };
+      }
+    } else if (additionMode == "since") {
+      if (sortingCondition == "CreateDateDescending") {
+        const song = videos[videos.length - 1].song;
+        return {
+          id: song.id,
+          createDate: song.createDate,
+          sortRule: "CreateDateDescending",
+          mode: "before"
+        };
+      } else if (sortingCondition == "CreateDate") {
+        const song = videos[0].song;
+        return {
+          id: song.id,
+          createDate: song.createDate,
+          sortRule: "CreateDateDescending",
+          mode: "before"
+        };
+      }
+    }
+  } else if (direction == "Newer") {
+    if (additionMode == "before") {
+      if (sortingCondition == "CreateDateDescending") {
+        const song = videos[0].song;
+        return {
+          id: song.id,
+          createDate: song.createDate,
+          sortRule: "CreateDate",
+          mode: "since"
+        };
+      } else if (sortingCondition == "CreateDate") {
+        const song = videos[videos.length - 1].song;
+        return {
+          id: song.id,
+          createDate: song.createDate,
+          sortRule: "CreateDate",
+          mode: "since"
+        };
+      }
+    }
   }
-}
-
-export function getLeftButtonPayload(
-  sortBy: string,
-  createDate: string,
-  id: number
-): Fetch1Payload {
-  if (sortBy === "CreateDate") {
-    return {
-      mode: "before",
-      createDate: createDate,
-      id: id,
-      sortRule: "CreateDateDescending",
-      reverse: true
-    };
-  } else {
-    return {
-      mode: "since",
-      createDate: createDate,
-      id: id,
-      sortRule: "CreateDate",
-      reverse: true
-    };
-  }
+  throw {
+    response: undefined,
+    message:
+      "[getButtonPayload] Unexpected arguments: (" +
+      additionMode +
+      ", " +
+      sortingCondition +
+      ", " +
+      direction +
+      ")"
+  };
 }
 
 export function updateFetch1Payload(
   responseItems: EntryWithVideosAndVisibility[],
-  oldSortingCondition: string,
-  newSortingCondition: string,
-  timestampFirst: string,
-  timestampLast: string,
   additionMode: string,
+  sortingCondition: string,
+  timestampNewest: string,
+  timestampOldest: string,
   direction: string
 ): Fetch1Payload {
-  const minId =
-    responseItems.length > 0 ? Math.min(...responseItems.map(video => video.song.id)) : 10000000;
-  const maxId =
-    responseItems.length > 0 ? Math.max(...responseItems.map(video => video.song.id)) : 0;
-  if (oldSortingCondition === "CreateDate") {
-    if (direction == "right") {
-      return getRightButtonPayload(newSortingCondition, timestampLast, maxId);
-    } else {
-      return getLeftButtonPayload(oldSortingCondition, timestampFirst, minId);
+  if (direction == "Older") {
+    if (additionMode == "before") {
+      if (sortingCondition == "CreateDateDescending") {
+        const song = responseItems[responseItems.length - 1].song;
+        return {
+          mode: "before",
+          createDate: song.createDate,
+          sortRule: "CreateDateDescending",
+          id: song.id
+        };
+      } else if (sortingCondition == "CreateDate") {
+        const song = responseItems[responseItems.length - 1].song;
+        return {
+          mode: "since",
+          createDate: song.createDate,
+          sortRule: "CreateDate",
+          id: song.id
+        };
+      }
+    } else if (additionMode == "since") {
+      if (sortingCondition == "CreateDate") {
+        const song = responseItems[responseItems.length - 1].song;
+        return {
+          mode: "since",
+          createDate: song.createDate,
+          sortRule: "CreateDate",
+          id: song.id
+        };
+      } else if (sortingCondition == "CreateDateDescending") {
+        const song = responseItems[responseItems.length - 1].song;
+        return {
+          mode: "before",
+          createDate: song.createDate,
+          sortRule: "CreateDateDescending",
+          id: song.id
+        };
+      }
     }
-  } else {
-    if (direction == "right") {
-      return getRightButtonPayload(newSortingCondition, timestampLast, maxId);
-    } else {
-      return getLeftButtonPayload(
-        oldSortingCondition,
-        oldSortingCondition === "CreateDate" ? timestampFirst : timestampLast,
-        additionMode === "before" ? minId : maxId
-      );
+  } else if (direction == "Newer") {
+    if (additionMode == "since") {
+      if (sortingCondition == "CreateDate") {
+        const song = responseItems[responseItems.length - 1].song;
+        return {
+          id: song.id,
+          createDate: song.createDate,
+          sortRule: "CreateDate",
+          mode: "since"
+        };
+      } else if (sortingCondition == "CreateDateDescending") {
+        const song = responseItems[0].song;
+        return {
+          id: song.id,
+          createDate: song.createDate,
+          sortRule: "CreateDate",
+          mode: "since"
+        };
+      }
     }
   }
+  throw {
+    response: undefined,
+    message:
+      "[getButtonPayload] Unexpected arguments: (" +
+      additionMode +
+      ", " +
+      sortingCondition +
+      ", " +
+      direction +
+      ")"
+  };
 }
 
 export function dateIsWithinTimeDelta(
@@ -426,7 +551,6 @@ export interface Fetch1Payload {
   createDate: string;
   id: number;
   sortRule: string;
-  reverse: boolean;
 }
 
 export interface EntryWithVideosAndVisibility {

@@ -16,11 +16,7 @@
       <b-row>
         <b-col class="my-auto">
           <b-dropdown
-            :disabled="
-              defaultDisableCondition() ||
-              songsInfoLoaded() ||
-              (isActiveMode() && sessionLocked)
-            "
+            :disabled="defaultDisableCondition()"
             block
             :text="getMaxResultsForDisplay()"
             class="my-auto"
@@ -52,11 +48,7 @@
         <b-col class="my-auto">
           <b-dropdown
             block
-            :disabled="
-              defaultDisableCondition() ||
-              songsInfoLoaded() ||
-              (isActiveMode() && sessionLocked)
-            "
+            :disabled="defaultDisableCondition()"
             :text="getSortingConditionForDisplay()"
             variant="primary"
             menu-class="w-100"
@@ -73,17 +65,15 @@
         </b-col>
         <b-col class="m-auto">
           <b-button
-            v-if="!sessionLocked || videos.length > 0"
             variant="primary"
             block
             :disabled="defaultDisableCondition() || !timestampIsValid"
             @click="
-              fetch('right', {
+              fetch(getDirection(), {
                 mode: additionMode,
                 createDate: timestamp,
                 id: additionMode === 'since' ? 0 : 10000000,
-                sortRule: sortingCondition,
-                reverse: false
+                sortRule: sortingCondition
               })
             "
             ><span v-if="fetching"><b-spinner small /></span>
@@ -92,35 +82,6 @@
               <span v-else>Reload</span>
             </span>
           </b-button>
-          <b-button-group v-else class="btn-group-justified w-100">
-            <b-button
-              block
-              variant="success"
-              :disabled="defaultDisableCondition()"
-              @click="
-                fetch('right', {
-                  mode: additionMode,
-                  createDate: timestamp,
-                  id: additionMode === 'since' ? 0 : 10000000,
-                  sortRule: sortingCondition,
-                  reverse: false
-                })
-              "
-              ><span v-if="fetching"><b-spinner small /></span>
-              <span v-else
-                >Restore ({{ additionMode }}
-                {{ timestamp.split("T")[0] }})</span
-              >
-            </b-button>
-            <b-button
-              style="width: 80px"
-              variant="danger"
-              :disabled="defaultDisableCondition()"
-              @click="unlockSession()"
-            >
-              Clear
-            </b-button>
-          </b-button-group>
         </b-col>
         <b-col class="my-auto">
           <b-button
@@ -150,7 +111,7 @@
             <b-input-group inline>
               <b-form-input
                 v-model="timestamp"
-                :readonly="fetching || (isActiveMode() && sessionLocked)"
+                :readonly="fetching"
                 type="text"
                 placeholder="Specify timestamp"
                 :state="validateTimestamp()"
@@ -164,11 +125,7 @@
                   :initial-date="now"
                   locale="en"
                   button-only
-                  :disabled="
-                    fetching ||
-                    timestampPickerIsDisabled ||
-                    (isActiveMode() && sessionLocked)
-                  "
+                  :disabled="fetching"
                   hide-header
                   style="width: 80px"
                   @input="refreshTimestamp()"
@@ -178,11 +135,7 @@
                 <b-button
                   style="width: 80px"
                   variant="danger"
-                  :disabled="
-                    timestamp === '' ||
-                    fetching ||
-                    (isActiveMode() && sessionLocked)
-                  "
+                  :disabled="timestamp === ''"
                   @click="clearTimestamp"
                 >
                   Clear
@@ -194,11 +147,7 @@
         <b-col class="my-auto text-left align-middle">
           <b-dropdown
             block
-            :disabled="
-              defaultDisableCondition() ||
-              songsInfoLoaded() ||
-              (isActiveMode() && sessionLocked)
-            "
+            :disabled="defaultDisableCondition()"
             :text="getAdditionModeForDisplay()"
             variant="primary"
             menu-class="w-100"
@@ -248,11 +197,9 @@
             class="text-left pl-3"
             @click="
               fetch(
-                'left',
-                getLeftButtonPayload(
-                  sortingCondition,
-                  videos[0].song.createDate,
-                  videos[0].song.id
+                sortingCondition === 'CreateDate' ? 'Older' : 'Newer',
+                getButtonPayload(
+                  sortingCondition === 'CreateDate' ? 'Older' : 'Newer'
                 )
               )
             "
@@ -266,11 +213,9 @@
             class="text-right pr-3"
             @click="
               fetch(
-                'right',
-                getRightButtonPayload(
-                  sortingCondition,
-                  videos[videos.length - 1].song.createDate,
-                  videos[videos.length - 1].song.id
+                sortingCondition === 'CreateDate' ? 'Newer' : 'Older',
+                getButtonPayload(
+                  sortingCondition === 'CreateDate' ? 'Newer' : 'Older'
                 )
               )
             "
@@ -555,11 +500,9 @@
             class="text-left pl-3"
             @click="
               fetch(
-                'left',
-                getLeftButtonPayload(
-                  sortingCondition,
-                  videos[0].song.createDate,
-                  videos[0].song.id
+                sortingCondition === 'CreateDate' ? 'Older' : 'Newer',
+                getButtonPayload(
+                  sortingCondition === 'CreateDate' ? 'Older' : 'Newer'
                 )
               )
             "
@@ -573,11 +516,9 @@
             class="text-right pr-3"
             @click="
               fetch(
-                'right',
-                getRightButtonPayload(
-                  sortingCondition,
-                  videos[videos.length - 1].song.createDate,
-                  videos[videos.length - 1].song.id
+                sortingCondition === 'CreateDate' ? 'Newer' : 'Older',
+                getButtonPayload(
+                  sortingCondition === 'CreateDate' ? 'Newer' : 'Older'
                 )
               )
             "
@@ -602,8 +543,6 @@ import {
   validateTimestamp,
   getSongTypeColorForDisplay,
   getSongTypeStatsForDisplay,
-  getLeftButtonPayload,
-  getRightButtonPayload,
   Fetch1Payload,
   updateFetch1Payload,
   getVocaDBEntryUrl,
@@ -614,7 +553,11 @@ import {
   toggleTagAssignation,
   getTagIconForTagAssignationButton,
   getDeletedVideoUrl,
-  getVocaDBTagUrl
+  getVocaDBTagUrl,
+  directionMap,
+  reverseEachMap,
+  reverseAllMap,
+  getButtonPayload
 } from "@/utils";
 import { DateTime } from "luxon";
 import { api } from "@/backend";
@@ -656,7 +599,6 @@ export default class extends Vue {
   private distinctSongCount: number = 0;
   private showEntriesWithNoTags: boolean = false;
   private showEntriesWithErrors: boolean = true;
-  private sessionLocked: boolean = false;
 
   // error handling
   private alertCode: number = 0;
@@ -751,22 +693,6 @@ export default class extends Vue {
     return getTagIconForTagAssignationButton(tag, tagsToAssign);
   }
 
-  private getLeftButtonPayload(
-    sortingCondition: string,
-    creationDate: string,
-    id: number
-  ): Fetch1Payload {
-    return getLeftButtonPayload(sortingCondition, creationDate, id);
-  }
-
-  private getRightButtonPayload(
-    sortingCondition: string,
-    creationDate: string,
-    id: number
-  ): Fetch1Payload {
-    return getRightButtonPayload(sortingCondition, creationDate, id);
-  }
-
   private getShortenedSongType(songType: string): string {
     return getShortenedSongType(songType);
   }
@@ -793,6 +719,19 @@ export default class extends Vue {
       this.timestampIsValid = res;
     }
     return res;
+  }
+
+  private getDirection(): "Older" | "Newer" {
+    return directionMap[this.additionMode] == "Older" ? "Older" : "Newer";
+  }
+
+  private getButtonPayload(direction: string): Fetch1Payload {
+    return getButtonPayload(
+      this.videos,
+      this.additionMode,
+      this.sortingCondition,
+      direction
+    );
   }
 
   // interface methods
@@ -929,7 +868,12 @@ export default class extends Vue {
     localStorage.setItem("timestamp", this.timestamp);
     localStorage.setItem("sort_by_vocadb", this.sortingCondition);
     localStorage.setItem("added_mode", this.additionMode);
-    const reverse = payload.reverse;
+    let reverseAll = reverseAllMap[payload.mode][payload.sortRule][direction];
+    let reverseEach = reverseEachMap[payload.mode][payload.sortRule][direction];
+    if (payload.sortRule != this.sortingCondition) {
+      reverseAll = !reverseAll;
+    }
+    console.log("all", reverseAll, "each", reverseEach);
     try {
       let videos: EntryWithVideosAndVisibility[] = [];
       this.distinctSongCount = 0;
@@ -942,6 +886,11 @@ export default class extends Vue {
           songId: payload.id,
           sortRule: payload.sortRule
         });
+
+        if (response.items.length == 0) {
+          break;
+        }
+
         let videos_temp: EntryWithVideosAndVisibility[] = response.items.map(
           entry => {
             let commEx: boolean =
@@ -976,9 +925,7 @@ export default class extends Vue {
           }
         );
 
-        end =
-          response.timestampFirst === response.timestampLast &&
-          response.items.length === 1;
+        end = response.items.length < 10;
 
         if (this.distinctSongCount > 0) {
           const overlap = videos_temp.find(
@@ -993,21 +940,41 @@ export default class extends Vue {
 
         this.distinctSongCount += videos_temp.length;
 
-        videos = videos.concat(videos_temp);
+        console.log(payload, direction);
+
+        if (
+          direction == "Newer" &&
+          payload.mode == "since" &&
+          payload.sortRule == "CreateDateDescending"
+        ) {
+          direction = "Older";
+          reverseEach = false;
+          reverseAll = false;
+          console.log("MODIFIED", payload, direction);
+        }
 
         // update payload
         payload = updateFetch1Payload(
           videos_temp,
-          this.sortingCondition,
+          payload.mode,
           payload.sortRule,
           response.timestampFirst,
           response.timestampLast,
-          this.additionMode,
           direction
         );
+
+        console.log("new payload", payload, direction);
+
+        if (reverseEach) {
+          console.log("reversing part");
+          videos_temp = videos_temp.reverse();
+        }
+
+        videos = videos.concat(videos_temp);
       }
       videos.splice(this.maxResults);
-      if (reverse) {
+      if (reverseAll) {
+        console.log("reversing all");
         videos = videos.reverse();
       }
       this.videos = videos;
@@ -1130,17 +1097,12 @@ export default class extends Vue {
       sort_by != null &&
       added_mode != null
     ) {
-      this.sessionLocked = true;
+      // this.sessionLocked = true;
     }
     let dbAddress = localStorage.getItem("dbAddress");
     if (this.dbAddress == "" && dbAddress != null) {
       this.dbAddress = dbAddress;
     }
-  }
-
-  private unlockSession(): void {
-    this.sessionLocked = false;
-    this.timestampIsValid = true;
   }
 }
 </script>
