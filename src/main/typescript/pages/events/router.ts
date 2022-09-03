@@ -8,7 +8,7 @@ const routes: RouteConfig[] = [
     path: "/",
     name: "events",
     props: {
-      browseMode: "vocadb"
+      browseMode: "nicovideo"
     },
     component: () => import("@/pages/events/views/Events.vue")
   },
