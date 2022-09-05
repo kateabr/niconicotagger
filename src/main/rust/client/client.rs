@@ -15,6 +15,7 @@ use roxmltree::Document;
 use scraper::{ElementRef, Node};
 use scraper::node::Element;
 use serde::de::DeserializeOwned;
+use serde::de::Unexpected::Str;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
@@ -22,7 +23,7 @@ use crate::client::errors::Result;
 use crate::client::errors::VocadbClientError;
 use crate::client::jputils::normalize;
 use crate::client::models::activity::{ActivityEditEvent, ActivityEntryForApiContract};
-use crate::client::models::artist::{NicoArtistDuplicateResult, NicoPublisher};
+use crate::client::models::artist::{ArtistCategories, ArtistContract, ArtistForSongContract, ArtistRoles, NicoArtistDuplicateResult, NicoPublisher};
 use crate::client::models::entrythumb::EntryType;
 use crate::client::models::misc::PartialFindResult;
 use crate::client::models::pv::{PVContract, PvService, PvType};
@@ -377,7 +378,7 @@ impl<'a> Client<'a> {
             &vec![
                 ("pvService", String::from("NicoNicoDouga")),
                 ("pvId", String::from(pv_id)),
-                ("fields", String::from("Tags,ReleaseEvent,Albums")),
+                ("fields", String::from("Tags,ReleaseEvent,Albums,Artists")),
             ],
         ).await;
     }
@@ -898,7 +899,7 @@ impl<'a> Client<'a> {
                 ("sort", order_by),
                 ("getTotalCount", String::from("true")),
                 ("lang", String::from("Default")),
-                ("fields", String::from("ReleaseEvent,Tags")),
+                ("fields", String::from("ReleaseEvent,Tags,Artists")),
             ],
         ).await?;
 
@@ -967,6 +968,7 @@ impl<'a> Client<'a> {
                                         release_event: None,
                                         publish_date: None,
                                         albums: None,
+                                        artists: vec![],
                                     });
                                 } else {
                                     response_entries.push(SongForApiContract {
@@ -981,6 +983,7 @@ impl<'a> Client<'a> {
                                         release_event: None,
                                         publish_date: None,
                                         albums: None,
+                                        artists: vec![],
                                     });
                                 };
                             }
@@ -1108,6 +1111,7 @@ impl<'a> Client<'a> {
                     release_event: song.release_event.clone(),
                     publish_date: song.publish_date.clone(),
                     albums: None,
+                    artists: vec![],
                 },
                 thumbnails_ok: ok,
                 thumbnails_error: err,
@@ -1132,7 +1136,7 @@ impl<'a> Client<'a> {
                 ("maxResults", max_results.to_string()),
                 ("sort", order_by),
                 ("getTotalCount", String::from("true")),
-                ("fields", String::from("PVs,Tags")),
+                ("fields", String::from("PVs,Tags,Artists")),
                 ("lang", String::from("Default")),
             ],
         ).await?;
@@ -1153,32 +1157,118 @@ impl<'a> Client<'a> {
         return Ok(vec);
     }
 
+    async fn possibly_first_work(&self, song_id: i32) -> Result<bool> {
+        let effective_creator_id = self.get_effective_creator_id(song_id).await?;
+        let song_publish_date = self.get_song_release_date(song_id).await?;
+        let is_not_first_work = match song_publish_date {
+            None => false,
+            Some(song_publish_date) => self.is_not_first_work(
+                song_publish_date,
+                effective_creator_id)
+                .await?
+        };
+        Ok(effective_creator_id != -1 && !is_not_first_work)
+    }
+
     pub async fn process_songs_with_thumbnails(&self, songs: SongsForApiContractWithThumbnailsAndTimestamp) -> Result<DBFetchResponseWithTimestamps> {
         let mappings = self.get_mappings_raw_normalized().await?;
         let mapped_tags: Vec<String> = mappings.iter().map(|m| m.source_tag.clone()).collect();
         let mut song_tags_to_map = vec![];
 
         for song in songs.items {
-            let th_ok = self.map_thumbnail_tags(&song.thumbnails_ok, &mappings, &mapped_tags, &song.song.tags.iter().map(|t| t.tag.id).collect());
+            let th_ok = self.map_thumbnail_tags(
+                &song.thumbnails_ok,
+                &mappings,
+                &mapped_tags,
+                &song.song.tags.iter().map(|t| t.tag.id).collect());
+
+            let mut th_ok_final: Vec<ThumbnailOkWithMappedTags> = vec![];
+
+            for thumbnail in th_ok {
+                let mut mapped_tags_final: Vec<ThumbnailTagMappedWithAssignAndLockInfo> = vec![];
+                for tag in thumbnail.mapped_tags {
+                    if tag.tag.id == 158 && !tag.assigned {
+                        if self.possibly_first_work(song.song.id).await? {
+                            mapped_tags_final.push(tag);
+                        }
+                    } else {
+                        mapped_tags_final.push(tag);
+                    }
+                }
+                th_ok_final.push(ThumbnailOkWithMappedTags {
+                    thumbnail: thumbnail.thumbnail,
+                    mapped_tags: mapped_tags_final,
+                    nico_tags: thumbnail.nico_tags,
+                })
+            }
+
             song_tags_to_map.push(SongForApiContractWithThumbnailsAndMappedTags {
                 song: song.song,
                 thumbnails_error: song.thumbnails_error,
-                thumbnails_ok: th_ok,
+                thumbnails_ok: th_ok_final,
             });
         }
 
         return Ok(DBFetchResponseWithTimestamps { items: song_tags_to_map, total_count: songs.total_count, timestamp_first: songs.timestamp_first, timestamp_last: songs.timestamp_last });
     }
 
-    fn map_thumbnail_tags(&self, thumbnails: &Vec<ThumbnailOk>, mappings: &Vec<TagMappingContract>, mapped_tags: &Vec<String>, song_tag_ids: &Vec<i32>) -> Vec<ThumbnailOkWithMappedTags> {
+    async fn is_not_first_work(&self, publish_date: String, artist_id: i32) -> Result<bool> {
+        let response: PartialFindResult<SongForApiContract> = self.http_get(
+            &format!("{}/api/songs", self.base_url),
+            &vec![
+                ("artistId[]", artist_id.to_string()),
+                ("beforeDate", publish_date),
+                ("fields", String::from("Artists,Tags")),
+            ],
+        ).await?;
+
+        Ok(response.items.len() != 0)
+    }
+
+    async fn get_effective_creator_id(&self, song_id: i32) -> Result<i32> {
+        let song_data: SongForApiContract = self.http_get(
+            &format!("{}/api/songs/{}", self.base_url, song_id),
+            &vec![("fields", String::from("Artists,Tags"))]).await?;
+        let effective_creators: Vec<&ArtistForSongContract> = song_data.artists.iter()
+            .filter(|&artist| !artist.is_support
+                && (artist.categories.contains(&ArtistCategories::Producer) && artist.roles.contains(&ArtistRoles::Default))
+                || (artist.roles.contains(&ArtistRoles::Composer)))
+            .collect();
+        if effective_creators.len() == 1 {
+            return match &effective_creators.get(0).unwrap().artist {
+                None => Ok(-1),
+                Some(artist) => Ok(artist.id)
+            };
+        }
+        Ok(-1)
+    }
+
+    async fn get_song_release_date(&self, song_id: i32) -> Result<Option<String>> {
+        let song_data: SongForApiContract = self.http_get(
+            &format!("{}/api/songs/{}", self.base_url, song_id),
+            &vec![("fields", String::from("Artists,Tags"))]).await?;
+        Ok(song_data.publish_date)
+    }
+
+    fn map_thumbnail_tags(&self,
+                          thumbnails: &Vec<ThumbnailOk>,
+                          mappings: &Vec<TagMappingContract>,
+                          mapped_tags: &Vec<String>,
+                          song_tag_ids: &Vec<i32>) -> Vec<ThumbnailOkWithMappedTags> {
         let mut res = vec![];
         for thumbnail in thumbnails {
             let mut tag_mappings = vec![];
             let mut mapped_nico_tags = vec![];
             for tag in &thumbnail.tags {
                 if mapped_tags.contains(&normalize(tag.name.as_str())) {
-                    mapped_nico_tags.push(NicoTagWithVariant { name: tag.name.clone(), variant: String::from("dark"), locked: tag.locked });
-                    let tag_mappings_temp = mappings.iter().filter(|m| m.source_tag == normalize(tag.name.as_str())).collect::<Vec<_>>();
+                    let tag_mappings_temp = mappings.iter()
+                        .filter(|m| m.source_tag == normalize(tag.name.as_str()))
+                        .collect::<Vec<_>>();
+                    mapped_nico_tags.push(NicoTagWithVariant {
+                        name: tag.name.clone(),
+                        variant: String::from("dark"),
+                        locked: tag.locked,
+                    });
                     for m in tag_mappings_temp {
                         tag_mappings.push(ThumbnailTagMappedWithAssignAndLockInfo {
                             tag: m.tag.clone(),

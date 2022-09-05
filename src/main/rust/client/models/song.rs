@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use crate::client::models::album::AlbumForApiContract;
+use crate::client::models::artist::{ArtistContract, ArtistForSongContract};
 
 
 use crate::client::models::entrythumb::{EntryThumbContract, EntryThumbForApiContract};
@@ -112,7 +113,8 @@ pub struct SongForApiContract {
     pub rating_score: Option<i32>,
     #[serde(rename = "publishDate")]
     pub publish_date: Option<String>,
-    pub albums: Option<Vec<AlbumForApiContract>>
+    pub albums: Option<Vec<AlbumForApiContract>>,
+    pub artists: Vec<ArtistForSongContract>
 }
 
 #[derive(Serialize, Deserialize, Debug)]

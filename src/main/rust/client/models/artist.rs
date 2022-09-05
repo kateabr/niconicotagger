@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::client::models::album::AlbumForApiContract;
 use crate::client::models::entrythumb::EntryThumbForApiContract;
@@ -9,6 +9,9 @@ use crate::client::models::song::SongForApiContract;
 use crate::client::models::status::Status;
 use crate::client::models::tag::TagUsageForApiContract;
 use crate::client::models::weblink::WebLinkForApiContract;
+use std::str::FromStr;
+use strum_macros::EnumString;
+
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ArtistContract {
@@ -17,10 +20,8 @@ pub struct ArtistContract {
     #[serde(rename = "artistType")]
     artist_type: ArtistType,
     // deleted: bool,
-    id: i32,
+    pub id: i32,
     name: String,
-    #[serde(rename = "pictureMime")]
-    picture_mime: String,
     #[serde(rename = "releaseDate")]
     release_date: Option<String>,
     status: Status,
@@ -97,17 +98,37 @@ pub struct ArtistForEventContract {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ArtistForSongContract {
-    artist: ArtistContract,
-    categories: ArtistCategories,
-    #[serde(rename = "effectiveRoles")]
-    effective_roles: ArtistRoles,
-    id: i32,
+    pub artist: Option<ArtistContract>,
+    #[serde(deserialize_with = "artist_categories_to_enum_vec")]
+    pub categories: Vec<ArtistCategories>,
+    #[serde(rename = "effectiveRoles", deserialize_with = "roles_to_enum_vec")]
+    pub effective_roles: Vec<ArtistRoles>,
+    pub id: i32,
     #[serde(rename = "isCustomName")]
     is_custom_name: bool,
     #[serde(rename = "isSupport")]
-    is_support: bool,
+    pub is_support: bool,
     name: String,
-    roles: ArtistRoles,
+    #[serde(deserialize_with = "roles_to_enum_vec")]
+    pub roles: Vec<ArtistRoles>,
+}
+
+fn artist_categories_to_enum_vec<'de, D>(deserializer: D) -> Result<Vec<ArtistCategories>, D::Error>
+    where
+        D: Deserializer<'de>,
+{
+    let string: String = String::deserialize(deserializer)?;
+    let v = string.split(", ").map(|string| ArtistCategories::from_str(string).unwrap()).collect();
+    Ok(v)
+}
+
+fn roles_to_enum_vec<'de, D>(deserializer: D) -> Result<Vec<ArtistRoles>, D::Error>
+    where
+        D: Deserializer<'de>,
+{
+    let string: String = String::deserialize(deserializer)?;
+    let v = string.split(", ").map(|string| ArtistRoles::from_str(string).unwrap()).collect();
+    Ok(v)
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -129,7 +150,7 @@ pub struct ArtistRelationsForApi {
     popular_songs: Vec<SongForApiContract>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, EnumString)]
 pub enum ArtistRoles {
     Default,
     Animator,
@@ -174,7 +195,7 @@ pub enum ArtistType {
     Character,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, EnumString)]
 pub enum ArtistCategories {
     Nothing,
     Vocalist,
