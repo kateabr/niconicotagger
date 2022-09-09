@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use crate::client::models::album::AlbumForApiContract;
-use crate::client::models::artist::{ArtistContract, ArtistForSongContract};
+use crate::client::models::artist::ArtistForSongContract;
 
 
 use crate::client::models::entrythumb::{EntryThumbContract, EntryThumbForApiContract};

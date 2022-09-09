@@ -17,6 +17,7 @@ pub enum ReleaseEventCategory {
     Contest,
     Convention,
     Other,
+    Festival
 }
 
 #[derive(Serialize, Deserialize, Debug)]

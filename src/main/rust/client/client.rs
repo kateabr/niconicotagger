@@ -15,7 +15,6 @@ use roxmltree::Document;
 use scraper::{ElementRef, Node};
 use scraper::node::Element;
 use serde::de::DeserializeOwned;
-use serde::de::Unexpected::Str;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
@@ -23,7 +22,7 @@ use crate::client::errors::Result;
 use crate::client::errors::VocadbClientError;
 use crate::client::jputils::normalize;
 use crate::client::models::activity::{ActivityEditEvent, ActivityEntryForApiContract};
-use crate::client::models::artist::{ArtistCategories, ArtistContract, ArtistForSongContract, ArtistRoles, NicoArtistDuplicateResult, NicoPublisher};
+use crate::client::models::artist::{ArtistCategories, ArtistForSongContract, ArtistRoles, NicoArtistDuplicateResult, NicoPublisher};
 use crate::client::models::entrythumb::EntryType;
 use crate::client::models::misc::PartialFindResult;
 use crate::client::models::pv::{PVContract, PvService, PvType};
@@ -470,7 +469,12 @@ impl<'a> Client<'a> {
     pub async fn lookup_video_by_event(&self, video: &NicoVideo, event_id: i32, nico_tags: Vec<String>, mappings: &Vec<String>, scope: String) -> Result<VideoWithEntry> {
         let response = self.get_song_by_nico_pv(&video.id).await?;
 
-        let normalized_nico_mappings: Vec<String> = nico_tags.into_iter().map(|t| normalize(&t)).collect();
+        let normalized_nico_mappings: Vec<String> = nico_tags.iter()
+            .flat_map(|t| t.split(" "))
+            .collect::<Vec<&str>>()
+            .iter()
+            .map(|&t| normalize(&t))
+            .collect();
         let normalized_scope = normalize(&scope.replace(" OR ", " "));
         let normalized_scope_tags = normalized_scope.split(" ").map(|s| String::from(s)).collect::<Vec<_>>();
 

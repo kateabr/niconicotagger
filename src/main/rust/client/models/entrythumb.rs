@@ -103,4 +103,5 @@ pub enum EventCategory {
     Contest,
     Convention,
     Other,
+    Festival
 }
