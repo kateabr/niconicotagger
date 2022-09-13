@@ -25,7 +25,7 @@
           </template>
           <b-form-input
             id="tag-form"
-            v-model.trim="eventName"
+            v-model="eventName"
             :disabled="defaultDisableCondition()"
             placeholder="Event name"
             @keydown.enter.native="fetchEvent(eventName)"
@@ -236,15 +236,22 @@
               </div>
             </b-card-body>
             <b-card-footer>
-              <div class="mb-3 text-secondary">
+              <div v-if="event.date != null" class="mb-3 text-secondary">
                 <b-form-checkbox v-model="filterByEventDates"
                   >Search strictly within the event date
                   boundaries</b-form-checkbox
                 >
               </div>
-              All good?
+              <div v-else class="mb-3 text-danger">
+                <font-awesome-icon
+                  icon="fa-solid fa-circle-exclamation"
+                  class="mr-1"
+                />Event date is not specified. Please fill in the event date and
+                reload.
+              </div>
+              <span v-if="event.date != null">All good?</span>
               <b-row class="flex-fill mt-3">
-                <b-col cols="6">
+                <b-col v-if="event.date != null" cols="6">
                   <b-button
                     :disabled="defaultDisableCondition()"
                     block
@@ -256,7 +263,7 @@
                     />Yes, continue</b-button
                   >
                 </b-col>
-                <b-col cols="6">
+                <b-col>
                   <b-button
                     :disabled="defaultDisableCondition()"
                     block
@@ -264,7 +271,7 @@
                     ><font-awesome-icon
                       icon="fa-solid fa-arrow-rotate-right"
                       class="mr-1"
-                    />No, reload</b-button
+                    />Reload</b-button
                   >
                 </b-col>
               </b-row>
@@ -1190,6 +1197,7 @@ export default class extends Vue {
   private confirmAndLoad(): void {
     this.tagsConfirmed = true;
     this.numOfPages = 0;
+    console.log(this.event);
     this.loadPage(1);
   }
 

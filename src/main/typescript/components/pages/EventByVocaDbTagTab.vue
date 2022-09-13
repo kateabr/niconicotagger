@@ -22,7 +22,7 @@
           </template>
           <b-form-input
             id="tag-form"
-            v-model.trim="eventTagName"
+            v-model="eventTagName"
             :disabled="defaultDisableCondition()"
             placeholder="Event tag name"
             @keydown.enter.native="loadInitialPage()"

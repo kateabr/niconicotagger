@@ -22,7 +22,7 @@
           </template>
           <b-form-input
             id="tag-form"
-            v-model.trim="tagName"
+            v-model="tagName"
             :disabled="defaultDisableCondition()"
             placeholder="NicoNicoDouga tag"
             @keydown.enter.native="loadInitialPage"
