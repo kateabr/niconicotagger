@@ -10,14 +10,7 @@
     <span v-if="alertCode !== 401">
       {{ alertMessage }}
     </span>
-    <span v-else>
-      Access token has expired.
-      <b-link to="login" target="_blank">
-        Relogin
-        <font-awesome-icon class="ml-0" icon="fas fa-external-link" />
-      </b-link>
-      and try again
-    </span>
+    <span v-else> Access token has expired </span>
   </b-toast>
 </template>
 

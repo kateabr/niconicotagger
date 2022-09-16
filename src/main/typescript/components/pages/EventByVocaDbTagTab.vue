@@ -406,7 +406,9 @@
                       >"
                     </li>
                   </ol>
-                  <span class="text-muted"
+                  <span
+                    v-if="!item.songEntry.eventDateComparison.eligible"
+                    class="text-muted"
                     >Entry is ineligible for participation</span
                   >
                 </b-col>
@@ -687,7 +689,10 @@ export default class extends Vue {
 
   private toggleCheckAll(): void {
     for (const item of this.entries.filter(
-      value => value.rowVisible && !value.processed
+      value =>
+        value.rowVisible &&
+        !value.processed &&
+        value.songEntry.eventDateComparison.eligible
     )) {
       item.toAssign = this.allChecked;
     }

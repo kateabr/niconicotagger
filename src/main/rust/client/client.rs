@@ -795,7 +795,13 @@ impl<'a> Client<'a> {
             .context("Failed to obtain token")?
             .to_vec();
 
-        let antiforgery_token = atf_cookies.deref().iter().find(|cookie| cookie.name() == "XSRF-TOKEN").unwrap().value().to_string();
+        let antiforgery_token: String = match atf_cookies
+            .deref()
+            .iter()
+            .find(|cookie| cookie.name() == "XSRF-TOKEN") {
+            None => return Err(VocadbClientError::BadCredentialsError),
+            Some(token) => token.value().to_string()
+        };
 
         let edited_song = serde_json::to_string(&song_data).context("Unable to serialize")?;
 
