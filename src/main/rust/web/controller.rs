@@ -13,7 +13,7 @@ use crate::client::errors::VocadbClientError;
 use crate::client::models::releaseevent::ReleaseEventForApiContractSimplifiedWithNndTags;
 use crate::client::models::tag::{AssignableTag, TagBaseContract};
 use crate::client::models::weblink::WebLinkForApiContract;
-use crate::web::dto::{AssignEventAndRemoveTagPayload, AssignTagRequest, Database, DBBeforeSinceFetchRequest, DBFetchRequest, ReleaseEventWithNndTagsFetchRequest, EventAssigningResult, LoginRequest, LoginResponse, LookupAndAssignTagRequest, SongsByEventTagFetchRequest, SongsByEventTagFetchResponse, TagFetchRequest, Token, VideosWithEntries, VideosWithEntriesByVocaDbTag, EventByTagsFetchRequest, AssignEventPayload};
+use crate::web::dto::{AssignEventAndRemoveTagPayload, AssignTagRequest, Database, DBBeforeSinceFetchRequest, DBFetchRequest, ReleaseEventWithNndTagsFetchRequest, EventAssigningResult, LoginRequest, LoginResponse, LookupAndAssignTagRequest, SongsByEventTagFetchRequest, SongsByEventTagFetchResponse, TagFetchRequest, Token, VideosWithEntries, VideosWithEntriesByVocaDbTag, EventByTagsFetchRequest, AssignEventPayload, CustomQueryPayload, TagsRemovalPayload};
 use crate::web::errors::AppResponseError;
 use crate::web::errors::Result;
 use crate::web::middleware::auth_token;
@@ -427,6 +427,25 @@ pub async fn get_mapped_tags(_req: HttpRequest) -> Result<impl Responder> {
     let mapped_tags = client.get_mapped_tags().await?;
 
     return Ok(Json(mapped_tags));
+}
+
+#[post("/fetch_songs_for_tag_removal")]
+pub async fn fetch_songs_for_tag_removal(_req: HttpRequest, payload: Json<CustomQueryPayload>) -> Result<impl Responder> {
+    let token = extract_token(&_req)?;
+    let client = client_from_token(&token)?;
+
+    Ok(Json(client.fetch_by_custom_query(payload.query.clone()).await?))
+}
+
+#[post("/remove_tags_from_song")]
+pub async fn remove_tags_from_song(_req: HttpRequest, payload: Json<TagsRemovalPayload>) -> Result<impl Responder> {
+    let token = extract_token(&_req)?;
+    let client = client_from_token(&token)?;
+
+    let futures = payload.tag_ids.iter().map(|&tag_id| client.remove_tag(payload.song_id, tag_id));
+    future::try_join_all(futures).await?;
+
+    Ok(Json(()))
 }
 
 fn extract_token(req: &HttpRequest) -> Result<Token> {

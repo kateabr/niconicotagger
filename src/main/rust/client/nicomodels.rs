@@ -86,3 +86,9 @@ pub struct TagBaseContractSimplified {
     #[serde(rename = "urlSlug")]
     pub url_slug: String,
 }
+
+#[derive(Serialize, Clone, Deserialize, Debug)]
+pub struct TagBaseContractSimplifiedWithUsageCount {
+    count: i32,
+    pub tag: TagBaseContractSimplified,
+}

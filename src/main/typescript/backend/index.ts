@@ -13,10 +13,13 @@ import {
   FetchVideosByEventTagPayload,
   EntriesWithReleaseEventTag,
   AssignEventAndRemoveTagPayload,
-  fetchReleaseEventWithNndTagsPayload,
+  FetchReleaseEventWithNndTagsPayload,
   ReleaseEventForApiContractSimplifiedWithNndTags,
   FetchVideosByEventTagsPayload,
-  AssignEventPayload
+  AssignEventPayload,
+  EntriesForTagRemoval,
+  CustomQueryPayload,
+  TagsRemovalPayload
 } from "@/backend/dto";
 import { AxiosResponse } from "axios";
 
@@ -55,7 +58,7 @@ export const api = {
     return axios.post("/api/assign_event_and_remove_tag", payload).then(value => value.data);
   },
   async fetchReleaseEventWithNndTags(
-    payload: fetchReleaseEventWithNndTagsPayload
+    payload: FetchReleaseEventWithNndTagsPayload
   ): Promise<ReleaseEventForApiContractSimplifiedWithNndTags> {
     return axios.post("/api/fetch_release_event_with_nnd_tags", payload).then(value => value.data);
   },
@@ -66,5 +69,11 @@ export const api = {
   },
   async assignEvent(payload: AssignEventPayload): Promise<EntriesWithReleaseEventTag> {
     return axios.post("/api/assign_event", payload).then(value => value.data);
+  },
+  async fetchSongsForTagRemoval(payload: CustomQueryPayload): Promise<EntriesForTagRemoval> {
+    return axios.post("/api/fetch_songs_for_tag_removal", payload).then(value => value.data);
+  },
+  async removeTagsFromSong(payload: TagsRemovalPayload): Promise<EntriesForTagRemoval> {
+    return axios.post("/api/remove_tags_from_song", payload).then(value => value.data);
   }
 };

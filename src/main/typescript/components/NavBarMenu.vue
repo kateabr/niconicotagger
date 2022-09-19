@@ -12,6 +12,9 @@
         <b-nav-item :active="activeMode === 'events'" href="/events"
           >Events</b-nav-item
         >
+        <b-nav-item :active="activeMode === 'console'" href="/console"
+          >Query console</b-nav-item
+        >
       </b-navbar-nav>
       <b-navbar-nav class="ml-auto">
         <b-nav-text class="mr-2"

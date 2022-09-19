@@ -11,6 +11,10 @@ module.exports = {
       title: "NicoNicoTagger (Tags)",
       entry: "src/main/typescript/pages/tags/main.ts"
     },
+    console: {
+      title: "NicoNicoTagger (Console)",
+      entry: "src/main/typescript/pages/console/main.ts"
+    },
     login: {
       title: "Login",
       entry: "src/main/typescript/pages/login/main.ts"

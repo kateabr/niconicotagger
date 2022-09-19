@@ -65,6 +65,7 @@ export interface SongForApiContractSimplified {
   songType: string;
   artistString: string;
   createDate: string;
+  tags: MinimalTag[];
 }
 
 export interface SongForApiContractSimplifiedWithReleaseEvent {
@@ -224,6 +225,18 @@ export interface EntriesWithReleaseEventTag {
   eventTag: AssignableTag;
 }
 
+export interface EntryForTagRemoval {
+  item: SongForApiContractSimplified;
+  toRemove: boolean;
+  tagIdsForRemoval: number[];
+}
+
+export interface EntriesForTagRemoval {
+  items: EntryForTagRemoval[];
+  totalCount: number;
+  tagPool: AssignableTag[];
+}
+
 export interface AssignEventAndRemoveTagPayload {
   songId: number;
   event: MinimalEvent;
@@ -235,8 +248,17 @@ export interface AssignEventPayload {
   event: MinimalEvent;
 }
 
-export interface fetchReleaseEventWithNndTagsPayload {
+export interface FetchReleaseEventWithNndTagsPayload {
   eventName: string;
+}
+
+export interface CustomQueryPayload {
+  query: string;
+}
+
+export interface TagsRemovalPayload {
+  songId: number;
+  tagIds: number[];
 }
 
 export interface MinimalEvent {
