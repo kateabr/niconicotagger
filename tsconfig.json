@@ -4,17 +4,22 @@
     "src/main/typescript/**/*.tsx",
     "src/main/typescript/**/*.vue"
   ],
-  "exclude": ["node_modules"],
-
+  "exclude": [
+    "node_modules"
+  ],
   "compilerOptions": {
     "target": "ES2017",
     "module": "esnext",
-    "types": ["webpack-env"],
+    "types": [
+      "webpack-env"
+    ],
 
     "baseUrl": "./",
     "outDir": "target/classes/static/assets",
     "paths": {
-      "@/*": ["src/main/typescript/*"]
+      "@/*": [
+        "src/main/typescript/*"
+      ]
     },
 
     "jsx": "preserve",
@@ -40,6 +45,6 @@
     "importHelpers": true,
 
     "allowJs": true,
-    "checkJs": true
+    "checkJs": false
   }
 }
