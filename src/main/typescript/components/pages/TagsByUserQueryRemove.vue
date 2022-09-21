@@ -326,9 +326,9 @@
             <b-form-checkbox
               v-if="video.toRemove"
               :checked="video.toRemove"
-              :value="video.toRemove"
               size="lg"
               :disabled="defaultDisableCondition()"
+              @change="checkboxClicked(video)"
             />
           </td>
           <td>
@@ -518,6 +518,11 @@ export default class extends Vue {
       video.toRemove = video.tagIdsForRemoval.length > 0;
     }
     this.tagsToRemove = this.tagsToRemove.filter(tag => tag.id != tagId);
+  }
+
+  private checkboxClicked(video: EntryForTagRemoval): void {
+    video.toRemove = false;
+    video.tagIdsForRemoval = [];
   }
 
   // for tag autocomplete
