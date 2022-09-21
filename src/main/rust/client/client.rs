@@ -10,6 +10,7 @@ use actix_web::http::Method;
 use actix_web::web::Bytes;
 use anyhow::Context;
 use chrono::{DateTime, DurationRound, FixedOffset};
+use itertools::Itertools;
 use log::{debug, info};
 use roxmltree::Document;
 use scraper::{ElementRef, Node};
@@ -33,7 +34,7 @@ use crate::client::models::tag::{AssignableTag, SelectedTag, TagBaseContract, Ta
 use crate::client::models::user::UserForApiContract;
 use crate::client::models::weblink::WebLinkForApiContract;
 use crate::client::nicomodels::{NicoTagWithVariant, SongForApiContractWithThumbnails, SongForApiContractWithThumbnailsAndMappedTags, SongsForApiContractWithThumbnailsAndTimestamp, Tag, TagBaseContractSimplified, ThumbnailError, ThumbnailOk, ThumbnailOkWithMappedTags, ThumbnailTagMappedWithAssignAndLockInfo};
-use crate::web::dto::{DBFetchResponseWithTimestamps, DisplayableTag, EventAssigningResult, MinimalEvent, NicoResponse, NicoResponseWithScope, NicoVideo, NicoVideoWithTidyTags, SongForApiContractSimplifiedWithMultipleEventInfo, SongForApiContractSimplifiedWithMultipleEventInfoSearchResult, TagMappingContract, VideoWithEntry};
+use crate::web::dto::{DBFetchResponseWithTimestamps, DisplayableTag, EntriesForTagRemoval, EntryForTagRemoval, EventAssigningResult, MinimalEvent, NicoResponse, NicoResponseWithScope, NicoVideo, NicoVideoWithTidyTags, SongForApiContractSimplifiedWithTagUsageCounts, SongForApiContractSimplifiedWithMultipleEventInfo, SongForApiContractSimplifiedWithMultipleEventInfoSearchResult, TagMappingContract, VideoWithEntry, SongForApiContractSimplified};
 
 pub struct Client<'a> {
     pub client: awc::Client,
@@ -123,6 +124,24 @@ impl<'a> Client<'a> {
         let body_string = String::from_utf8(body.to_vec()).unwrap();
         if body_string.is_empty() { return Err(VocadbClientError::BadCredentialsError); }
         let json = serde_json::from_slice(&body).context(format!("Unable to deserialize a payload: {}", body_string))?;
+        return Ok(json);
+    }
+
+    async fn http_get_for_query_console<R>(&self, url: &String) -> Result<R>
+        where
+            R: DeserializeOwned,
+    {
+        let request = self.create_request(url, Method::GET);
+        debug!("Sending GET request {:?}", request);
+        let body = request
+            .send()
+            .await?
+            .body()
+            .await?;
+        let body_string = String::from_utf8(body.to_vec()).unwrap();
+        if body_string.is_empty() { return Err(VocadbClientError::BadCredentialsError); }
+        debug!("{:?}", body_string);
+        let json = serde_json::from_slice(&body).context(format!("Unable to deserialize response"))?;
         return Ok(json);
     }
 
@@ -349,6 +368,36 @@ impl<'a> Client<'a> {
         let mappings = self.get_mappings_raw_normalized().await?;
 
         return Ok(mappings.into_iter().map(|t| t.source_tag).collect());
+    }
+
+    pub async fn fetch_by_custom_query(&self, query: String) -> Result<EntriesForTagRemoval> {
+        let result: PartialFindResult<SongForApiContractSimplifiedWithTagUsageCounts> = self.http_get_for_query_console(&query).await?;
+        let tag_pool: Vec<TagBaseContractSimplified> = result.items.iter()
+            .flat_map(|song| &song.tags)
+            .unique_by(|&tag| tag.tag.id)
+            .map(|tag| TagBaseContractSimplified {
+                id: tag.tag.id,
+                name: tag.tag.name.clone(),
+                url_slug: tag.tag.url_slug.clone()
+            })
+            .collect();
+        Ok(EntriesForTagRemoval {
+            items: result.items.into_iter()
+                .map(|song| EntryForTagRemoval {
+                    item: SongForApiContractSimplified{
+                        id: song.id,
+                        name: song.name.clone(),
+                        song_type: song.song_type.clone(),
+                        artist_string: song.artist_string.clone(),
+                        release_event: None,
+                        publish_date: None,
+                        tags: song.tags.iter().map(|t| t.tag.clone()).collect()
+                    },
+                    to_remove: false
+                }).collect(),
+            total_count: result.total_count,
+            tag_pool,
+        })
     }
 
     pub async fn get_current_tags(&self, song_id: i32) -> Result<Vec<SelectedTag>> {
