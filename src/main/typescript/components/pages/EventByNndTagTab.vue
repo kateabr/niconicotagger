@@ -189,17 +189,23 @@
                 Force show videos whose uploaders have entries at VocaDB
               </b-form-checkbox>
               <b-form-checkbox
-                v-model="showIneligibleVideos"
-                @change="filterVideos()"
-              >
-                Force show ineligible entries
-              </b-form-checkbox>
-              <b-form-checkbox
                 v-model="showPerfectDispositionOnly"
                 @change="filterVideos()"
               >
                 Show only perfect matches time-wise
               </b-form-checkbox>
+              <b-form-checkbox
+                v-model="showIneligibleVideos"
+                @change="filterVideos()"
+              >
+                Show ineligible entries
+              </b-form-checkbox>
+              <b-form-checkbox
+                v-if="showIneligibleVideos"
+                v-model="allowIneligibleVideos"
+                @change="toggleCheckAll()"
+                >Allow processing ineligible entries</b-form-checkbox
+              >
             </b-col>
           </b-row>
         </b-collapse>
@@ -513,55 +519,79 @@
                 :event-date-comparison="item.video.eventDateComparison"
               />
             </td>
-            <td
-              v-if="
-                item.songEntry !== null &&
-                item.songEntry.eventDateComparison.eligible
-              "
-            >
-              <b-row>
+            <td>
+              <b-row class="align-text-top">
                 <b-col cols="10">
-                  <ol class="ml-n4">
-                    <li
-                      v-if="
-                        hasReleaseEvent(item) &&
-                        item.songEntry.releaseEvent.id !== event.id &&
-                        !isTaggedWithMultipleEvents(item) &&
-                        !item.processed
-                      "
+                  <div v-if="item.songEntry !== null" class="mb-2">
+                    <ol v-if="!item.processed" class="ml-n4">
+                      <li
+                        v-if="
+                          hasReleaseEvent(item) &&
+                          item.songEntry.releaseEvent.id !== event.id &&
+                          !isTaggedWithMultipleEvents(item) &&
+                          !item.processed
+                        "
+                      >
+                        Tag with "<b-link
+                          target="_blank"
+                          :href="getVocaDBTagUrl(8275, 'multiple-events')"
+                          >multiple events</b-link
+                        >" and update description
+                      </li>
+                      <li v-else-if="!hasReleaseEvent(item) && !item.processed">
+                        Set "<b-link
+                          :href="getVocaDBEventUrl(event.id, event.urlSlug)"
+                          target="_blank"
+                          >{{ event.name }}</b-link
+                        >" as release event
+                      </li>
+                      <li
+                        v-else-if="
+                          hasReleaseEvent(item) &&
+                          item.songEntry.releaseEvent.id !== event.id &&
+                          isTaggedWithMultipleEvents(item)
+                        "
+                      >
+                        <span class="text-danger text-monospace"
+                          >Important:</span
+                        >
+                        check that description mentions current event
+                      </li>
+                    </ol>
+                  </div>
+                  <div v-else class="mb-2">
+                    <b-button
+                      size="sm"
+                      :disabled="fetching"
+                      :href="getVocaDBAddSongUrl(item.video.contentId)"
+                      target="_blank"
+                      >Add to the database
+                    </b-button>
+                    <div
+                      v-if="item.publisher !== null"
+                      class="small text-secondary"
                     >
-                      Tag with "<b-link
+                      Published by
+                      <b-link
                         target="_blank"
-                        :href="getVocaDBTagUrl(8275, 'multiple-events')"
-                        >multiple events</b-link
-                      >" and update description
-                    </li>
-                    <li v-else-if="!hasReleaseEvent(item) && !item.processed">
-                      Set "<b-link
-                        :href="getVocaDBEventUrl(event.id, event.urlSlug)"
-                        target="_blank"
-                        >{{ event.name }}</b-link
-                      >" as release event
-                    </li>
-                    <li
-                      v-else-if="
-                        hasReleaseEvent(item) &&
-                        item.songEntry.releaseEvent.id !== event.id &&
-                        isTaggedWithMultipleEvents(item)
-                      "
-                    >
-                      <span class="text-danger text-monospace">Important:</span>
-                      check that description mentions current event
-                    </li>
-                  </ol>
+                        :href="getVocaDBArtistUrl(item.publisher.id)"
+                        >{{ item.publisher.name.displayName }}</b-link
+                      >
+                    </div>
+                  </div>
+                  <div v-if="!isEligible(item)" class="text-muted">
+                    <font-awesome-icon
+                      icon="fa-solid fa-circle-exclamation"
+                      class="mr-1"
+                    />Entry may be ineligible for participation
+                  </div>
                 </b-col>
-                <b-col>
+                <b-col v-if="item.songEntry !== null">
                   <b-button
                     v-if="item.processed"
                     disabled
                     class="btn"
                     variant="success"
-                    @click="processSong(item)"
                   >
                     <font-awesome-icon icon="fas fa-check" />
                   </b-button>
@@ -574,7 +604,8 @@
                         item.songEntry.releaseEvent.id !== event.id &&
                         isTaggedWithMultipleEvents(item)) ||
                       (item.songEntry != null &&
-                        !item.songEntry.eventDateComparison.eligible)
+                        !item.songEntry.eventDateComparison.eligible &&
+                        !allowIneligibleVideos)
                     "
                     class="btn"
                     variant="outline-success"
@@ -584,26 +615,6 @@
                   </b-button>
                 </b-col>
               </b-row>
-            </td>
-            <td v-else-if="item.songEntry === null">
-              <b-button
-                size="sm"
-                :disabled="fetching"
-                :href="getVocaDBAddSongUrl(item.video.contentId)"
-                target="_blank"
-                >Add to the database
-              </b-button>
-              <div v-if="item.publisher !== null" class="small text-secondary">
-                Published by
-                <b-link
-                  target="_blank"
-                  :href="getVocaDBArtistUrl(item.publisher.id)"
-                  >{{ item.publisher.name.displayName }}</b-link
-                >
-              </div>
-            </td>
-            <td v-else class="text-muted">
-              Entry is ineligible for participation
             </td>
           </tr>
         </b-tbody>
@@ -756,6 +767,7 @@ export default class extends Vue {
   private showVideosWithOtherEvents: boolean = true;
   private showVideosWithNoEvents: boolean = true;
   private showIneligibleVideos: boolean = false;
+  private allowIneligibleVideos: boolean = false;
   private showPerfectDispositionOnly: boolean = false;
   private timeDelta: number = 0;
   private timeDeltaMax: number = 0;
@@ -865,13 +877,11 @@ export default class extends Vue {
 
   private toggleCheckAll(): void {
     for (const item of this.entries) {
-      if (
+      item.toAssign =
         item.rowVisible &&
         this.isSelectable(item) &&
-        this.hasPublishDate(item)
-      ) {
-        item.toAssign = this.allChecked;
-      }
+        this.hasPublishDate(item) &&
+        this.allChecked;
     }
   }
 
@@ -953,7 +963,7 @@ export default class extends Vue {
   }
 
   private showIneligibleVideosFlag(item: VideoWithEntryAndVisibility): boolean {
-    return this.showIneligibleVideos && !this.isEligible(item);
+    return this.showIneligibleVideos || this.isEligible(item);
   }
 
   private showPerfectDispositionOnlyFlag(
@@ -970,12 +980,11 @@ export default class extends Vue {
   private filterVideos(): void {
     for (const item of this.entries) {
       item.rowVisible =
-        (this.currentEventFilledFlag(item) &&
-          this.showVideosWithoutEntriesFlag(item) &&
-          this.showVideosWithOtherEventsFlag(item) &&
-          this.showVideosWithNoEventsFlag(item) &&
-          this.showPerfectDispositionOnlyFlag(item) &&
-          this.isEligible(item)) ||
+        this.currentEventFilledFlag(item) &&
+        this.showVideosWithoutEntriesFlag(item) &&
+        this.showVideosWithNoEventsFlag(item) &&
+        this.showVideosWithOtherEventsFlag(item) &&
+        this.showPerfectDispositionOnlyFlag(item) &&
         this.showIneligibleVideosFlag(item);
       item.toAssign = item.toAssign && item.rowVisible;
     }
@@ -990,7 +999,8 @@ export default class extends Vue {
         item.songEntry.releaseEvent!.id != this.event.id &&
         this.isTaggedWithMultipleEvents(item)
       ) &&
-      item.songEntry.eventDateComparison.eligible
+      (item.songEntry.eventDateComparison.eligible ||
+        this.allowIneligibleVideos)
     );
   }
 

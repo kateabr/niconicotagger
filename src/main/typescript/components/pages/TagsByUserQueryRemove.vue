@@ -207,8 +207,8 @@
                     <td>
                       This parameter specifies which extra fields you would like
                       to get along with the basic entry. Here it is already set
-                      to <span class="text-monospace">Tags</span>, so its other
-                      occurrences will be ignored.
+                      to <span class="text-monospace">Tags</span>, so its
+                      subsequent occurrences will be ignored.
                     </td>
                   </tr>
                 </tbody>
@@ -219,7 +219,7 @@
                 time to process.<br />
                 <span style="text-decoration: underline"
                   >Please note that this feature does not come out of the box,
-                  so it is possible that not any combination of conditions is
+                  so it is possible that not every combination of conditions is
                   fully implemented and this is not an error.</span
                 ><br />
                 <p>
