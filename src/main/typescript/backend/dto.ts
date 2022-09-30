@@ -78,6 +78,7 @@ export interface SongForApiContractSimplifiedWithReleaseEvent {
   publishDate: string | null;
   eventDateComparison: DateComparisonResult;
   taggedWithMultipleEvents: boolean;
+  taggedWithEventParticipant: boolean;
 }
 
 export interface VideoWithEntry {
@@ -246,6 +247,7 @@ export interface AssignEventAndRemoveTagPayload {
 export interface AssignEventPayload {
   songId: number;
   event: MinimalEvent;
+  participatedOnUpload: boolean;
 }
 
 export interface FetchReleaseEventWithNndTagsPayload {

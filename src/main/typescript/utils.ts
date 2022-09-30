@@ -117,38 +117,41 @@ export function getDateDisposition(
   timeDeltaMax: number
 ): DateComparisonResult {
   if (date == null) {
-    return { disposition: "unknown", dayDiff: 0, eligible: false };
+    return { disposition: "unknown", dayDiff: 0, eligible: false, participatedOnUpload: false };
   }
 
   const dayDiff = subDates(date, dateStart);
   if (dateEnd === null) {
     if (dayDiff === 0) {
-      return { dayDiff: 0, disposition: "perfect", eligible: true };
+      return { dayDiff: 0, disposition: "perfect", eligible: true, participatedOnUpload: false };
     } else {
       return {
         dayDiff: Math.abs(dayDiff),
         disposition: dayDiff > 0 ? "late" : dayDiff < 0 ? "early" : "perfect",
-        eligible: Math.abs(dayDiff) <= timeDeltaMax
+        eligible: Math.abs(dayDiff) <= timeDeltaMax,
+        participatedOnUpload: false
       };
     }
   }
 
   if (dateStart <= date) {
     if (dateEnd >= date) {
-      return { dayDiff: 0, disposition: "perfect", eligible: true };
+      return { dayDiff: 0, disposition: "perfect", eligible: true, participatedOnUpload: false };
     } else {
       const dayDiff1 = Math.abs(subDates(date, dateEnd));
       if (dayDiff1 > 0) {
         return {
           dayDiff: dayDiff1,
           disposition: "late",
-          eligible: dayDiff1 <= timeDeltaMax
+          eligible: dayDiff1 <= timeDeltaMax,
+          participatedOnUpload: false
         };
       } else {
         return {
           dayDiff: 0,
           disposition: "perfect",
-          eligible: true
+          eligible: true,
+          participatedOnUpload: false
         };
       }
     }
@@ -158,13 +161,15 @@ export function getDateDisposition(
       return {
         dayDiff: dayDiff2,
         disposition: "early",
-        eligible: dayDiff2 <= timeDeltaMax
+        eligible: dayDiff2 <= timeDeltaMax,
+        participatedOnUpload: false
       };
     } else {
       return {
         dayDiff: 0,
         disposition: "perfect",
-        eligible: true
+        eligible: true,
+        participatedOnUpload: false
       };
     }
   }
@@ -273,14 +278,33 @@ export function getSongTypeColorForDisplay(typeString: string): string {
   }
 }
 
-export function getDispositionBadgeColorVariant(eventDateComparison: DateComparisonResult): string {
+export function compareWithDelta(dayDiff: number, delta: number): string {
+  return dayDiff <= delta ? "warning" : "danger";
+}
+
+export function getDispositionBadgeColorVariant(
+  eventDateComparison: DateComparisonResult,
+  delta: number
+): string {
   return eventDateComparison.disposition === "perfect"
     ? "success"
     : eventDateComparison.disposition === "unknown"
     ? "secondary"
-    : eventDateComparison.dayDiff <= 7
-    ? "warning"
-    : "danger";
+    : compareWithDelta(eventDateComparison.dayDiff, delta);
+}
+
+export function getEventColorVariant(
+  entry: EntryWithReleaseEventAndVisibility,
+  eventId: number
+): string {
+  if (entry.songEntry!.releaseEvent!.id == eventId) {
+    if (!entry.songEntry!.eventDateComparison.participatedOnUpload) {
+      return "success";
+    } else {
+      return "danger";
+    }
+  }
+  return "warning";
 }
 
 export function getSongTypeStatsForDisplay(type: string, number: number): string {
@@ -566,4 +590,5 @@ export interface DateComparisonResult {
   dayDiff: number;
   disposition: "perfect" | "late" | "early" | "unknown";
   eligible: boolean;
+  participatedOnUpload: boolean;
 }

@@ -490,11 +490,13 @@ impl<'a> Client<'a> {
         let entry = response.map(|res| {
             tag_in_tags = src_tags.iter().all(|tag_id| res.tags.iter().any(|t| &t.tag.id == tag_id));
             let tagged_with_multiple_events: bool = res.tags.iter().map(|tag| tag.tag.id).any(|tag_id| tag_id == i32::from(8275)); // multiple events
+            let tagged_with_event_participant: bool = res.tags.iter().map(|tag| tag.tag.id).any(|tag_id| tag_id == i32::from(9141)); // event participant
 
             SongForApiContractSimplifiedWithMultipleEventInfo {
                 id: res.id,
                 name: res.name.clone(),
                 tagged_with_multiple_events,
+                tagged_with_event_participant,
                 song_type: res.song_type,
                 artist_string: res.artist_string.clone(),
                 release_event: res.release_event,
@@ -546,6 +548,8 @@ impl<'a> Client<'a> {
 
             let tagged_with_multiple_events = r.tags.iter()
                 .any(|tag| tag.tag.id == 8275);
+            let tagged_with_event_participant = r.tags.iter()
+                .any(|tag| tag.tag.id == 9141);
 
             let re = match event {
                 None => r.release_event,
@@ -566,6 +570,7 @@ impl<'a> Client<'a> {
                 id: r.id,
                 name: r.name.clone(),
                 tagged_with_multiple_events,
+                tagged_with_event_participant,
                 song_type: r.song_type.clone(),
                 artist_string: r.artist_string.clone(),
                 publish_date: r.publish_date.clone(),
@@ -782,6 +787,31 @@ impl<'a> Client<'a> {
         return String::from(data.get(primary_key).unwrap().as_object().unwrap().get(secondary_key).unwrap().as_str().unwrap_or(""));
     }
 
+    fn append_description(&self, song_data_src: Map<String, Value>, value: String) -> Map<String, Value> {
+        let mut song_data = song_data_src.clone();
+        let mut description_map = Map::new();
+        let src_description = self.get_2nd_level_value(&song_data, "notes", "original");
+        let additional_notes = Value::from(value).as_str().unwrap().to_string();
+        if src_description.is_empty() {
+            description_map.insert("original".to_string(), Value::from(additional_notes));
+        } else {
+            let original_notes = self.get_2nd_level_value(&song_data, "notes", "original");
+            if !original_notes.is_empty() {
+                description_map.insert("original".to_string(),
+                                       Value::from(format!("{}\n\n{}", original_notes, additional_notes)));
+            } else {
+                description_map.insert("original".to_string(),
+                                       Value::from(additional_notes));
+            }
+        }
+        let original_eng_notes = self.get_2nd_level_value(&song_data, "notes", "english");
+        if !original_eng_notes.is_empty() {
+            description_map.insert("english".to_string(), Value::from(original_eng_notes));
+        }
+        song_data.insert(String::from("notes"), Value::from(description_map));
+        song_data
+    }
+
     pub async fn fill_in_event(&self, song_id: i32, event: MinimalEvent) -> Result<EventAssigningResult> {
         let mut song_data: Map<String, Value> = self.get_song_for_edit(song_id).await?;
         let mut final_result: EventAssigningResult = EventAssigningResult::Assigned;
@@ -790,31 +820,12 @@ impl<'a> Client<'a> {
                 if song_data.get("tags").unwrap().as_array().unwrap().contains(&Value::from(8275)) { // "multiple events"
                     return Ok(EventAssigningResult::AlreadyTaggedWithMultipleEvents);
                 }
-                let mut description_map = Map::new();
-                let src_description = self.get_2nd_level_value(&song_data, "notes", "original");
-                let additional_notes = Value::from(format!("Another event: [{}]({}/E/{}/{}).",
-                                                           event.name,
-                                                           self.base_url,
-                                                           event.id,
-                                                           event.url_slug))
-                    .as_str().unwrap().to_string();
-                if src_description.is_empty() {
-                    description_map.insert("original".to_string(), Value::from(additional_notes));
-                } else {
-                    let original_notes = self.get_2nd_level_value(&song_data, "notes", "original");
-                    if !original_notes.is_empty() {
-                        description_map.insert("original".to_string(),
-                                               Value::from(format!("{}\n\n{}", original_notes, additional_notes)));
-                    } else {
-                        description_map.insert("original".to_string(),
-                                               Value::from(additional_notes));
-                    }
-                }
-                let original_eng_notes = self.get_2nd_level_value(&song_data, "notes", "english");
-                if !original_eng_notes.is_empty() {
-                    description_map.insert("english".to_string(), Value::from(original_eng_notes));
-                }
-                song_data.insert(String::from("notes"), Value::from(description_map));
+                song_data = self.append_description(song_data,
+                                        format!("Another release event: [{}]({}/E/{}/{}).",
+                                                event.name,
+                                                self.base_url,
+                                                event.id,
+                                                event.url_slug));
                 final_result = EventAssigningResult::MultipleEvents;
             } else {
                 return Ok(EventAssigningResult::AlreadyAssigned);
@@ -829,6 +840,20 @@ impl<'a> Client<'a> {
         self.http_post_with_antiforgery_token(song_data, song_id).await?;
 
         return Ok(final_result);
+    }
+
+    pub async fn add_event_participation_info(&self, song_id: i32, event: MinimalEvent) -> Result<()> {
+        let mut song_data: Map<String, Value> = self.get_song_for_edit(song_id).await?;
+        song_data = self.append_description(song_data,
+                                            format!("Participated in [{}]({}/E/{}/{}).",
+                                                    event.name,
+                                                    self.base_url,
+                                                    event.id,
+                                                    event.url_slug));
+        song_data.insert("updateNotes".to_string(), Value::from(format!("Added event \"{}\" (via NicoNicoTagger)", event.name)));
+
+        self.http_post_with_antiforgery_token(song_data, song_id).await?;
+        Ok(())
     }
 
     async fn http_post_with_antiforgery_token(&self, song_data: Map<String, Value>, song_id: i32) -> Result<()> {
@@ -971,6 +996,11 @@ impl<'a> Client<'a> {
                         .iter()
                         .map(|tag| tag.tag.id)
                         .find(|&id| id == 8275)
+                        .is_some(),
+                    tagged_with_event_participant: item.tags
+                        .iter()
+                        .map(|tag| tag.tag.id)
+                        .find(|&id| id == 9141)
                         .is_some(),
                     song_type: item.song_type.clone(),
                     artist_string: item.artist_string.clone(),

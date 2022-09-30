@@ -468,11 +468,7 @@
                     item.songEntry.releaseEvent !== null
                   "
                   class="badge text-center"
-                  :variant="
-                    item.songEntry.releaseEvent.id === event.id
-                      ? 'success'
-                      : 'warning'
-                  "
+                  :variant="getEventColorVariant(item)"
                   :href="
                     getVocaDBEventUrl(
                       item.songEntry.releaseEvent.id,
@@ -508,6 +504,7 @@
                 v-if="hasPublishDate(item)"
                 :release-date="item.songEntry.publishDate"
                 :event-date-comparison="item.songEntry.eventDateComparison"
+                :delta="timeDelta"
               />
               <b-badge v-else variant="danger"
                 >publish date not specified</b-badge
@@ -517,18 +514,48 @@
               <date-disposition
                 :release-date="item.video.startTime"
                 :event-date-comparison="item.video.eventDateComparison"
+                :published-in-time="item.video.eventDateComparison.eligible"
+                :delta="timeDelta"
               />
             </td>
             <td>
               <b-row class="align-text-top">
                 <b-col cols="10">
                   <div v-if="item.songEntry !== null" class="mb-2">
+                    <ol v-if="needToRemoveEvent(item)" class="ml-n4">
+                      <li>
+                        <span class="text-danger text-monospace"
+                          >Important:</span
+                        >
+                        need to change or remove the release event because song
+                        was not first published during "<b-link
+                          :href="getVocaDBEventUrl(event.id, event.urlSlug)"
+                          target="_blank"
+                          >{{ event.name }}</b-link
+                        >"
+                      </li>
+                    </ol>
                     <ol v-if="!item.processed" class="ml-n4">
                       <li
                         v-if="
+                          !hasReleaseEvent(item) &&
+                          item.songEntry.eventDateComparison
+                            .participatedOnUpload &&
+                          !item.songEntry.taggedWithEventParticipant
+                        "
+                      >
+                        Tag with "<b-link
+                          target="_blank"
+                          :href="getVocaDBTagUrl(9141, 'event-participant')"
+                          >event participant</b-link
+                        >" and update description
+                      </li>
+                      <li
+                        v-else-if="
                           hasReleaseEvent(item) &&
                           item.songEntry.releaseEvent.id !== event.id &&
                           !isTaggedWithMultipleEvents(item) &&
+                          !item.songEntry.taggedWithEventParticipant &&
                           !item.processed
                         "
                       >
@@ -538,7 +565,15 @@
                           >multiple events</b-link
                         >" and update description
                       </li>
-                      <li v-else-if="!hasReleaseEvent(item) && !item.processed">
+                      <li
+                        v-else-if="
+                          !hasReleaseEvent(item) &&
+                          !item.processed &&
+                          (isEligible(item) || allowIneligibleVideos) &&
+                          !item.songEntry.eventDateComparison
+                            .participatedOnUpload
+                        "
+                      >
                         Set "<b-link
                           :href="getVocaDBEventUrl(event.id, event.urlSlug)"
                           target="_blank"
@@ -550,6 +585,19 @@
                           hasReleaseEvent(item) &&
                           item.songEntry.releaseEvent.id !== event.id &&
                           isTaggedWithMultipleEvents(item)
+                        "
+                      >
+                        <span class="text-danger text-monospace"
+                          >Important:</span
+                        >
+                        check that description mentions current event
+                      </li>
+                      <li
+                        v-else-if="
+                          isTaggedWithMultipleEvents(item) ||
+                          (item.songEntry.eventDateComparison
+                            .participatedOnUpload &&
+                            item.songEntry.taggedWithEventParticipant)
                         "
                       >
                         <span class="text-danger text-monospace"
@@ -588,7 +636,7 @@
                 </b-col>
                 <b-col v-if="item.songEntry !== null">
                   <b-button
-                    v-if="item.processed"
+                    v-if="item.processed && !needToRemoveEvent(item)"
                     disabled
                     class="btn"
                     variant="success"
@@ -600,12 +648,7 @@
                     :disabled="
                       defaultDisableCondition() ||
                       !hasPublishDate(item) ||
-                      (hasReleaseEvent(item) &&
-                        item.songEntry.releaseEvent.id !== event.id &&
-                        isTaggedWithMultipleEvents(item)) ||
-                      (item.songEntry != null &&
-                        !item.songEntry.eventDateComparison.eligible &&
-                        !allowIneligibleVideos)
+                      !isSelectable(item)
                     "
                     class="btn"
                     variant="outline-success"
@@ -683,7 +726,12 @@
 
 <script lang="ts">
 import Vue from "vue";
-import { ReleaseEventForDisplay } from "@/backend/dto";
+import {
+  NicoVideoWithTidyTags,
+  Publisher,
+  ReleaseEventForDisplay,
+  SongForApiContractSimplifiedWithReleaseEvent
+} from "@/backend/dto";
 import { api } from "@/backend";
 import { DateTime } from "luxon";
 import Component from "vue-class-component";
@@ -708,7 +756,9 @@ import {
   getNicoVideoUrl,
   getVocaDBArtistUrl,
   getVocaDBAddSongUrl,
-  DateComparisonResult
+  DateComparisonResult,
+  EntryWithReleaseEventAndVisibility,
+  getEventColorVariant
 } from "@/utils";
 import ErrorMessage from "@/components/ErrorMessage.vue";
 import NicoEmbed from "@/components/NicoEmbed.vue";
@@ -770,7 +820,6 @@ export default class extends Vue {
   private allowIneligibleVideos: boolean = false;
   private showPerfectDispositionOnly: boolean = false;
   private timeDelta: number = 0;
-  private timeDeltaMax: number = 0;
   private filterByEventDates: boolean = true;
 
   // error handling
@@ -859,7 +908,7 @@ export default class extends Vue {
     dateStart: DateTime,
     dateEnd: DateTime | null
   ): DateComparisonResult {
-    return getDateDisposition(date, dateStart, dateEnd, this.timeDeltaMax);
+    return getDateDisposition(date, dateStart, dateEnd, this.timeDelta);
   }
 
   private setDefaultScopeTagString(): void {
@@ -911,6 +960,14 @@ export default class extends Vue {
     return video.songEntry != null && video.songEntry.taggedWithMultipleEvents;
   }
 
+  private isTaggedWithEventParticipant(
+    video: VideoWithEntryAndVisibility
+  ): boolean {
+    return (
+      video.songEntry != null && video.songEntry.taggedWithEventParticipant
+    );
+  }
+
   private isEligible(video: VideoWithEntryAndVisibility): boolean {
     return (
       (video.video.eventDateComparison != null &&
@@ -919,6 +976,12 @@ export default class extends Vue {
         video.songEntry.eventDateComparison != null &&
         video.songEntry.eventDateComparison.eligible)
     );
+  }
+
+  private getEventColorVariant(
+    entry: EntryWithReleaseEventAndVisibility
+  ): string {
+    return getEventColorVariant(entry, this.event.id);
   }
 
   // row filtering
@@ -992,15 +1055,31 @@ export default class extends Vue {
 
   private isSelectable(item: VideoWithEntryAndVisibility): boolean {
     return (
-      !item.processed &&
       item.songEntry != null &&
-      !(
-        this.hasReleaseEvent(item) &&
+      !item.processed &&
+      ((this.hasReleaseEvent(item) &&
         item.songEntry.releaseEvent!.id != this.event.id &&
-        this.isTaggedWithMultipleEvents(item)
-      ) &&
-      (item.songEntry.eventDateComparison.eligible ||
+        !this.isTaggedWithMultipleEvents(item) &&
+        !this.isTaggedWithEventParticipant(item) &&
+        item.songEntry.eventDateComparison.eligible) ||
+        (!this.isTaggedWithEventParticipant(item) &&
+          item.songEntry.eventDateComparison.participatedOnUpload &&
+          item.songEntry.eventDateComparison.eligible) ||
+        (item.songEntry.eventDateComparison.dayDiff <= this.timeDelta &&
+          !this.isTaggedWithMultipleEvents(item) &&
+          !this.isTaggedWithEventParticipant(item) &&
+          item.songEntry.eventDateComparison.eligible) ||
         this.allowIneligibleVideos)
+    );
+  }
+
+  private needToRemoveEvent(item: VideoWithEntryAndVisibility): boolean {
+    return (
+      item.songEntry != null &&
+      item.processed &&
+      this.hasReleaseEvent(item) &&
+      item.songEntry.releaseEvent!.id === this.event.id &&
+      item.songEntry.eventDateComparison.participatedOnUpload
     );
   }
 
@@ -1048,8 +1127,7 @@ export default class extends Vue {
       this.event.nndTags = response.tags;
       this.eventTagsJoint = this.event.nndTags.join(" OR ");
       this.tagsLoaded = true;
-      this.timeDeltaMax = this.event.endDate == null ? 7 : 1;
-      this.timeDelta = this.timeDeltaMax;
+      this.timeDelta = this.event.endDate == null ? 7 : 1;
       localStorage.setItem("vocadb_event_name", eventName);
       this.filterByEventDates = true;
     } catch (err) {
@@ -1088,20 +1166,7 @@ export default class extends Vue {
         endTime: endTime
       });
       for (const item of response.items) {
-        let temp: VideoWithEntryAndVisibility = {
-          video: item.video,
-          songEntry: item.songEntry,
-          embedVisible: false,
-          rowVisible: true,
-          toAssign: false,
-          publisher: item.publisher,
-          processed: item.processed
-        };
-        if (
-          temp.songEntry != null &&
-          item.songEntry != null &&
-          item.songEntry.publishDate != null
-        ) {
+        if (item.songEntry != null && item.songEntry.publishDate != null) {
           const minDate = DateTime.min(
             DateTime.fromISO(item.songEntry.publishDate, { zone: "utc" }),
             DateTime.fromISO(item.video.startTime, { zone: "utc" })
@@ -1112,18 +1177,25 @@ export default class extends Vue {
             this.event.date!,
             this.event.endDate
           );
-        } else if (temp.songEntry == null && item.songEntry == null) {
-          item.video.eventDateComparison = this.getDateDisposition(
-            DateTime.fromISO(item.video.startTime, { zone: "utc" }),
-            this.event.date!,
-            this.event.endDate
-          );
-        } else if (item.songEntry != null) {
+        }
+        item.video.eventDateComparison = this.getDateDisposition(
+          DateTime.fromISO(item.video.startTime, { zone: "utc" }),
+          this.event.date!,
+          this.event.endDate
+        );
+        if (item.songEntry != null && item.songEntry.publishDate != null) {
           item.songEntry.eventDateComparison = this.getDateDisposition(
-            DateTime.fromISO(item.video.startTime, { zone: "utc" }),
+            DateTime.fromISO(item.songEntry.publishDate, { zone: "utc" }),
             this.event.date!,
             this.event.endDate
           );
+          if (
+            !item.songEntry.eventDateComparison.eligible &&
+            item.video.eventDateComparison.eligible
+          ) {
+            item.songEntry.eventDateComparison.eligible = true;
+            item.songEntry.eventDateComparison.participatedOnUpload = true;
+          }
         }
       }
       this.entries = response.items.map(vid => {
@@ -1135,7 +1207,6 @@ export default class extends Vue {
           toAssign: false,
           publishDate: null,
           eventDateComparison: null,
-          taggedWithMultipleEvents: false,
           publisher: vid.publisher,
           processed: vid.processed
         };
@@ -1169,10 +1240,15 @@ export default class extends Vue {
           name: this.event.name,
           id: this.event.id,
           urlSlug: this.event.urlSlug
-        }
+        },
+        participatedOnUpload:
+          song.songEntry.eventDateComparison.participatedOnUpload
       });
       song.processed = true;
-      if (song.songEntry.releaseEvent == null) {
+      if (
+        song.songEntry.releaseEvent == null &&
+        !song.songEntry.eventDateComparison.participatedOnUpload
+      ) {
         song.songEntry.releaseEvent = {
           id: this.event.id,
           date: null,
@@ -1207,7 +1283,6 @@ export default class extends Vue {
   private confirmAndLoad(): void {
     this.tagsConfirmed = true;
     this.numOfPages = 0;
-    console.log(this.event);
     this.loadPage(1);
   }
 

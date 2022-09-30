@@ -230,6 +230,27 @@ pub async fn assign_event(_req: HttpRequest, payload: Json<AssignEventPayload>) 
     let token = extract_token(&_req)?;
     let client = client_from_token(&token)?;
 
+    if payload.participated_on_upload {
+        client.add_event_participation_info(payload.song_id, payload.event.clone()).await?;
+        let response_code = client.add_tags(vec![TagBaseContract {
+            id: 9141,
+            name: String::from("event participant"),
+            category_name: Some(String::from("Editor notes")),
+            additional_names: Some(String::from("")),
+            url_slug: String::from("event-participant"),
+        }], payload.song_id).await;
+        return match response_code {
+            Ok(_) => Ok(Json(EventAssigningResult::Participated)),
+            Err(_) => Err(
+                AppResponseError::VocadbClientError(
+                    VocadbClientError::NotFoundError(
+                        format!("Could not find tag \"event participant\" (id={})", 9141)
+                    )
+                )
+            )
+        };
+    }
+
     let result = client.fill_in_event(payload.song_id, payload.event.clone()).await?;
     match result {
         EventAssigningResult::MultipleEvents => {
@@ -256,6 +277,7 @@ pub async fn assign_event(_req: HttpRequest, payload: Json<AssignEventPayload>) 
         _ => {
             // EventAssigningResult::Assigned => filled the event
             // EventAssigningResult::AlreadyAssigned => the event is already filled
+            // EventAssigningResult::Participated => handled earlier
         }
     }
 
@@ -412,7 +434,7 @@ pub async fn lookup_and_assign_tag(_req: HttpRequest, payload: Json<LookupAndAss
     let response = client.add_tags(new_tags, payload.song_id).await;
 
     if response.is_ok() {
-        client.disable_videos(payload.song_id, payload.disable.clone()).await?;
+        if !payload.disable.is_empty() { client.disable_videos(payload.song_id, payload.disable.clone()).await?; }
         Ok(Json(()))
     } else {
         Err(AppResponseError::VocadbClientError(VocadbClientError::NotFoundError(format!("song with id=\"{}\" does not exist", payload.song_id))))

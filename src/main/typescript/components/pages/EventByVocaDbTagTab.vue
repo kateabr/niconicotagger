@@ -334,11 +334,7 @@
               >
                 <b-badge
                   class="badge text-center"
-                  :variant="
-                    item.songEntry.releaseEvent.id === event.id
-                      ? 'success'
-                      : 'warning'
-                  "
+                  :variant="getEventColorVariant(item)"
                   :href="
                     getVocaDBEventUrl(
                       item.songEntry.releaseEvent.id,
@@ -530,7 +526,8 @@ import {
   dateIsWithinTimeDelta,
   getTimeDeltaState,
   fillReleaseEventForDisplay,
-  DateComparisonResult
+  DateComparisonResult,
+  getEventColorVariant
 } from "@/utils";
 import ErrorMessage from "@/components/ErrorMessage.vue";
 import DateDisposition from "@/components/DateDisposition.vue";
@@ -710,6 +707,12 @@ export default class extends Vue {
     this.orderingCondition = value;
   }
 
+  private getEventColorVariant(
+    entry: EntryWithReleaseEventAndVisibility
+  ): string {
+    return getEventColorVariant(entry, this.event.id);
+  }
+
   // row filtering
   private hiddenTypeFlag(entry: EntryWithReleaseEventAndVisibility): boolean {
     return (
@@ -826,14 +829,13 @@ export default class extends Vue {
       this.entries = entries_temp;
       this.tag = response.eventTag;
       fillReleaseEventForDisplay(response.releaseEvent, this.event);
-      this.entries.forEach(
-        value =>
-          (value.songEntry.eventDateComparison = this.getDateDisposition(
-            value.publishDate,
-            this.event.date!,
-            this.event.endDate
-          ))
-      );
+      for (let entry of this.entries) {
+        entry.songEntry.eventDateComparison = this.getDateDisposition(
+          entry.publishDate,
+          this.event.date!,
+          this.event.endDate
+        );
+      }
       this.filterEntries();
       this.eventTagNameFrozen = this.event.name;
       this.numOfPages = this.totalEntryCount / this.maxResults + 1;

@@ -162,6 +162,8 @@ pub struct SongForApiContractSimplifiedWithMultipleEventInfo {
     pub name: String,
     #[serde(rename = "taggedWithMultipleEvents")]
     pub tagged_with_multiple_events: bool,
+    #[serde(rename = "taggedWithEventParticipant")]
+    pub tagged_with_event_participant: bool,
     #[serde(rename = "songType")]
     pub song_type: SongType,
     #[serde(rename = "artistString")]
@@ -374,6 +376,8 @@ pub struct AssignEventPayload {
     #[serde(rename = "songId")]
     pub song_id: i32,
     pub event: MinimalEvent,
+    #[serde(rename = "participatedOnUpload")]
+    pub participated_on_upload: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -390,6 +394,7 @@ pub enum EventAssigningResult {
     AlreadyAssigned,
     MultipleEvents,
     AlreadyTaggedWithMultipleEvents,
+    Participated,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
