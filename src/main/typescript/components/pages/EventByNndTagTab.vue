@@ -538,7 +538,6 @@
                     <ol v-if="!item.processed" class="ml-n4">
                       <li
                         v-if="
-                          !hasReleaseEvent(item) &&
                           item.songEntry.eventDateComparison
                             .participatedOnUpload &&
                           !item.songEntry.taggedWithEventParticipant
