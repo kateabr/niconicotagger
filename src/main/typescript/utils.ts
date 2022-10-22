@@ -259,6 +259,40 @@ export const reverseAllMap = {
   }
 };
 
+export const songTypeToTag = {
+  Unspecified: [],
+  Original: [6479, 22],
+  Remaster: [1519, 391, 371, 392, 74],
+  Remix: [371, 74, 391],
+  Cover: [74, 371, 392],
+  Instrumental: [208],
+  MusicPV: [7378, 74, 4582],
+  Mashup: [3392],
+  DramaPV: [
+    104,
+    1736,
+    7276,
+    3180,
+    7728,
+    8509,
+    7748,
+    7275,
+    6701,
+    3186,
+    8130,
+    6700,
+    7615,
+    6703,
+    6702,
+    7988,
+    6650,
+    8043,
+    8409,
+    423
+  ],
+  Other: []
+};
+
 export function getSongTypeColorForDisplay(typeString: string): string {
   if (typeString == "Original" || typeString == "Remaster") {
     return "primary";

@@ -485,7 +485,8 @@ import {
   getVocaDBTagUrl,
   EntryWithVideosAndVisibility,
   SongType,
-  getNicoVideoUrl
+  getNicoVideoUrl,
+  songTypeToTag
 } from "@/utils";
 import { api } from "@/backend";
 import { MappedTag, MinimalTag } from "@/backend/dto";
@@ -544,40 +545,6 @@ export default class extends Vue {
     { name: "Other", show: true }
   ];
 
-  private songTypeToTag = {
-    Unspecified: [],
-    Original: [6479],
-    Remaster: [1519, 391, 371, 392, 74],
-    Remix: [371, 74, 391],
-    Cover: [74, 371, 392],
-    Instrumental: [208],
-    MusicPV: [7378, 74, 4582],
-    Mashup: [3392],
-    DramaPV: [
-      104,
-      1736,
-      7276,
-      3180,
-      7728,
-      8509,
-      7748,
-      7275,
-      6701,
-      3186,
-      8130,
-      6700,
-      7615,
-      6703,
-      6702,
-      7988,
-      6650,
-      8043,
-      8409,
-      423
-    ],
-    Other: []
-  };
-
   private niconicoCommunityExclusive: MinimalTag = {
     id: 7446,
     name: "niconico community exclusive",
@@ -607,6 +574,17 @@ export default class extends Vue {
 
   private countChecked(): number {
     return this.videos.filter(video => video.toAssign).length;
+  }
+
+  private filterTagsBySongType(
+    video: EntryWithVideosAndVisibility,
+    tag: MappedTag
+  ): boolean {
+    return (
+      songTypeToTag[video.song.songType].find(
+        (id: number) => id == tag.tag.id
+      ) == undefined
+    );
   }
 
   // row filtering
@@ -860,11 +838,8 @@ export default class extends Vue {
   private postProcessVideos() {
     for (const video of this.videos) {
       for (const thumbnailOk of video.thumbnailsOk) {
-        thumbnailOk.mappedTags = thumbnailOk.mappedTags.filter(
-          t =>
-            this.songTypeToTag[video.song.songType].find(
-              (id: number) => id == t.tag.id
-            ) == undefined
+        thumbnailOk.mappedTags = thumbnailOk.mappedTags.filter(t =>
+          this.filterTagsBySongType(video, t)
         );
         thumbnailOk.mappedTags = thumbnailOk.mappedTags.filter(function (
           elem,
