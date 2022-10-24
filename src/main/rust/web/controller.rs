@@ -188,6 +188,30 @@ pub async fn assign_event_and_remove_tag(_req: HttpRequest, payload: Json<Assign
     let token = extract_token(&_req)?;
     let client = client_from_token(&token)?;
 
+    if payload.participated_on_upload {
+        client.add_event_participation_info(payload.song_id, payload.event.clone()).await?;
+        let response_code = client.add_tags(vec![TagBaseContract {
+            id: 9141,
+            name: String::from("event participant"),
+            category_name: Some(String::from("Editor notes")),
+            additional_names: Some(String::from("")),
+            url_slug: String::from("event-participant"),
+        }], payload.song_id).await;
+        return match response_code {
+            Ok(_) => {
+                client.remove_tag(payload.song_id, payload.tag_id).await?;
+                Ok(Json(EventAssigningResult::Participated))
+            },
+            Err(_) => Err(
+                AppResponseError::VocadbClientError(
+                    VocadbClientError::NotFoundError(
+                        format!("Could not find tag \"event participant\" (id={})", 9141)
+                    )
+                )
+            )
+        };
+    }
+
     let result = client.fill_in_event(payload.song_id, payload.event.clone()).await?;
     match result {
         EventAssigningResult::MultipleEvents => {

@@ -579,6 +579,31 @@ export function getTimeDeltaState(
   return before || after;
 }
 
+export function isEligible(
+  songEntry: SongForApiContractSimplifiedWithReleaseEvent | null,
+  videoUploadDateComparison: DateComparisonResult | null
+): boolean {
+  return (
+    (videoUploadDateComparison != null && videoUploadDateComparison.eligible) ||
+    (songEntry != null &&
+      songEntry.eventDateComparison != null &&
+      songEntry.eventDateComparison.eligible)
+  );
+}
+
+export function isEarly(
+  songEntry: SongForApiContractSimplifiedWithReleaseEvent | null,
+  videoUploadDateComparison: DateComparisonResult | null
+): boolean {
+  if (isEligible(songEntry, videoUploadDateComparison)) {
+    return false;
+  }
+  return (
+    (songEntry != null && songEntry.eventDateComparison.disposition == "early") ||
+    (videoUploadDateComparison != null && videoUploadDateComparison.disposition == "early")
+  );
+}
+
 // data structures
 export interface EntryWithReleaseEventAndVisibility {
   songEntry: SongForApiContractSimplifiedWithReleaseEvent;

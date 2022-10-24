@@ -141,6 +141,18 @@
               </template>
             </b-col>
           </b-row>
+          <b-row>
+            <b-col class="mt-2">
+              <b-form-checkbox
+                v-model="allowIneligibleVideos"
+                :disabled="
+                  !(!timeDeltaEnabled || !timeDeltaBefore || !timeDeltaAfter)
+                "
+                @change="toggleCheckAll()"
+                >Allow processing ineligible entries</b-form-checkbox
+              >
+            </b-col>
+          </b-row>
         </b-collapse>
       </span>
     </b-row>
@@ -303,9 +315,7 @@
           >
             <td>
               <b-form-checkbox
-                v-if="
-                  !item.processed && item.songEntry.eventDateComparison.eligible
-                "
+                v-if="isSelectable(item) && !item.processed"
                 v-model="item.toAssign"
                 :disabled="defaultDisableCondition()"
                 size="lg"
@@ -358,62 +368,20 @@
             <td>
               <b-row>
                 <b-col cols="10">
-                  <ol
-                    v-if="
-                      !item.processed &&
-                      item.songEntry.eventDateComparison.eligible
-                    "
-                    class="ml-n4"
-                  >
-                    <li
-                      v-if="
-                        !item.songEntry.taggedWithMultipleEvents &&
-                        item.songEntry.releaseEvent !== null &&
-                        item.songEntry.releaseEvent.id !== event.id
-                      "
-                    >
-                      Tag with "<b-link
-                        target="_blank"
-                        :href="getVocaDBTagUrl(8275, 'multiple-events')"
-                        >multiple events</b-link
-                      >" and update description
-                    </li>
-                    <li v-else-if="item.songEntry.releaseEvent == null">
-                      Set "<b-link
-                        :href="getVocaDBEventUrl(event.id, event.urlSlug)"
-                        target="_blank"
-                        >{{ event.name }}</b-link
-                      >" as release event
-                    </li>
-                    <li
-                      v-else-if="
-                        item.songEntry.taggedWithMultipleEvents &&
-                        item.songEntry.releaseEvent.id !== event.id
-                      "
-                    >
-                      <span class="text-danger text-monospace">Important:</span>
-                      check that description mentions current event
-                    </li>
-                    <li>
-                      Remove tag "<b-link
-                        :href="getVocaDBTagUrl(tag.id, tag.urlSlug)"
-                        target="_blank"
-                        >{{ tag.name }}</b-link
-                      >"
-                    </li>
-                  </ol>
-                  <span
-                    v-if="!item.songEntry.eventDateComparison.eligible"
-                    class="text-muted"
-                    >Entry is ineligible for participation</span
-                  >
+                  <action
+                    v-if="!item.processed"
+                    :name="event.name"
+                    :process-item="isSelectable(item)"
+                    :link="getVocaDBEventUrl(event.id, event.urlSlug)"
+                    :eligible="isEligible(item)"
+                    :mode="getMode(item)"
+                    :multiple-events-link="multipleEventsLink"
+                    :participant-link="participantLink"
+                    :tag-to-remove="tag.name"
+                    :tag-to-remove-link="getVocaDBTagUrl(tag.id, tag.urlSlug)"
+                  />
                 </b-col>
-                <b-col
-                  v-if="
-                    item.songEntry != null &&
-                    item.songEntry.eventDateComparison.eligible
-                  "
-                >
+                <b-col v-if="isSelectable(item)">
                   <b-button
                     v-if="item.processed"
                     disabled
@@ -527,13 +495,15 @@ import {
   getTimeDeltaState,
   fillReleaseEventForDisplay,
   DateComparisonResult,
-  getEventColorVariant
+  getEventColorVariant,
+  isEligible
 } from "@/utils";
 import ErrorMessage from "@/components/ErrorMessage.vue";
 import DateDisposition from "@/components/DateDisposition.vue";
 import { AxiosResponse } from "axios";
+import Action from "@/components/Action.vue";
 
-@Component({ components: { ErrorMessage, DateDisposition } })
+@Component({ components: { Action, ErrorMessage, DateDisposition } })
 export default class extends Vue {
   @Prop()
   private readonly mode!: string;
@@ -579,9 +549,12 @@ export default class extends Vue {
   private timeDelta: number = 0;
   private timeDeltaMax: number = 0;
   private otherEvents: boolean = true;
+  private allowIneligibleVideos: boolean = false;
   private page: number = 0;
   private maxPage: number = 0;
   private numOfPages: number = 0;
+  private participantLink = this.getVocaDBTagUrl(9141, "event-participant");
+  private multipleEventsLink = this.getVocaDBTagUrl(8275, "multiple-events");
 
   // error handling
   private alertCode: number = 0;
@@ -654,6 +627,13 @@ export default class extends Vue {
     return allVideosInvisible(this.entries);
   }
 
+  private isSelectable(item: EntryWithReleaseEventAndVisibility): boolean {
+    return (
+      item.songEntry != null &&
+      (this.isEligible(item) || this.allowIneligibleVideos)
+    );
+  }
+
   private getDateDisposition(
     date: DateTime | null,
     dateStart: DateTime,
@@ -671,6 +651,10 @@ export default class extends Vue {
     );
   }
 
+  private isEligible(video: EntryWithReleaseEventAndVisibility): boolean {
+    return isEligible(video.songEntry, null);
+  }
+
   // interface methods
   private isActiveMode(): boolean {
     return this.mode == this.thisMode;
@@ -686,10 +670,7 @@ export default class extends Vue {
 
   private toggleCheckAll(): void {
     for (const item of this.entries.filter(
-      value =>
-        value.rowVisible &&
-        !value.processed &&
-        value.songEntry.eventDateComparison.eligible
+      value => value.rowVisible && this.isSelectable(value) && !value.processed
     )) {
       item.toAssign = this.allChecked;
     }
@@ -711,6 +692,37 @@ export default class extends Vue {
     entry: EntryWithReleaseEventAndVisibility
   ): string {
     return getEventColorVariant(entry, this.event.id);
+  }
+
+  private getMode(
+    item: EntryWithReleaseEventAndVisibility
+  ):
+    | "Assign"
+    | "TagWithParticipant"
+    | "TagWithMultiple"
+    | "CheckDescription"
+    | "NeedToRemove"
+    | "NoAction" {
+    if (
+      !item.songEntry.taggedWithMultipleEvents &&
+      item.songEntry.releaseEvent !== null &&
+      item.songEntry.releaseEvent.id !== this.event.id
+    ) {
+      return "TagWithMultiple";
+    } else if (
+      !this.isEligible(item) &&
+      !item.songEntry.taggedWithEventParticipant
+    ) {
+      return "TagWithParticipant";
+    } else if (item.songEntry.releaseEvent == null) {
+      return "Assign";
+    } else if (
+      item.songEntry.taggedWithMultipleEvents &&
+      item.songEntry.releaseEvent.id !== this.event.id
+    ) {
+      return "CheckDescription";
+    }
+    return "NoAction";
   }
 
   // row filtering
@@ -859,6 +871,7 @@ export default class extends Vue {
   ): Promise<void> {
     this.assigning = true;
     try {
+      const participatedOnUpload = this.getMode(song) == "TagWithParticipant";
       await api.assignEventAndRemoveTag({
         songId: song.songEntry.id,
         event: {
@@ -866,10 +879,11 @@ export default class extends Vue {
           id: this.event.id,
           urlSlug: this.event.urlSlug
         },
-        tagId: this.tag.id
+        tagId: this.tag.id,
+        participatedOnUpload: participatedOnUpload
       });
       song.processed = true;
-      if (song.songEntry.releaseEvent == null) {
+      if (song.songEntry.releaseEvent == null && !participatedOnUpload) {
         song.songEntry.releaseEvent = {
           id: this.event.id,
           date: null,
@@ -908,7 +922,7 @@ export default class extends Vue {
 
   private loadPage(page: number): void {
     this.updateUrl();
-    this.fetch(this.event.name, (page - 1) * this.maxResults, page);
+    this.fetch(this.tag.name, (page - 1) * this.maxResults, page);
   }
 
   // session

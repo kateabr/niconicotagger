@@ -30,11 +30,7 @@
 <script lang="ts">
 import { Component, Prop } from "vue-property-decorator";
 import Vue from "vue";
-import {
-  getDispositionBadgeColorVariant,
-  DateComparisonResult,
-  compareWithDelta
-} from "@/utils";
+import { getDispositionBadgeColorVariant, DateComparisonResult } from "@/utils";
 import { DateTime } from "luxon";
 
 @Component({ components: {} })

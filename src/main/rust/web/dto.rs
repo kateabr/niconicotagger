@@ -369,6 +369,8 @@ pub struct AssignEventAndRemoveTagPayload {
     pub event: MinimalEvent,
     #[serde(rename = "tagId")]
     pub tag_id: i64,
+    #[serde(rename = "participatedOnUpload")]
+    pub participated_on_upload: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

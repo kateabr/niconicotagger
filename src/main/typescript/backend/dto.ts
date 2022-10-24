@@ -242,6 +242,7 @@ export interface AssignEventAndRemoveTagPayload {
   songId: number;
   event: MinimalEvent;
   tagId: number;
+  participatedOnUpload: boolean;
 }
 
 export interface AssignEventPayload {

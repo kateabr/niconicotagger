@@ -522,89 +522,20 @@
               <b-row class="align-text-top">
                 <b-col cols="10">
                   <div v-if="item.songEntry !== null" class="mb-2">
-                    <ol v-if="needToRemoveEvent(item)" class="ml-n4">
-                      <li>
-                        <span class="text-danger text-monospace"
-                          >Important:</span
-                        >
-                        need to change or remove the release event because song
-                        was not first published during "<b-link
-                          :href="getVocaDBEventUrl(event.id, event.urlSlug)"
-                          target="_blank"
-                          >{{ event.name }}</b-link
-                        >"
-                      </li>
-                    </ol>
-                    <ol v-if="!item.processed" class="ml-n4">
-                      <li
-                        v-if="
-                          item.songEntry.eventDateComparison
-                            .participatedOnUpload &&
-                          !item.songEntry.taggedWithEventParticipant
-                        "
-                      >
-                        Tag with "<b-link
-                          target="_blank"
-                          :href="getVocaDBTagUrl(9141, 'event-participant')"
-                          >event participant</b-link
-                        >" and update description
-                      </li>
-                      <li
-                        v-else-if="
-                          hasReleaseEvent(item) &&
-                          item.songEntry.releaseEvent.id !== event.id &&
-                          !isTaggedWithMultipleEvents(item) &&
-                          !item.songEntry.taggedWithEventParticipant &&
-                          !item.processed
-                        "
-                      >
-                        Tag with "<b-link
-                          target="_blank"
-                          :href="getVocaDBTagUrl(8275, 'multiple-events')"
-                          >multiple events</b-link
-                        >" and update description
-                      </li>
-                      <li
-                        v-else-if="
-                          !hasReleaseEvent(item) &&
-                          !item.processed &&
-                          (isEligible(item) || allowIneligibleVideos) &&
-                          !item.songEntry.eventDateComparison
-                            .participatedOnUpload
-                        "
-                      >
-                        Set "<b-link
-                          :href="getVocaDBEventUrl(event.id, event.urlSlug)"
-                          target="_blank"
-                          >{{ event.name }}</b-link
-                        >" as release event
-                      </li>
-                      <li
-                        v-else-if="
-                          hasReleaseEvent(item) &&
-                          item.songEntry.releaseEvent.id !== event.id &&
-                          isTaggedWithMultipleEvents(item)
-                        "
-                      >
-                        <span class="text-danger text-monospace"
-                          >Important:</span
-                        >
-                        check that description mentions current event
-                      </li>
-                      <li
-                        v-else-if="
-                          isTaggedWithMultipleEvents(item) ||
-                          (item.songEntry.eventDateComparison
-                            .participatedOnUpload &&
-                            item.songEntry.taggedWithEventParticipant)
-                        "
-                      >
-                        <span class="text-danger text-monospace"
-                          >Important:</span
-                        >
-                        check that description mentions current event
-                      </li>
-                    </ol>
+                    <action
+                      v-if="!item.processed || needToRemoveEvent(item)"
+                      :process-item="
+                        !item.processed &&
+                        (isEligible(item) ||
+                          (isEarly(item) && allowIneligibleVideos))
+                      "
+                      :name="event.name"
+                      :link="getVocaDBEventUrl(event.id, event.urlSlug)"
+                      :eligible="isEligible(item)"
+                      :mode="getMode(item)"
+                      :multiple-events-link="multipleEventsLink"
+                      :participant-link="participantLink"
+                    />
                   </div>
                   <div v-else class="mb-2">
                     <b-button
@@ -625,12 +556,6 @@
                         >{{ item.publisher.name.displayName }}</b-link
                       >
                     </div>
-                  </div>
-                  <div v-if="!isEligible(item)" class="text-muted">
-                    <font-awesome-icon
-                      icon="fa-solid fa-circle-exclamation"
-                      class="mr-1"
-                    />Entry may be ineligible for participation
                   </div>
                 </b-col>
                 <b-col v-if="item.songEntry !== null">
@@ -725,12 +650,7 @@
 
 <script lang="ts">
 import Vue from "vue";
-import {
-  NicoVideoWithTidyTags,
-  Publisher,
-  ReleaseEventForDisplay,
-  SongForApiContractSimplifiedWithReleaseEvent
-} from "@/backend/dto";
+import { ReleaseEventForDisplay } from "@/backend/dto";
 import { api } from "@/backend";
 import { DateTime } from "luxon";
 import Component from "vue-class-component";
@@ -757,14 +677,17 @@ import {
   getVocaDBAddSongUrl,
   DateComparisonResult,
   EntryWithReleaseEventAndVisibility,
-  getEventColorVariant
+  getEventColorVariant,
+  isEligible,
+  isEarly
 } from "@/utils";
 import ErrorMessage from "@/components/ErrorMessage.vue";
 import NicoEmbed from "@/components/NicoEmbed.vue";
 import DateDisposition from "@/components/DateDisposition.vue";
 import { AxiosResponse } from "axios";
+import Action from "@/components/Action.vue";
 
-@Component({ components: { ErrorMessage, NicoEmbed, DateDisposition } })
+@Component({ components: { Action, ErrorMessage, NicoEmbed, DateDisposition } })
 export default class extends Vue {
   @Prop()
   private readonly mode!: string;
@@ -820,6 +743,8 @@ export default class extends Vue {
   private showPerfectDispositionOnly: boolean = false;
   private timeDelta: number = 0;
   private filterByEventDates: boolean = true;
+  private participantLink = this.getVocaDBTagUrl(9141, "event-participant");
+  private multipleEventsLink = this.getVocaDBTagUrl(8275, "multiple-events");
 
   // error handling
   private alertCode: number = 0;
@@ -968,13 +893,11 @@ export default class extends Vue {
   }
 
   private isEligible(video: VideoWithEntryAndVisibility): boolean {
-    return (
-      (video.video.eventDateComparison != null &&
-        video.video.eventDateComparison.eligible) ||
-      (video.songEntry != null &&
-        video.songEntry.eventDateComparison != null &&
-        video.songEntry.eventDateComparison.eligible)
-    );
+    return isEligible(video.songEntry, video.video.eventDateComparison);
+  }
+
+  private isEarly(video: VideoWithEntryAndVisibility): boolean {
+    return isEarly(video.songEntry, video.video.eventDateComparison);
   }
 
   private getEventColorVariant(
@@ -1080,6 +1003,53 @@ export default class extends Vue {
       item.songEntry.releaseEvent!.id === this.event.id &&
       item.songEntry.eventDateComparison.participatedOnUpload
     );
+  }
+
+  private getMode(
+    item: VideoWithEntryAndVisibility
+  ):
+    | "Assign"
+    | "TagWithParticipant"
+    | "TagWithMultiple"
+    | "CheckDescription"
+    | "NeedToRemove"
+    | "NoAction" {
+    if (this.needToRemoveEvent(item)) {
+      return "NeedToRemove";
+    } else if (!item.processed && item.songEntry != null) {
+      if (
+        (item.songEntry.eventDateComparison.participatedOnUpload ||
+          (this.allowIneligibleVideos && !this.isEligible(item))) &&
+        !item.songEntry.taggedWithEventParticipant
+      ) {
+        return "TagWithParticipant";
+      } else if (
+        this.hasReleaseEvent(item) &&
+        item.songEntry.releaseEvent!.id !== this.event.id &&
+        !this.isTaggedWithMultipleEvents(item) &&
+        !item.songEntry.taggedWithEventParticipant &&
+        !item.processed
+      ) {
+        return "TagWithMultiple";
+      } else if (
+        !this.hasReleaseEvent(item) &&
+        !item.processed &&
+        (this.isEligible(item) || this.allowIneligibleVideos) &&
+        !item.songEntry.eventDateComparison.participatedOnUpload
+      ) {
+        return "Assign";
+      } else if (
+        (this.hasReleaseEvent(item) &&
+          item.songEntry.releaseEvent!.id !== this.event.id &&
+          this.isTaggedWithMultipleEvents(item)) ||
+        this.isTaggedWithMultipleEvents(item) ||
+        (item.songEntry.eventDateComparison.participatedOnUpload &&
+          item.songEntry.taggedWithEventParticipant)
+      ) {
+        return "CheckDescription";
+      }
+    }
+    return "NoAction";
   }
 
   private updateUrl(eventName: string): void {
