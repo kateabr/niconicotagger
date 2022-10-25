@@ -261,7 +261,7 @@ export const reverseAllMap = {
 
 export const songTypeToTag = {
   Unspecified: [],
-  Original: [6479, 22],
+  Original: [6479, 22, 74],
   Remaster: [1519, 391, 371, 392, 74],
   Remix: [371, 74, 391],
   Cover: [74, 371, 392],
