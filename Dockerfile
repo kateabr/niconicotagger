@@ -27,7 +27,7 @@ COPY --from=backend-cache /usr/local/cargo /usr/local/cargo
 
 RUN cargo build --release
 
-FROM node:lts-buster AS frontend-builder
+FROM node:16 AS frontend-builder
 WORKDIR /build
 COPY yarn.lock yarn.lock
 COPY package.json package.json
