@@ -18,7 +18,14 @@
       {{ getReleaseDateCommentaryFormatted(eventDateComparison) }}
     </span>
     <b-badge
-      v-if="eventDateComparison.participatedOnUpload"
+      v-if="eventDateComparison.participated"
+      variant="success"
+      class="mr-1 ml-3"
+    >
+      event participant
+    </b-badge>
+    <b-badge
+      v-else-if="eventDateComparison.participatedOnUpload"
       variant="success"
       class="mr-1 ml-3"
     >

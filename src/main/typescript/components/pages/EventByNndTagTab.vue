@@ -1035,7 +1035,8 @@ export default class extends Vue {
         !this.hasReleaseEvent(item) &&
         !item.processed &&
         (this.isEligible(item) || this.allowIneligibleVideos) &&
-        !item.songEntry.eventDateComparison.participatedOnUpload
+        !item.songEntry.eventDateComparison.participatedOnUpload &&
+        !item.songEntry.eventDateComparison.participated
       ) {
         return "Assign";
       } else if (
@@ -1043,7 +1044,8 @@ export default class extends Vue {
           item.songEntry.releaseEvent!.id !== this.event.id &&
           this.isTaggedWithMultipleEvents(item)) ||
         this.isTaggedWithMultipleEvents(item) ||
-        (item.songEntry.eventDateComparison.participatedOnUpload &&
+        ((item.songEntry.eventDateComparison.participatedOnUpload ||
+          item.songEntry.eventDateComparison.participated) &&
           item.songEntry.taggedWithEventParticipant)
       ) {
         return "CheckDescription";
@@ -1158,6 +1160,8 @@ export default class extends Vue {
             this.event.date!,
             this.event.endDate
           );
+          item.songEntry.eventDateComparison.participated =
+            item.songEntry.taggedWithEventParticipant;
           if (
             !item.songEntry.eventDateComparison.eligible &&
             item.video.eventDateComparison.eligible

@@ -117,26 +117,45 @@ export function getDateDisposition(
   timeDeltaMax: number
 ): DateComparisonResult {
   if (date == null) {
-    return { disposition: "unknown", dayDiff: 0, eligible: false, participatedOnUpload: false };
+    return {
+      disposition: "unknown",
+      dayDiff: 0,
+      eligible: false,
+      participatedOnUpload: false,
+      participated: false
+    };
   }
 
   const dayDiff = subDates(date, dateStart);
   if (dateEnd === null) {
     if (dayDiff === 0) {
-      return { dayDiff: 0, disposition: "perfect", eligible: true, participatedOnUpload: false };
+      return {
+        dayDiff: 0,
+        disposition: "perfect",
+        eligible: true,
+        participatedOnUpload: false,
+        participated: false
+      };
     } else {
       return {
         dayDiff: Math.abs(dayDiff),
         disposition: dayDiff > 0 ? "late" : dayDiff < 0 ? "early" : "perfect",
         eligible: Math.abs(dayDiff) <= timeDeltaMax,
-        participatedOnUpload: false
+        participatedOnUpload: false,
+        participated: false
       };
     }
   }
 
   if (dateStart <= date) {
     if (dateEnd >= date) {
-      return { dayDiff: 0, disposition: "perfect", eligible: true, participatedOnUpload: false };
+      return {
+        dayDiff: 0,
+        disposition: "perfect",
+        eligible: true,
+        participatedOnUpload: false,
+        participated: false
+      };
     } else {
       const dayDiff1 = Math.abs(subDates(date, dateEnd));
       if (dayDiff1 > 0) {
@@ -144,14 +163,16 @@ export function getDateDisposition(
           dayDiff: dayDiff1,
           disposition: "late",
           eligible: dayDiff1 <= timeDeltaMax,
-          participatedOnUpload: false
+          participatedOnUpload: false,
+          participated: false
         };
       } else {
         return {
           dayDiff: 0,
           disposition: "perfect",
           eligible: true,
-          participatedOnUpload: false
+          participatedOnUpload: false,
+          participated: false
         };
       }
     }
@@ -162,14 +183,16 @@ export function getDateDisposition(
         dayDiff: dayDiff2,
         disposition: "early",
         eligible: dayDiff2 <= timeDeltaMax,
-        participatedOnUpload: false
+        participatedOnUpload: false,
+        participated: false
       };
     } else {
       return {
         dayDiff: 0,
         disposition: "perfect",
         eligible: true,
-        participatedOnUpload: false
+        participatedOnUpload: false,
+        participated: false
       };
     }
   }
@@ -650,4 +673,5 @@ export interface DateComparisonResult {
   disposition: "perfect" | "late" | "early" | "unknown";
   eligible: boolean;
   participatedOnUpload: boolean;
+  participated: boolean;
 }
