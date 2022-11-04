@@ -979,19 +979,9 @@ export default class extends Vue {
     return (
       item.songEntry != null &&
       !item.processed &&
-      ((this.hasReleaseEvent(item) &&
-        item.songEntry.releaseEvent!.id != this.event.id &&
-        !this.isTaggedWithMultipleEvents(item) &&
-        !this.isTaggedWithEventParticipant(item) &&
-        item.songEntry.eventDateComparison.eligible) ||
-        (!this.isTaggedWithEventParticipant(item) &&
-          item.songEntry.eventDateComparison.participatedOnUpload &&
-          item.songEntry.eventDateComparison.eligible) ||
-        (item.songEntry.eventDateComparison.dayDiff <= this.timeDelta &&
-          !this.isTaggedWithMultipleEvents(item) &&
-          !this.isTaggedWithEventParticipant(item) &&
-          item.songEntry.eventDateComparison.eligible) ||
-        this.allowIneligibleVideos)
+      ["Assign", "TagWithParticipant", "TagWithMultiple"].includes(
+        this.getMode(item)
+      )
     );
   }
 
@@ -1019,7 +1009,9 @@ export default class extends Vue {
     } else if (!item.processed && item.songEntry != null) {
       if (
         (item.songEntry.eventDateComparison.participatedOnUpload ||
-          (this.allowIneligibleVideos && !this.isEligible(item))) &&
+          (this.allowIneligibleVideos &&
+            !this.isEligible(item) &&
+            item.songEntry.eventDateComparison.disposition == "early")) &&
         !item.songEntry.taggedWithEventParticipant
       ) {
         return "TagWithParticipant";
@@ -1034,7 +1026,9 @@ export default class extends Vue {
       } else if (
         !this.hasReleaseEvent(item) &&
         !item.processed &&
-        (this.isEligible(item) || this.allowIneligibleVideos) &&
+        (this.isEligible(item) ||
+          (this.allowIneligibleVideos &&
+            item.songEntry.eventDateComparison.disposition == "early")) &&
         !item.songEntry.eventDateComparison.participatedOnUpload &&
         !item.songEntry.eventDateComparison.participated
       ) {
