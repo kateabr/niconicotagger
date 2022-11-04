@@ -1210,8 +1210,7 @@ export default class extends Vue {
           id: this.event.id,
           urlSlug: this.event.urlSlug
         },
-        participatedOnUpload:
-          song.songEntry.eventDateComparison.participatedOnUpload
+        participatedOnUpload: this.getMode(song) == "TagWithParticipant"
       });
       song.processed = true;
       if (
