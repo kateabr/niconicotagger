@@ -1,6 +1,7 @@
 extern crate kana;
 
 use std::cmp::min;
+use std::collections::HashMap;
 use std::ops::Deref;
 use std::str::FromStr;
 use std::time::Duration;
@@ -199,28 +200,17 @@ impl<'a> Client<'a> {
     }
 
     pub async fn login(&mut self, username: &str, password: &str) -> Result<()> {
-        #[derive(Serialize, Debug)]
-        struct LoginFormData<'a> {
-            #[serde(rename = "UserName")]
-            username: &'a str,
-            #[serde(rename = "Password")]
-            password: &'a str,
-            #[serde(rename = "KeepLoggedIn")]
-            keep_logged_in: bool,
-        }
-
-        let login_data = LoginFormData {
-            username,
-            password,
-            keep_logged_in: true,
-        };
-
         info!("Logging user {}", username);
+
+        let login_payload: HashMap<String, Value> = HashMap::from([
+            (String::from("keepLoggedIn"), Value::from(true)),
+            (String::from("userName"), Value::from(username)),
+            (String::from("password"), Value::from(password))]);
 
         let response = self
             .client
-            .post(format!("{}/User/Login", self.base_url))
-            .send_form(&login_data)
+            .post(format!("{}/api/users/login", self.base_url))
+            .send_json(&login_payload)
             .await?;
 
         let cookies = response.cookies().context("Unable to parse a cookie")?;
