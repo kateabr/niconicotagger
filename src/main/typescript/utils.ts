@@ -110,6 +110,24 @@ export function getShortenedSongType(typeString: string): string {
   }
 }
 
+export function getShortenedArtistType(typeString: string): string {
+  if (typeString == "Unspecified") {
+    return "?";
+  } else if (typeString == "SynthesizerV") {
+    return "SV";
+  } else if (
+    typeString == "Vocaloid" ||
+    typeString == "UTAU" ||
+    typeString == "CeVIO" ||
+    typeString == "OtherVoiceSynthesizer" ||
+    typeString == "OtherVocalist"
+  ) {
+    return typeString[0];
+  } else {
+    return "";
+  }
+}
+
 export function getDateDisposition(
   date: DateTime | null,
   dateStart: DateTime,
@@ -332,6 +350,24 @@ export function getSongTypeColorForDisplay(typeString: string): string {
     return "success";
   } else {
     return "warning";
+  }
+}
+
+export function getArtistTypeColorForDisplay(typeString: string): string {
+  if (typeString == "Vocaloid") {
+    return "primary";
+  } else if (typeString == "UTAU") {
+    return "danger";
+  } else if (typeString == "CeVIO") {
+    return "success";
+  } else if (typeString == "SynthesizerV") {
+    return "secondary";
+  } else if (typeString == "OtherVoiceSynthesizer") {
+    return "dark";
+  } else if (typeString == "OtherVocalist") {
+    return "secondary";
+  } else {
+    return "";
   }
 }
 

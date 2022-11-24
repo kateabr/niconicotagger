@@ -1,11 +1,11 @@
 use serde::{Deserialize, Serialize};
 use crate::client::models::activity::{ActivityEditEvent, ActivityEntryForApiContract};
 use crate::client::models::archived::ArchivedObjectVersionForApiContract;
-use crate::client::models::artist::NicoPublisher;
+use crate::client::models::artist::{ArtistType, NicoPublisher};
 use crate::client::models::releaseevent::{ReleaseEventForApiContractSimplified};
 
 use crate::client::models::song::{SongForApiContract, SongType};
-use crate::client::models::tag::{AssignableTag};
+use crate::client::models::tag::AssignableTag;
 use crate::client::models::user::UserForApiContract;
 use crate::client::nicomodels::{SongForApiContractWithThumbnailsAndMappedTags, TagBaseContractSimplified, TagBaseContractSimplifiedWithUsageCount};
 
@@ -116,12 +116,14 @@ pub struct LookupAndAssignTagRequest {
 #[derive(Deserialize, Debug)]
 pub struct CustomQueryPayload {
     pub query: String,
+    #[serde(rename = "dbAddress")]
+    pub db_address: String
 }
 
 #[derive(Deserialize, Debug)]
 pub struct TagsRemovalPayload {
-    #[serde(rename = "songId")]
-    pub song_id: i32,
+    pub id: i32,
+    pub mode: String,
     #[serde(rename = "tagIds")]
     pub tag_ids: Vec<i64>,
 }
@@ -142,6 +144,15 @@ pub struct SongForApiContractSimplified {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+pub struct ArtistForApiContractSimplified {
+    #[serde(rename = "artistType")]
+    pub artist_type: ArtistType,
+    pub(crate) id: i32,
+    pub(crate) name: String,
+    pub(crate) tags: Vec<TagBaseContractSimplified>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
 pub struct SongForApiContractSimplifiedWithTagUsageCounts {
     pub id: i32,
     pub name: String,
@@ -153,6 +164,15 @@ pub struct SongForApiContractSimplifiedWithTagUsageCounts {
     pub release_event: Option<ReleaseEventForApiContractSimplified>,
     #[serde(rename = "publishDate")]
     pub publish_date: Option<String>,
+    pub tags: Vec<TagBaseContractSimplifiedWithUsageCount>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ArtistForApiContractSimplifiedWithTagUsageCounts {
+    pub id: i32,
+    pub name: String,
+    #[serde(rename = "artistType")]
+    pub artist_type: ArtistType,
     pub tags: Vec<TagBaseContractSimplifiedWithUsageCount>,
 }
 
@@ -406,8 +426,8 @@ pub struct ReleaseEventWithNndTagsFetchResponse {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct EntriesForTagRemoval {
-    pub items: Vec<EntryForTagRemoval>,
+pub struct SongEntriesForTagRemoval {
+    pub items: Vec<SongEntryForTagRemoval>,
     #[serde(rename = "totalCount")]
     pub total_count: i32,
     #[serde(rename = "tagPool")]
@@ -415,8 +435,24 @@ pub struct EntriesForTagRemoval {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct EntryForTagRemoval {
+pub struct SongEntryForTagRemoval {
     pub item: SongForApiContractSimplified,
+    #[serde(rename = "toRemove")]
+    pub to_remove: bool
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ArtistEntriesForTagRemoval {
+    pub items: Vec<ArtistEntryForTagRemoval>,
+    #[serde(rename = "totalCount")]
+    pub total_count: i32,
+    #[serde(rename = "tagPool")]
+    pub tag_pool: Vec<TagBaseContractSimplified>
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ArtistEntryForTagRemoval {
+    pub item: ArtistForApiContractSimplified,
     #[serde(rename = "toRemove")]
     pub to_remove: bool
 }

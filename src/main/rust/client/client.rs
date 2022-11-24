@@ -35,7 +35,7 @@ use crate::client::models::tag::{AssignableTag, SelectedTag, TagBaseContract, Ta
 use crate::client::models::user::UserForApiContract;
 use crate::client::models::weblink::WebLinkForApiContract;
 use crate::client::nicomodels::{NicoTagWithVariant, SongForApiContractWithThumbnails, SongForApiContractWithThumbnailsAndMappedTags, SongsForApiContractWithThumbnailsAndTimestamp, Tag, TagBaseContractSimplified, ThumbnailError, ThumbnailOk, ThumbnailOkWithMappedTags, ThumbnailTagMappedWithAssignAndLockInfo};
-use crate::web::dto::{DBFetchResponseWithTimestamps, DisplayableTag, EntriesForTagRemoval, EntryForTagRemoval, EventAssigningResult, MinimalEvent, NicoResponse, NicoResponseWithScope, NicoVideo, NicoVideoWithTidyTags, SongForApiContractSimplifiedWithTagUsageCounts, SongForApiContractSimplifiedWithMultipleEventInfo, SongForApiContractSimplifiedWithMultipleEventInfoSearchResult, TagMappingContract, VideoWithEntry, SongForApiContractSimplified};
+use crate::web::dto::{DBFetchResponseWithTimestamps, DisplayableTag, SongEntriesForTagRemoval, SongEntryForTagRemoval, EventAssigningResult, MinimalEvent, NicoResponse, NicoResponseWithScope, NicoVideo, NicoVideoWithTidyTags, SongForApiContractSimplifiedWithTagUsageCounts, SongForApiContractSimplifiedWithMultipleEventInfo, SongForApiContractSimplifiedWithMultipleEventInfoSearchResult, TagMappingContract, VideoWithEntry, SongForApiContractSimplified, ArtistForApiContractSimplifiedWithTagUsageCounts, ArtistEntriesForTagRemoval, ArtistForApiContractSimplified, ArtistEntryForTagRemoval};
 
 pub struct Client<'a> {
     pub client: awc::Client,
@@ -128,11 +128,11 @@ impl<'a> Client<'a> {
         return Ok(json);
     }
 
-    async fn http_get_for_query_console<R>(&self, url: &String) -> Result<R>
+    async fn http_get_for_query_console<R>(&self, query: String, mode: String, db_address: String) -> Result<R>
         where
             R: DeserializeOwned,
     {
-        let request = self.create_request(url, Method::GET);
+        let request = self.create_request(&format!("{}/api/{}?fields=Tags&{}", db_address, mode, query), Method::GET);
         debug!("Sending GET request {:?}", request);
         let body = request
             .send()
@@ -360,8 +360,8 @@ impl<'a> Client<'a> {
         return Ok(mappings.into_iter().map(|t| t.source_tag).collect());
     }
 
-    pub async fn fetch_by_custom_query(&self, query: String) -> Result<EntriesForTagRemoval> {
-        let result: PartialFindResult<SongForApiContractSimplifiedWithTagUsageCounts> = self.http_get_for_query_console(&query).await?;
+    pub async fn fetch_songs_by_custom_query(&self, query: String, db_address: String) -> Result<SongEntriesForTagRemoval> {
+        let result: PartialFindResult<SongForApiContractSimplifiedWithTagUsageCounts> = self.http_get_for_query_console(query, String::from("songs"), db_address).await?;
         let tag_pool: Vec<TagBaseContractSimplified> = result.items.iter()
             .flat_map(|song| &song.tags)
             .unique_by(|&tag| tag.tag.id)
@@ -371,9 +371,9 @@ impl<'a> Client<'a> {
                 url_slug: tag.tag.url_slug.clone()
             })
             .collect();
-        Ok(EntriesForTagRemoval {
+        Ok(SongEntriesForTagRemoval {
             items: result.items.into_iter()
-                .map(|song| EntryForTagRemoval {
+                .map(|song| SongEntryForTagRemoval {
                     item: SongForApiContractSimplified{
                         id: song.id,
                         name: song.name.clone(),
@@ -382,6 +382,33 @@ impl<'a> Client<'a> {
                         release_event: None,
                         publish_date: None,
                         tags: song.tags.iter().map(|t| t.tag.clone()).collect()
+                    },
+                    to_remove: false
+                }).collect(),
+            total_count: result.total_count,
+            tag_pool,
+        })
+    }
+
+    pub async fn fetch_artists_by_custom_query(&self, query: String, db_address: String) -> Result<ArtistEntriesForTagRemoval> {
+        let result: PartialFindResult<ArtistForApiContractSimplifiedWithTagUsageCounts> = self.http_get_for_query_console(query, String::from("artists"), db_address).await?;
+        let tag_pool: Vec<TagBaseContractSimplified> = result.items.iter()
+            .flat_map(|song| &song.tags)
+            .unique_by(|&tag| tag.tag.id)
+            .map(|tag| TagBaseContractSimplified {
+                id: tag.tag.id,
+                name: tag.tag.name.clone(),
+                url_slug: tag.tag.url_slug.clone()
+            })
+            .collect();
+        Ok(ArtistEntriesForTagRemoval {
+            items: result.items.into_iter()
+                .map(|artist| ArtistEntryForTagRemoval {
+                    item: ArtistForApiContractSimplified{
+                        id: artist.id,
+                        artist_type: artist.artist_type,
+                        name: artist.name.clone(),
+                        tags: artist.tags.iter().map(|t| t.tag.clone()).collect()
                     },
                     to_remove: false
                 }).collect(),
@@ -884,7 +911,7 @@ impl<'a> Client<'a> {
         Ok(())
     }
 
-    pub async fn remove_tag(&self, song_id: i32, tag_id: i64) -> Result<()> {
+    pub async fn remove_tag(&self, id: i32, entity: String, tag_id: i64) -> Result<()> {
         fn extract_href_link(e: &Element, pattern: &str) -> Option<String> {
             if e.name() != "a" { return None; }
 
@@ -911,12 +938,12 @@ impl<'a> Client<'a> {
             return false;
         }
 
-        fn process_row(tag_id: i64, tr: &ElementRef) -> Option<i64> {
+        fn process_row(tag_id: i64, tr: &ElementRef, entity: String) -> Option<i64> {
             if !find_tag_id(tag_id, tr) {
                 return None;
             }
 
-            let link_pattern = "/Song/RemoveTagUsage/";
+            let link_pattern = format!("/{}/RemoveTagUsage/", entity);
             for td in tr.children() {
                 for child in td.children() {
                     match child.value() {
@@ -935,13 +962,13 @@ impl<'a> Client<'a> {
             return None;
         }
 
-        fn extract_tag_usage_id(html: &str, tag_id: i64) -> Option<i64> {
+        fn extract_tag_usage_id(html: &str, tag_id: i64, entity: String) -> Option<i64> {
             let document = scraper::Html::parse_document(html);
             let selector = scraper::Selector::parse("table>tbody>tr").unwrap();
 
             let mut tag_usage_id: Option<i64> = None;
             for el in document.select(&selector) {
-                tag_usage_id = process_row(tag_id, &el);
+                tag_usage_id = process_row(tag_id, &el, entity.clone());
                 if tag_usage_id.is_some() {
                     break;
                 }
@@ -950,13 +977,13 @@ impl<'a> Client<'a> {
         }
 
         let query = vec![];
-        let response_bytes = self.http_get_raw(&format!("{}/Song/ManageTagUsages/{}", self.base_url, song_id), &query).await?;
+        let response_bytes = self.http_get_raw(&format!("{}/{}/ManageTagUsages/{}", self.base_url, entity.clone(), id), &query).await?;
         let html = String::from_utf8(response_bytes.to_vec()).context("Response is not a UTF-8 string")?;
 
-        let tag_usage_id = extract_tag_usage_id(&html, tag_id)
+        let tag_usage_id = extract_tag_usage_id(&html, tag_id, entity.clone())
             .context(format!("Failed to extract tag usage id for tag (id={})", tag_id))?;
         self.http_get_no_return_value(
-            &format!("{}/Song/RemoveTagUsage/{}", self.base_url, tag_usage_id),
+            &format!("{}/{}/RemoveTagUsage/{}", self.base_url, entity.clone(), tag_usage_id),
             &query,
         ).await?;
 

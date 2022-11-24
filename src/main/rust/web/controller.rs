@@ -6,6 +6,7 @@ use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use anyhow::Context;
 use chrono::{DateTime, Duration, FixedOffset};
 use futures::future;
+use log::info;
 use url::Url;
 
 use crate::client::client::Client;
@@ -199,7 +200,7 @@ pub async fn assign_event_and_remove_tag(_req: HttpRequest, payload: Json<Assign
         }], payload.song_id).await;
         return match response_code {
             Ok(_) => {
-                client.remove_tag(payload.song_id, payload.tag_id).await?;
+                client.remove_tag(payload.song_id, String::from("Song"), payload.tag_id).await?;
                 Ok(Json(EventAssigningResult::Participated))
             },
             Err(_) => Err(
@@ -240,7 +241,7 @@ pub async fn assign_event_and_remove_tag(_req: HttpRequest, payload: Json<Assign
             // EventAssigningResult::AlreadyAssigned => the event is already filled
         }
     }
-    client.remove_tag(payload.song_id, payload.tag_id).await?;
+    client.remove_tag(payload.song_id, String::from("Song"), payload.tag_id).await?;
 
     return Ok(Json(result));
 }
@@ -479,19 +480,34 @@ pub async fn get_mapped_tags(_req: HttpRequest) -> Result<impl Responder> {
 pub async fn fetch_songs_for_tag_removal(_req: HttpRequest, payload: Json<CustomQueryPayload>) -> Result<impl Responder> {
     let token = extract_token(&_req)?;
     let client = client_from_token(&token)?;
-
-    Ok(Json(client.fetch_by_custom_query(payload.query.clone()).await?))
+    Ok(Json(client.fetch_songs_by_custom_query(payload.query.clone(), payload.db_address.clone()).await?))
 }
 
-#[post("/remove_tags_from_song")]
-pub async fn remove_tags_from_song(_req: HttpRequest, payload: Json<TagsRemovalPayload>) -> Result<impl Responder> {
+#[post("/fetch_artists_for_tag_removal")]
+pub async fn fetch_artists_for_tag_removal(_req: HttpRequest, payload: Json<CustomQueryPayload>) -> Result<impl Responder> {
+    let token = extract_token(&_req)?;
+    let client = client_from_token(&token)?;
+    let json = Json(client.fetch_artists_by_custom_query(payload.query.clone(), payload.db_address.clone()).await?);
+    info!("{:?}", json);
+    Ok(json)
+}
+
+#[post("/remove_tags")]
+pub async fn remove_tags(_req: HttpRequest, payload: Json<TagsRemovalPayload>) -> Result<impl Responder> {
     let token = extract_token(&_req)?;
     let client = client_from_token(&token)?;
 
-    let futures = payload.tag_ids.iter().map(|&tag_id| client.remove_tag(payload.song_id, tag_id));
-    future::try_join_all(futures).await?;
-
-    Ok(Json(()))
+    return if payload.mode == "songs" {
+        let futures = payload.tag_ids.iter().map(|&tag_id| client.remove_tag(payload.id, String::from("Song"), tag_id));
+        future::try_join_all(futures).await?;
+        Ok(Json(()))
+    } else if payload.mode == "artists" {
+        let futures = payload.tag_ids.iter().map(|&tag_id| client.remove_tag(payload.id, String::from("Artist"), tag_id));
+        future::try_join_all(futures).await?;
+        Ok(Json(()))
+    } else {
+     Err(AppResponseError::BadRequestError(format!("Unknown tag removal mode: {}", payload.mode)))
+    }
 }
 
 fn extract_token(req: &HttpRequest) -> Result<Token> {

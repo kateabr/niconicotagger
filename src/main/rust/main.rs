@@ -39,7 +39,8 @@ async fn main() -> std::io::Result<()> {
                     .service(web::controller::fetch_release_event_with_nnd_tags)
                     .service(web::controller::fetch_videos_by_event_nnd_tags)
                     .service(web::controller::fetch_songs_for_tag_removal)
-                    .service(web::controller::remove_tags_from_song)
+                    .service(web::controller::fetch_artists_for_tag_removal)
+                    .service(web::controller::remove_tags)
             )
     })
     .bind("127.0.0.1:8080")?

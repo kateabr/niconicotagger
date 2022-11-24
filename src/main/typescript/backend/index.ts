@@ -73,7 +73,13 @@ export const api = {
   async fetchSongsForTagRemoval(payload: CustomQueryPayload): Promise<EntriesForTagRemoval> {
     return axios.post("/api/fetch_songs_for_tag_removal", payload).then(value => value.data);
   },
-  async removeTagsFromSong(payload: TagsRemovalPayload): Promise<EntriesForTagRemoval> {
-    return axios.post("/api/remove_tags_from_song", payload).then(value => value.data);
+  async fetchArtistsForTagRemoval(payload: CustomQueryPayload): Promise<EntriesForTagRemoval> {
+    return axios.post("/api/fetch_artists_for_tag_removal", payload).then(value => value.data);
+  },
+  async removeTags(payload: TagsRemovalPayload): Promise<EntriesForTagRemoval> {
+    return axios.post("/api/remove_tags", payload).then(value => value.data);
+  },
+  async removeTagsFromArtist(payload: TagsRemovalPayload): Promise<EntriesForTagRemoval> {
+    return axios.post("/api/remove_tags_from_artist", payload).then(value => value.data);
   }
 };

@@ -8,18 +8,46 @@
           <b-container class="col-lg-11">
             <b-nav tabs class="mb-2">
               <b-nav-item
-                :to="{ name: 'console-mode', params: { browseMode: 'remove' } }"
-                :active="browseMode === 'remove'"
+                :to="{
+                  name: 'console-mode',
+                  params: { browseMode: 'remove-songs' }
+                }"
+                :active="browseMode === 'remove-songs' || browseMode === ''"
               >
-                Remove tags
+                Remove tags (songs)
+              </b-nav-item>
+              <b-nav-item
+                :to="{
+                  name: 'console-mode',
+                  params: { browseMode: 'remove-artists' }
+                }"
+                :active="browseMode === 'remove-artists'"
+              >
+                Remove tags (artists)
               </b-nav-item>
             </b-nav>
             <div class="tab-content">
-              <div :class="['tab-pane', { active: browseMode === 'remove' }]">
+              <div
+                :class="['tab-pane', { active: browseMode === 'remove-songs' }]"
+              >
                 <tags-by-user-query-remove
                   :mode="browseMode"
-                  this-mode="remove"
+                  this-mode="remove-songs"
                   :targ-name="targName"
+                  removal-mode="songs"
+                />
+              </div>
+              <div
+                :class="[
+                  'tab-pane',
+                  { active: browseMode === 'remove-artists' }
+                ]"
+              >
+                <tags-by-user-query-remove
+                  :mode="browseMode"
+                  this-mode="remove-artists"
+                  :targ-name="targName"
+                  removal-mode="artists"
                 />
               </div>
             </div>
@@ -49,7 +77,7 @@ Vue.use(VueClipboard);
 })
 export default class extends Vue {
   @Prop()
-  private browseMode!: "remove";
+  private browseMode!: "remove-songs";
 
   @Prop()
   private targName!: string;
