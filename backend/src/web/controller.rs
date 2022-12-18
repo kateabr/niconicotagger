@@ -10,7 +10,7 @@ use log::info;
 use url::Url;
 
 use crate::client::errors::VocadbClientError;
-use crate::client::client::Client;
+use crate::client::http_client::Client;
 use crate::client::models::releaseevent::ReleaseEventForApiContractSimplifiedWithNndTags;
 use crate::client::models::tag::{AssignableTag, TagBaseContract};
 use crate::client::models::weblink::WebLinkForApiContract;
