@@ -1,0 +1,57 @@
+name: Frontend Build
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/frontend.yml
+      - frontend/**
+
+env:
+  REMOTE: handystuff.net
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Build
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
+
+      - run: yarn --frozen-lockfile
+      - run: yarn run build:prod
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: dist
+          path: frontend/dist
+
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy
+    needs: [ build ]
+    if: github.ref_name == 'master'
+
+    steps:
+      - name: Configure SSH
+        run: |
+          mkdir ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          echo "${{ secrets.DEPLOY_SSH_CONFIG }}" > ~/.ssh/config
+          echo "${{ secrets.DEPLOY_SSH_HOSTS }}" > ~/.ssh/known_hosts
+          chmod 700 ~/.ssh && chmod 600 ~/.ssh/deploy_key
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: dist
+          path: dist
+
+      - run: |
+          ssh $REMOTE "mkdir -p deploy/nginx/html/niconicotagger"
+          rsync --recursive --delete dist/ $REMOTE:~/deploy/nginx/html/niconicotagger

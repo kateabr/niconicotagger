@@ -1,0 +1,128 @@
+name: Backend Build
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/backend.yml
+      - backend/**
+
+env:
+  RUSTFLAGS: "-Dwarnings"
+  REMOTE: handystuff.net
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Build
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+
+      - run: cargo build --release --all-features
+
+      - uses: redhat-actions/podman-login@v1
+        if: github.ref_name == 'master'
+        with:
+          registry: ghcr.io/${{ github.actor }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - run: >
+          podman build
+          --file Dockerfile
+          --tag ghcr.io/${{ github.repository }}:latest
+          --tag ghcr.io/${{ github.repository }}:${{ github.sha }}
+          .
+        if: github.ref_name == 'master'
+      - run: |
+          podman push ghcr.io/${{ github.repository }}:latest
+          podman push ghcr.io/${{ github.repository }}:${{ github.sha }}
+        if: github.ref_name == 'master'
+
+      - uses: actions/delete-package-versions@v3
+        if: github.ref_name == 'master'
+        with:
+          package-name: ${{ github.event.repository.name }}
+          min-versions-to-keep: 3
+
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy
+    needs: [ build ]
+    if: github.ref_name == 'master'
+
+    steps:
+      - name: Configure SSH
+        run: |
+          mkdir ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          echo "${{ secrets.DEPLOY_SSH_CONFIG }}" > ~/.ssh/config
+          echo "${{ secrets.DEPLOY_SSH_HOSTS }}" > ~/.ssh/known_hosts
+          chmod 700 ~/.ssh && chmod 600 ~/.ssh/deploy_key
+
+      - run: |
+          ssh $REMOTE "docker pull ghcr.io/${{ github.repository }}:latest"
+          ssh $REMOTE "docker restart niconicotagger"
+
+#  test:
+#    name: Test Suite
+#    runs-on: ubuntu-latest
+#    defaults:
+#      run:
+#        working-directory: backend
+#
+#    steps:
+#      - uses: actions/checkout@v3
+#      - uses: dtolnay/rust-toolchain@stable
+#        with:
+#          toolchain: stable
+#      - run: cargo test
+
+  check:
+    name: Check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+      - run: cargo check
+
+  fmt:
+    name: Rustfmt
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+      - run: cargo fmt --all -- --check
+
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+      - run: cargo clippy --all-targets --all-features
