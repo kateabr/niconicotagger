@@ -1,0 +1,47 @@
+[package]
+name = "niconicotagger"
+version = "0.1.0"
+authors = ["ktbr"]
+edition = "2021"
+
+[[bin]]
+name = "niconicotagger"
+path = "src/main.rs"
+
+[dependencies]
+thiserror = "1"
+anyhow = "1"
+
+futures = "0.3"
+regex = "1"
+chrono = { version = "0.4", features = ["serde"] }
+
+log = "0.4"
+env_logger = "0.10"
+
+strum = "0.24"
+strum_macros = "0.24"
+
+base64 = "0.20"
+aes = "0.7"
+block-modes = "0.8"
+hex-literal = "0.3"
+
+actix-web = { version = "4", features = ["rustls"] }
+awc = { version = "3", features = ["rustls"] }
+actix-web-httpauth = "0.8.0"
+scraper = "0.13.0"
+url = "2.3"
+url-escape = "0.1"
+html-escape = "0.2"
+
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde-aux = "4.1"
+roxmltree = "0.16"
+serde_urlencoded = "0.7"
+typetag = "0.2"
+
+itertools = "0.10"
+
+unicode-jp = "0.4"
