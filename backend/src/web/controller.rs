@@ -1,7 +1,7 @@
-use actix_web::{get, post, Responder};
 use actix_web::http::header::Header;
-use actix_web::HttpRequest;
 use actix_web::web::Json;
+use actix_web::HttpRequest;
+use actix_web::{get, post, Responder};
 use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use anyhow::Context;
 use chrono::{DateTime, Duration, FixedOffset};
@@ -9,12 +9,18 @@ use futures::future;
 use log::info;
 use url::Url;
 
-use crate::client::http_client::Client;
 use crate::client::errors::VocadbClientError;
+use crate::client::http_client::Client;
 use crate::client::models::releaseevent::ReleaseEventForApiContractSimplifiedWithNndTags;
 use crate::client::models::tag::{AssignableTag, TagBaseContract};
 use crate::client::models::weblink::WebLinkForApiContract;
-use crate::web::dto::{AssignEventAndRemoveTagPayload, AssignTagRequest, Database, DBBeforeSinceFetchRequest, DBFetchRequest, ReleaseEventWithNndTagsFetchRequest, EventAssigningResult, LoginRequest, LoginResponse, LookupAndAssignTagRequest, SongsByEventTagFetchRequest, SongsByEventTagFetchResponse, TagFetchRequest, Token, VideosWithEntries, VideosWithEntriesByVocaDbTag, EventByTagsFetchRequest, AssignEventPayload, CustomQueryPayload, TagsRemovalPayload};
+use crate::web::dto::{
+    AssignEventAndRemoveTagPayload, AssignEventPayload, AssignTagRequest, CustomQueryPayload,
+    DBBeforeSinceFetchRequest, DBFetchRequest, Database, EventAssigningResult,
+    EventByTagsFetchRequest, LoginRequest, LoginResponse, LookupAndAssignTagRequest,
+    ReleaseEventWithNndTagsFetchRequest, SongsByEventTagFetchRequest, SongsByEventTagFetchResponse,
+    TagFetchRequest, TagsRemovalPayload, Token, VideosWithEntries, VideosWithEntriesByVocaDbTag,
+};
 use crate::web::errors::AppResponseError;
 use crate::web::errors::Result;
 use crate::web::middleware::auth_token;
@@ -40,9 +46,14 @@ pub async fn login(payload: Json<LoginRequest>) -> Result<impl Responder> {
 }
 
 #[post("/fetch")]
-pub async fn fetch_videos(_req: HttpRequest, payload: Json<TagFetchRequest>) -> Result<impl Responder> {
+pub async fn fetch_videos(
+    _req: HttpRequest,
+    payload: Json<TagFetchRequest>,
+) -> Result<impl Responder> {
     if payload.start_offset < 0 || payload.max_results < 0 || payload.max_results > 100 {
-        return Err(AppResponseError::ConstraintViolationError(String::from("Invalid arguments")));
+        return Err(AppResponseError::ConstraintViolationError(String::from(
+            "Invalid arguments",
+        )));
     }
 
     let token = extract_token(&_req)?;
@@ -60,14 +71,25 @@ pub async fn fetch_videos(_req: HttpRequest, payload: Json<TagFetchRequest>) -> 
             }
 
             let response = client
-                .get_videos(payload.tag.clone(), payload.scope_tag.clone(), payload.start_offset, payload.max_results, payload.order_by.clone(), vec![]).await?;
+                .get_videos(
+                    payload.tag.clone(),
+                    payload.scope_tag.clone(),
+                    payload.start_offset,
+                    payload.max_results,
+                    payload.order_by.clone(),
+                    vec![],
+                )
+                .await?;
 
-            let futures = response.data.iter()
-                .map(|video|
-                    client.lookup_video(video,
-                                        m.iter().map(|mm| mm.id.clone()).collect(),
-                                        vec![payload.tag.clone()],
-                                        &mappings, payload.scope_tag.clone()));
+            let futures = response.data.iter().map(|video| {
+                client.lookup_video(
+                    video,
+                    m.iter().map(|mm| mm.id.clone()).collect(),
+                    vec![payload.tag.clone()],
+                    &mappings,
+                    payload.scope_tag.clone(),
+                )
+            });
 
             let video_entries = future::try_join_all(futures).await?;
 
@@ -80,14 +102,22 @@ pub async fn fetch_videos(_req: HttpRequest, payload: Json<TagFetchRequest>) -> 
                 safe_scope: response.safe_scope,
             }));
         }
-        None => Err(AppResponseError::NotFoundError(format!("tag \"{}\" is not mapped", payload.tag)))
+        None => Err(AppResponseError::NotFoundError(format!(
+            "tag \"{}\" is not mapped",
+            payload.tag
+        ))),
     }
 }
 
 #[post("/fetch_by_tag")]
-pub async fn fetch_videos_by_tag(_req: HttpRequest, payload: Json<TagFetchRequest>) -> Result<impl Responder> {
+pub async fn fetch_videos_by_tag(
+    _req: HttpRequest,
+    payload: Json<TagFetchRequest>,
+) -> Result<impl Responder> {
     if payload.start_offset < 0 || payload.max_results < 0 || payload.max_results > 100 {
-        return Err(AppResponseError::ConstraintViolationError(String::from("Invalid arguments")));
+        return Err(AppResponseError::ConstraintViolationError(String::from(
+            "Invalid arguments",
+        )));
     }
 
     let token = extract_token(&_req)?;
@@ -99,16 +129,27 @@ pub async fn fetch_videos_by_tag(_req: HttpRequest, payload: Json<TagFetchReques
         Some(nico_mappings) => {
             let scope_tag = nico_mappings.join(" OR ");
             let response = client
-                .get_videos(scope_tag.clone(), payload.scope_tag.clone(), payload.start_offset, payload.max_results, payload.order_by.clone(), vec![]).await?;
+                .get_videos(
+                    scope_tag.clone(),
+                    payload.scope_tag.clone(),
+                    payload.start_offset,
+                    payload.max_results,
+                    payload.order_by.clone(),
+                    vec![],
+                )
+                .await?;
 
             let mappings = client.get_mapped_tags().await?;
 
-            let futures = response.data.iter()
-                .map(|video|
-                    client.lookup_video(video,
-                                        Vec::from(vec![vocadb_tag.id.clone()]),
-                                        nico_mappings.clone(),
-                                        &mappings, payload.scope_tag.clone()));
+            let futures = response.data.iter().map(|video| {
+                client.lookup_video(
+                    video,
+                    Vec::from(vec![vocadb_tag.id.clone()]),
+                    nico_mappings.clone(),
+                    &mappings,
+                    payload.scope_tag.clone(),
+                )
+            });
 
             let video_entries = future::try_join_all(futures).await?;
 
@@ -120,19 +161,35 @@ pub async fn fetch_videos_by_tag(_req: HttpRequest, payload: Json<TagFetchReques
                 safe_scope: payload.scope_tag.clone(),
             }));
         }
-        None => Err(AppResponseError::NotFoundError(format!("tag \"{}\" is not mapped", payload.tag.clone())))
+        None => Err(AppResponseError::NotFoundError(format!(
+            "tag \"{}\" is not mapped",
+            payload.tag.clone()
+        ))),
     }
 }
 
 #[post("/fetch_from_db_before_since")]
-pub async fn fetch_videos_from_db_before_since(_req: HttpRequest, payload: Json<DBBeforeSinceFetchRequest>) -> Result<impl Responder> {
+pub async fn fetch_videos_from_db_before_since(
+    _req: HttpRequest,
+    payload: Json<DBBeforeSinceFetchRequest>,
+) -> Result<impl Responder> {
     if payload.mode == "" && payload.date_time == "" || payload.max_results > 100 {
-        return Err(AppResponseError::ConstraintViolationError(String::from("Invalid arguments")));
+        return Err(AppResponseError::ConstraintViolationError(String::from(
+            "Invalid arguments",
+        )));
     }
 
     let token = extract_token(&_req)?;
     let client = client_from_token(&token)?;
-    let songs = client.get_videos_from_db_before_since(payload.max_results, payload.mode.clone(), payload.date_time.clone(), payload.song_id.clone(), payload.sort_rule.clone()).await?;
+    let songs = client
+        .get_videos_from_db_before_since(
+            payload.max_results,
+            payload.mode.clone(),
+            payload.date_time.clone(),
+            payload.song_id.clone(),
+            payload.sort_rule.clone(),
+        )
+        .await?;
 
     let processed_entries = client.process_songs_with_thumbnails(songs).await?;
 
@@ -140,15 +197,26 @@ pub async fn fetch_videos_from_db_before_since(_req: HttpRequest, payload: Json<
 }
 
 #[post("/fetch_from_db")]
-pub async fn fetch_videos_from_db(_req: HttpRequest, payload: Json<DBFetchRequest>) -> Result<impl Responder> {
+pub async fn fetch_videos_from_db(
+    _req: HttpRequest,
+    payload: Json<DBFetchRequest>,
+) -> Result<impl Responder> {
     if payload.start_offset < 0 || payload.max_results < 0 || payload.max_results > 100 {
-        return Err(AppResponseError::ConstraintViolationError(String::from("Invalid arguments")));
+        return Err(AppResponseError::ConstraintViolationError(String::from(
+            "Invalid arguments",
+        )));
     }
 
     let token = extract_token(&_req)?;
     let client = client_from_token(&token)?;
 
-    let songs = client.get_videos_from_db(payload.start_offset, payload.max_results, payload.order_by.clone()).await?;
+    let songs = client
+        .get_videos_from_db(
+            payload.start_offset,
+            payload.max_results,
+            payload.order_by.clone(),
+        )
+        .await?;
 
     let processed_entries = client.process_songs_with_thumbnails(songs).await?;
 
@@ -156,9 +224,14 @@ pub async fn fetch_videos_from_db(_req: HttpRequest, payload: Json<DBFetchReques
 }
 
 #[post("/fetch_from_db_by_event_tag")]
-pub async fn fetch_from_db_by_event_tag(_req: HttpRequest, payload: Json<SongsByEventTagFetchRequest>) -> Result<impl Responder> {
+pub async fn fetch_from_db_by_event_tag(
+    _req: HttpRequest,
+    payload: Json<SongsByEventTagFetchRequest>,
+) -> Result<impl Responder> {
     if payload.start_offset < 0 || payload.max_results < 0 || payload.max_results > 100 {
-        return Err(AppResponseError::ConstraintViolationError(String::from("Invalid arguments")));
+        return Err(AppResponseError::ConstraintViolationError(String::from(
+            "Invalid arguments",
+        )));
     }
 
     let token = extract_token(&_req)?;
@@ -166,11 +239,23 @@ pub async fn fetch_from_db_by_event_tag(_req: HttpRequest, payload: Json<SongsBy
 
     let vocadb_tag = client.lookup_tag_by_name(payload.tag.clone()).await?;
     if vocadb_tag.category_name != "Event" {
-        return Err(AppResponseError::BadRequestError(format!("\"{}\" is not an event", vocadb_tag.name)));
+        return Err(AppResponseError::BadRequestError(format!(
+            "\"{}\" is not an event",
+            vocadb_tag.name
+        )));
     }
-    let vocadb_event = client.get_event_by_tag(vocadb_tag.id, vocadb_tag.name.as_str()).await?;
+    let vocadb_event = client
+        .get_event_by_tag(vocadb_tag.id, vocadb_tag.name.as_str())
+        .await?;
 
-    let songs = client.get_songs_by_vocadb_event_tag(vocadb_tag.id, payload.start_offset, payload.max_results, payload.order_by.clone()).await?;
+    let songs = client
+        .get_songs_by_vocadb_event_tag(
+            vocadb_tag.id,
+            payload.start_offset,
+            payload.max_results,
+            payload.order_by.clone(),
+        )
+        .await?;
 
     return Ok(Json(SongsByEventTagFetchResponse {
         items: songs.items,
@@ -181,56 +266,80 @@ pub async fn fetch_from_db_by_event_tag(_req: HttpRequest, payload: Json<SongsBy
 }
 
 #[post("/assign_event_and_remove_tag")]
-pub async fn assign_event_and_remove_tag(_req: HttpRequest, payload: Json<AssignEventAndRemoveTagPayload>) -> Result<impl Responder> {
-    if payload.song_id < 0 || payload.event.id < 0 || payload.event.name.is_empty() || payload.event.url_slug.is_empty() || payload.tag_id < 0 {
-        return Err(AppResponseError::ConstraintViolationError(String::from("Invalid arguments")));
+pub async fn assign_event_and_remove_tag(
+    _req: HttpRequest,
+    payload: Json<AssignEventAndRemoveTagPayload>,
+) -> Result<impl Responder> {
+    if payload.song_id < 0
+        || payload.event.id < 0
+        || payload.event.name.is_empty()
+        || payload.event.url_slug.is_empty()
+        || payload.tag_id < 0
+    {
+        return Err(AppResponseError::ConstraintViolationError(String::from(
+            "Invalid arguments",
+        )));
     }
 
     let token = extract_token(&_req)?;
     let client = client_from_token(&token)?;
 
     if payload.participated_on_upload {
-        client.add_event_participation_info(payload.song_id, payload.event.clone()).await?;
-        let response_code = client.add_tags(vec![TagBaseContract {
-            id: 9141,
-            name: String::from("event participant"),
-            category_name: Some(String::from("Editor notes")),
-            additional_names: Some(String::from("")),
-            url_slug: String::from("event-participant"),
-        }], payload.song_id).await;
+        client
+            .add_event_participation_info(payload.song_id, payload.event.clone())
+            .await?;
+        let response_code = client
+            .add_tags(
+                vec![TagBaseContract {
+                    id: 9141,
+                    name: String::from("event participant"),
+                    category_name: Some(String::from("Editor notes")),
+                    additional_names: Some(String::from("")),
+                    url_slug: String::from("event-participant"),
+                }],
+                payload.song_id,
+            )
+            .await;
         return match response_code {
             Ok(_) => {
-                client.remove_tag(payload.song_id, String::from("Song"), payload.tag_id).await?;
+                client
+                    .remove_tag(payload.song_id, String::from("Song"), payload.tag_id)
+                    .await?;
                 Ok(Json(EventAssigningResult::Participated))
-            },
-            Err(_) => Err(
-                AppResponseError::VocadbClientError(
-                    VocadbClientError::NotFoundError(
-                        format!("Could not find tag \"event participant\" (id={})", 9141)
-                    )
-                )
-            )
+            }
+            Err(_) => Err(AppResponseError::VocadbClientError(
+                VocadbClientError::NotFoundError(format!(
+                    "Could not find tag \"event participant\" (id={})",
+                    9141
+                )),
+            )),
         };
     }
 
-    let result = client.fill_in_event(payload.song_id, payload.event.clone()).await?;
+    let result = client
+        .fill_in_event(payload.song_id, payload.event.clone())
+        .await?;
     match result {
         EventAssigningResult::MultipleEvents => {
-            let response_code = client.add_tags(vec![TagBaseContract {
-                id: 8275,
-                name: String::from("multiple events"),
-                category_name: Some(String::from("Editor notes")),
-                additional_names: Some(String::from("")),
-                url_slug: String::from("multiple-events"),
-            }], payload.song_id).await;
+            let response_code = client
+                .add_tags(
+                    vec![TagBaseContract {
+                        id: 8275,
+                        name: String::from("multiple events"),
+                        category_name: Some(String::from("Editor notes")),
+                        additional_names: Some(String::from("")),
+                        url_slug: String::from("multiple-events"),
+                    }],
+                    payload.song_id,
+                )
+                .await;
             if response_code.is_err() {
-                return Err(
-                    AppResponseError::VocadbClientError(
-                        VocadbClientError::NotFoundError(
-                            format!("Could not find tag \"multiple events\" (id={})", 8275)
-                        )
-                    )
-                );
+                return Err(AppResponseError::VocadbClientError(
+                    VocadbClientError::NotFoundError(format!(
+                        "Could not find tag \"multiple events\" (id={})",
+                        8275
+                    )),
+                ));
             }
         }
         EventAssigningResult::AlreadyTaggedWithMultipleEvents => {
@@ -241,59 +350,82 @@ pub async fn assign_event_and_remove_tag(_req: HttpRequest, payload: Json<Assign
             // EventAssigningResult::AlreadyAssigned => the event is already filled
         }
     }
-    client.remove_tag(payload.song_id, String::from("Song"), payload.tag_id).await?;
+    client
+        .remove_tag(payload.song_id, String::from("Song"), payload.tag_id)
+        .await?;
 
     return Ok(Json(result));
 }
 
 #[post("/assign_event")]
-pub async fn assign_event(_req: HttpRequest, payload: Json<AssignEventPayload>) -> Result<impl Responder> {
-    if payload.song_id < 0 || payload.event.id < 0 || payload.event.name.is_empty() || payload.event.url_slug.is_empty() {
-        return Err(AppResponseError::ConstraintViolationError(String::from("Invalid arguments")));
+pub async fn assign_event(
+    _req: HttpRequest,
+    payload: Json<AssignEventPayload>,
+) -> Result<impl Responder> {
+    if payload.song_id < 0
+        || payload.event.id < 0
+        || payload.event.name.is_empty()
+        || payload.event.url_slug.is_empty()
+    {
+        return Err(AppResponseError::ConstraintViolationError(String::from(
+            "Invalid arguments",
+        )));
     }
 
     let token = extract_token(&_req)?;
     let client = client_from_token(&token)?;
 
     if payload.participated_on_upload {
-        client.add_event_participation_info(payload.song_id, payload.event.clone()).await?;
-        let response_code = client.add_tags(vec![TagBaseContract {
-            id: 9141,
-            name: String::from("event participant"),
-            category_name: Some(String::from("Editor notes")),
-            additional_names: Some(String::from("")),
-            url_slug: String::from("event-participant"),
-        }], payload.song_id).await;
+        client
+            .add_event_participation_info(payload.song_id, payload.event.clone())
+            .await?;
+        let response_code = client
+            .add_tags(
+                vec![TagBaseContract {
+                    id: 9141,
+                    name: String::from("event participant"),
+                    category_name: Some(String::from("Editor notes")),
+                    additional_names: Some(String::from("")),
+                    url_slug: String::from("event-participant"),
+                }],
+                payload.song_id,
+            )
+            .await;
         return match response_code {
             Ok(_) => Ok(Json(EventAssigningResult::Participated)),
-            Err(_) => Err(
-                AppResponseError::VocadbClientError(
-                    VocadbClientError::NotFoundError(
-                        format!("Could not find tag \"event participant\" (id={})", 9141)
-                    )
-                )
-            )
+            Err(_) => Err(AppResponseError::VocadbClientError(
+                VocadbClientError::NotFoundError(format!(
+                    "Could not find tag \"event participant\" (id={})",
+                    9141
+                )),
+            )),
         };
     }
 
-    let result = client.fill_in_event(payload.song_id, payload.event.clone()).await?;
+    let result = client
+        .fill_in_event(payload.song_id, payload.event.clone())
+        .await?;
     match result {
         EventAssigningResult::MultipleEvents => {
-            let response_code = client.add_tags(vec![TagBaseContract {
-                id: 8275,
-                name: String::from("multiple events"),
-                category_name: Some(String::from("Editor notes")),
-                additional_names: Some(String::from("")),
-                url_slug: String::from("multiple-events"),
-            }], payload.song_id).await;
+            let response_code = client
+                .add_tags(
+                    vec![TagBaseContract {
+                        id: 8275,
+                        name: String::from("multiple events"),
+                        category_name: Some(String::from("Editor notes")),
+                        additional_names: Some(String::from("")),
+                        url_slug: String::from("multiple-events"),
+                    }],
+                    payload.song_id,
+                )
+                .await;
             if response_code.is_err() {
-                return Err(
-                    AppResponseError::VocadbClientError(
-                        VocadbClientError::NotFoundError(
-                            format!("Could not find tag \"multiple events\" (id={})", 8275)
-                        )
-                    )
-                );
+                return Err(AppResponseError::VocadbClientError(
+                    VocadbClientError::NotFoundError(format!(
+                        "Could not find tag \"multiple events\" (id={})",
+                        8275
+                    )),
+                ));
             }
         }
         EventAssigningResult::AlreadyTaggedWithMultipleEvents => {
@@ -310,16 +442,31 @@ pub async fn assign_event(_req: HttpRequest, payload: Json<AssignEventPayload>) 
 }
 
 #[post("/fetch_release_event_with_nnd_tags")]
-pub async fn fetch_release_event_with_nnd_tags(_req: HttpRequest, payload: Json<ReleaseEventWithNndTagsFetchRequest>) -> Result<impl Responder> {
+pub async fn fetch_release_event_with_nnd_tags(
+    _req: HttpRequest,
+    payload: Json<ReleaseEventWithNndTagsFetchRequest>,
+) -> Result<impl Responder> {
     pub fn clean_nnd_links(links: Vec<WebLinkForApiContract>) -> Result<Vec<String>> {
         let mut result: Vec<String> = vec![];
         for link in links {
-            let parsed_link = Url::parse(&link.url).context(format!("invalid url: \"{}\"", &link.url))?;
-            let host = parsed_link.host_str().context(format!("invalid url: \"{}\"", &link.url))?;
-            if host != "nicovideo.jp" && host != "www.nicovideo.jp" { continue; }
-            let path_segments = parsed_link.path_segments().map(|c| c.collect::<Vec<_>>()).context(format!("invalid url: \"{}\"", &link.url))?;
-            if path_segments[0] != "tag" { continue; }
-            if path_segments.len() < 2 { continue; }
+            let parsed_link =
+                Url::parse(&link.url).context(format!("invalid url: \"{}\"", &link.url))?;
+            let host = parsed_link
+                .host_str()
+                .context(format!("invalid url: \"{}\"", &link.url))?;
+            if host != "nicovideo.jp" && host != "www.nicovideo.jp" {
+                continue;
+            }
+            let path_segments = parsed_link
+                .path_segments()
+                .map(|c| c.collect::<Vec<_>>())
+                .context(format!("invalid url: \"{}\"", &link.url))?;
+            if path_segments[0] != "tag" {
+                continue;
+            }
+            if path_segments.len() < 2 {
+                continue;
+            }
             let tag = url_escape::decode(path_segments[1]).to_string();
             result.push(tag);
         }
@@ -327,20 +474,22 @@ pub async fn fetch_release_event_with_nnd_tags(_req: HttpRequest, payload: Json<
     }
 
     if payload.event_name.is_empty() {
-        return Err(AppResponseError::ConstraintViolationError(String::from("Invalid arguments")));
+        return Err(AppResponseError::ConstraintViolationError(String::from(
+            "Invalid arguments",
+        )));
     }
 
     let token = extract_token(&_req)?;
     let client = client_from_token(&token)?;
 
     let event = client.get_event_by_name(payload.event_name.clone()).await?;
-    let links = event.web_links.clone()
-        .ok_or(AppResponseError::NotFoundError(
-            format!(
-                "event \"{}\" does not have any associated NND tags",
-                payload.event_name.clone()
-            )
-        ))?;
+    let links = event
+        .web_links
+        .clone()
+        .ok_or(AppResponseError::NotFoundError(format!(
+            "event \"{}\" does not have any associated NND tags",
+            payload.event_name.clone()
+        )))?;
     let clean_tags = clean_nnd_links(links)?;
     if !clean_tags.is_empty() {
         Ok(Json(ReleaseEventForApiContractSimplifiedWithNndTags {
@@ -348,14 +497,28 @@ pub async fn fetch_release_event_with_nnd_tags(_req: HttpRequest, payload: Json<
             tags: clean_tags.clone(),
         }))
     } else {
-        Err(AppResponseError::BadRequestError(format!("event \"{}\" has no associated NND tags", payload.event_name)))
+        Err(AppResponseError::BadRequestError(format!(
+            "event \"{}\" has no associated NND tags",
+            payload.event_name
+        )))
     }
 }
 
 #[post("/fetch_videos_by_event_nnd_tags")]
-pub async fn fetch_videos_by_event_nnd_tags(_req: HttpRequest, payload: Json<EventByTagsFetchRequest>) -> Result<impl Responder> {
-    if payload.start_offset < 0 || payload.max_results < 0 || payload.max_results > 100 || payload.event_id < 0 || payload.tags.is_empty() || payload.order_by.is_empty() {
-        return Err(AppResponseError::ConstraintViolationError(String::from("Invalid arguments")));
+pub async fn fetch_videos_by_event_nnd_tags(
+    _req: HttpRequest,
+    payload: Json<EventByTagsFetchRequest>,
+) -> Result<impl Responder> {
+    if payload.start_offset < 0
+        || payload.max_results < 0
+        || payload.max_results > 100
+        || payload.event_id < 0
+        || payload.tags.is_empty()
+        || payload.order_by.is_empty()
+    {
+        return Err(AppResponseError::ConstraintViolationError(String::from(
+            "Invalid arguments",
+        )));
     }
 
     let token = extract_token(&_req)?;
@@ -364,36 +527,58 @@ pub async fn fetch_videos_by_event_nnd_tags(_req: HttpRequest, payload: Json<Eve
     let mappings = client.get_mapped_tags().await?;
     let time_bound: Vec<String> = match &payload.start_time {
         None => vec![],
-        Some(start_time) => {
-            match &payload.end_time {
-                None => {
-                    let ref_time = DateTime::parse_from_rfc3339(&start_time)
-                        .context(format!("Unable to parse {}", &start_time))?;
+        Some(start_time) => match &payload.end_time {
+            None => {
+                let ref_time = DateTime::parse_from_rfc3339(&start_time)
+                    .context(format!("Unable to parse {}", &start_time))?;
 
-                    vec![(ref_time.with_timezone(&FixedOffset::east(9 * 3600)) - Duration::days(7)).to_rfc3339(),
-                         (ref_time.with_timezone(&FixedOffset::east(9 * 3600)) + Duration::days(7)).to_rfc3339()]
-                }
-                Some(end_time) => {
-                    let ref_time_start = DateTime::parse_from_rfc3339(&start_time)
-                        .context(format!("Unable to parse {}", &start_time))?;
-                    let ref_time_end = DateTime::parse_from_rfc3339(&end_time)
-                        .context(format!("Unable to parse {}", &end_time))?;
-
-                    vec![(ref_time_start.with_timezone(&FixedOffset::east(9 * 3600)) - Duration::days(1)).to_rfc3339(),
-                         (ref_time_end.with_timezone(&FixedOffset::east(9 * 3600)) + Duration::days(1)).to_rfc3339()]
-                }
+                vec![
+                    (ref_time.with_timezone(&FixedOffset::east(9 * 3600)) - Duration::days(7))
+                        .to_rfc3339(),
+                    (ref_time.with_timezone(&FixedOffset::east(9 * 3600)) + Duration::days(7))
+                        .to_rfc3339(),
+                ]
             }
-        }
+            Some(end_time) => {
+                let ref_time_start = DateTime::parse_from_rfc3339(&start_time)
+                    .context(format!("Unable to parse {}", &start_time))?;
+                let ref_time_end = DateTime::parse_from_rfc3339(&end_time)
+                    .context(format!("Unable to parse {}", &end_time))?;
+
+                vec![
+                    (ref_time_start.with_timezone(&FixedOffset::east(9 * 3600))
+                        - Duration::days(1))
+                    .to_rfc3339(),
+                    (ref_time_end.with_timezone(&FixedOffset::east(9 * 3600)) + Duration::days(1))
+                        .to_rfc3339(),
+                ]
+            }
+        },
     };
     let response = client
-        .get_videos(payload.tags.clone(), payload.scope_tag.clone(), payload.start_offset, payload.max_results, payload.order_by.clone(), time_bound).await?;
+        .get_videos(
+            payload.tags.clone(),
+            payload.scope_tag.clone(),
+            payload.start_offset,
+            payload.max_results,
+            payload.order_by.clone(),
+            time_bound,
+        )
+        .await?;
 
-    let futures = response.data.iter()
-        .map(|video|
-            client.lookup_video_by_event(video,
-                                         payload.event_id,
-                                         payload.tags.split(" OR ").map(|tag| String::from(tag)).collect(),
-                                         &mappings, payload.scope_tag.clone()));
+    let futures = response.data.iter().map(|video| {
+        client.lookup_video_by_event(
+            video,
+            payload.event_id,
+            payload
+                .tags
+                .split(" OR ")
+                .map(|tag| String::from(tag))
+                .collect(),
+            &mappings,
+            payload.scope_tag.clone(),
+        )
+    });
 
     let video_entries = future::try_join_all(futures).await?;
 
@@ -407,36 +592,53 @@ pub async fn fetch_videos_by_event_nnd_tags(_req: HttpRequest, payload: Json<Eve
 }
 
 #[post("/assign")]
-pub async fn assign_tag(_req: HttpRequest, payload: Json<AssignTagRequest>) -> Result<impl Responder> {
+pub async fn assign_tag(
+    _req: HttpRequest,
+    payload: Json<AssignTagRequest>,
+) -> Result<impl Responder> {
     if payload.song_id < 1 || payload.tags.iter().any(|tag| tag.id < 1) {
-        return Err(AppResponseError::ConstraintViolationError(String::from("Invalid arguments")));
+        return Err(AppResponseError::ConstraintViolationError(String::from(
+            "Invalid arguments",
+        )));
     }
 
     let token = extract_token(&_req)?;
     let client = client_from_token(&token)?;
 
-
-    let new_tags: Vec<TagBaseContract> = payload.tags.iter()
+    let new_tags: Vec<TagBaseContract> = payload
+        .tags
+        .iter()
         .map(|pt| TagBaseContract {
             id: pt.id.clone(),
             name: pt.name.clone(),
             category_name: Some(pt.category_name.clone()),
             url_slug: pt.url_slug.clone(),
             additional_names: Some(pt.additional_names.clone()),
-        }).collect();
+        })
+        .collect();
     let response = client.add_tags(new_tags, payload.song_id).await;
 
     return if response.is_ok() {
         Ok(Json(()))
     } else {
-        Err(AppResponseError::VocadbClientError(VocadbClientError::NotFoundError(format!("song with id=\"{}\" does not exist", payload.song_id))))
+        Err(AppResponseError::VocadbClientError(
+            VocadbClientError::NotFoundError(format!(
+                "song with id=\"{}\" does not exist",
+                payload.song_id
+            )),
+        ))
     };
 }
 
 #[post("/lookup_and_assign")]
-pub async fn lookup_and_assign_tag(_req: HttpRequest, payload: Json<LookupAndAssignTagRequest>) -> Result<impl Responder> {
+pub async fn lookup_and_assign_tag(
+    _req: HttpRequest,
+    payload: Json<LookupAndAssignTagRequest>,
+) -> Result<impl Responder> {
     if payload.song_id < 1 || payload.tags.iter().any(|tag| tag.id < 1) {
-        return Err(AppResponseError::ConstraintViolationError(String::from("Invalid arguments")));
+        return Err(AppResponseError::ConstraintViolationError(String::from(
+            "Invalid arguments",
+        )));
     }
 
     let token = extract_token(&_req)?;
@@ -448,21 +650,32 @@ pub async fn lookup_and_assign_tag(_req: HttpRequest, payload: Json<LookupAndAss
         assignable_tags.push(assignable_tag);
     }
 
-    let new_tags: Vec<TagBaseContract> = assignable_tags.iter()
+    let new_tags: Vec<TagBaseContract> = assignable_tags
+        .iter()
         .map(|pt| TagBaseContract {
             id: pt.id.clone(),
             name: pt.name.clone(),
             category_name: Some(pt.category_name.clone()),
             url_slug: pt.url_slug.clone(),
             additional_names: Some(pt.additional_names.clone()),
-        }).collect();
+        })
+        .collect();
     let response = client.add_tags(new_tags, payload.song_id).await;
 
     if response.is_ok() {
-        if !payload.disable.is_empty() { client.disable_videos(payload.song_id, payload.disable.clone()).await?; }
+        if !payload.disable.is_empty() {
+            client
+                .disable_videos(payload.song_id, payload.disable.clone())
+                .await?;
+        }
         Ok(Json(()))
     } else {
-        Err(AppResponseError::VocadbClientError(VocadbClientError::NotFoundError(format!("song with id=\"{}\" does not exist", payload.song_id))))
+        Err(AppResponseError::VocadbClientError(
+            VocadbClientError::NotFoundError(format!(
+                "song with id=\"{}\" does not exist",
+                payload.song_id
+            )),
+        ))
     }
 }
 
@@ -477,37 +690,63 @@ pub async fn get_mapped_tags(_req: HttpRequest) -> Result<impl Responder> {
 }
 
 #[post("/fetch_songs_for_tag_removal")]
-pub async fn fetch_songs_for_tag_removal(_req: HttpRequest, payload: Json<CustomQueryPayload>) -> Result<impl Responder> {
+pub async fn fetch_songs_for_tag_removal(
+    _req: HttpRequest,
+    payload: Json<CustomQueryPayload>,
+) -> Result<impl Responder> {
     let token = extract_token(&_req)?;
     let client = client_from_token(&token)?;
-    Ok(Json(client.fetch_songs_by_custom_query(payload.query.clone(), payload.db_address.clone()).await?))
+    Ok(Json(
+        client
+            .fetch_songs_by_custom_query(payload.query.clone(), payload.db_address.clone())
+            .await?,
+    ))
 }
 
 #[post("/fetch_artists_for_tag_removal")]
-pub async fn fetch_artists_for_tag_removal(_req: HttpRequest, payload: Json<CustomQueryPayload>) -> Result<impl Responder> {
+pub async fn fetch_artists_for_tag_removal(
+    _req: HttpRequest,
+    payload: Json<CustomQueryPayload>,
+) -> Result<impl Responder> {
     let token = extract_token(&_req)?;
     let client = client_from_token(&token)?;
-    let json = Json(client.fetch_artists_by_custom_query(payload.query.clone(), payload.db_address.clone()).await?);
+    let json = Json(
+        client
+            .fetch_artists_by_custom_query(payload.query.clone(), payload.db_address.clone())
+            .await?,
+    );
     info!("{:?}", json);
     Ok(json)
 }
 
 #[post("/remove_tags")]
-pub async fn remove_tags(_req: HttpRequest, payload: Json<TagsRemovalPayload>) -> Result<impl Responder> {
+pub async fn remove_tags(
+    _req: HttpRequest,
+    payload: Json<TagsRemovalPayload>,
+) -> Result<impl Responder> {
     let token = extract_token(&_req)?;
     let client = client_from_token(&token)?;
 
     return if payload.mode == "songs" {
-        let futures = payload.tag_ids.iter().map(|&tag_id| client.remove_tag(payload.id, String::from("Song"), tag_id));
+        let futures = payload
+            .tag_ids
+            .iter()
+            .map(|&tag_id| client.remove_tag(payload.id, String::from("Song"), tag_id));
         future::try_join_all(futures).await?;
         Ok(Json(()))
     } else if payload.mode == "artists" {
-        let futures = payload.tag_ids.iter().map(|&tag_id| client.remove_tag(payload.id, String::from("Artist"), tag_id));
+        let futures = payload
+            .tag_ids
+            .iter()
+            .map(|&tag_id| client.remove_tag(payload.id, String::from("Artist"), tag_id));
         future::try_join_all(futures).await?;
         Ok(Json(()))
     } else {
-        Err(AppResponseError::BadRequestError(format!("Unknown tag removal mode: {}", payload.mode)))
-    }
+        Err(AppResponseError::BadRequestError(format!(
+            "Unknown tag removal mode: {}",
+            payload.mode
+        )))
+    };
 }
 
 fn extract_token(req: &HttpRequest) -> Result<Token> {
