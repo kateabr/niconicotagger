@@ -10,12 +10,13 @@ use actix_web::cookie::Cookie;
 use actix_web::http::Method;
 use actix_web::web::Bytes;
 use anyhow::Context;
+use awc::ClientRequest;
 use chrono::{DateTime, DurationRound, FixedOffset};
 use itertools::Itertools;
 use log::{debug, info};
 use roxmltree::Document;
-use scraper::node::Element;
 use scraper::{ElementRef, Node};
+use scraper::node::Element;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use serde_json::{Map, Value};
@@ -129,9 +130,9 @@ impl<'a> Client<'a> {
     }
 
     async fn http_get<T, R>(&self, url: &String, query: &T) -> Result<R>
-    where
-        R: DeserializeOwned,
-        T: Serialize,
+        where
+            R: DeserializeOwned,
+            T: Serialize,
     {
         let request = self.create_request(url, Method::GET);
         debug!("Sending GET request {:?}", request);
@@ -157,8 +158,8 @@ impl<'a> Client<'a> {
         mode: String,
         db_address: String,
     ) -> Result<R>
-    where
-        R: DeserializeOwned,
+        where
+            R: DeserializeOwned,
     {
         let request = self.create_request(
             &format!("{}/api/{}?fields=Tags&{}", db_address, mode, query),
@@ -177,8 +178,8 @@ impl<'a> Client<'a> {
     }
 
     async fn http_get_no_return_value<T>(&self, url: &String, query: &T) -> Result<()>
-    where
-        T: Serialize,
+        where
+            T: Serialize,
     {
         let request = self.create_request(url, Method::GET);
         debug!("Sending GET request {:?}", request);
@@ -191,9 +192,9 @@ impl<'a> Client<'a> {
     }
 
     async fn http_post<T, R>(&self, url: &String, query: &T) -> Result<R>
-    where
-        R: DeserializeOwned,
-        T: Serialize,
+        where
+            R: DeserializeOwned,
+            T: Serialize,
     {
         let request = self.create_request(url, Method::POST);
         debug!("Sending POST request {:?}", request);
@@ -227,9 +228,9 @@ impl<'a> Client<'a> {
     }
 
     async fn http_put<U, T>(&self, url: &String, query: &Vec<(&str, String)>, json: U) -> Result<T>
-    where
-        U: Serialize,
-        T: DeserializeOwned,
+        where
+            U: Serialize,
+            T: DeserializeOwned,
     {
         let request = self.create_request(url, Method::PUT);
         let body = request
@@ -253,8 +254,11 @@ impl<'a> Client<'a> {
         ]);
 
         let response = self
-            .client
-            .post(format!("{}/api/users/login", self.base_url))
+            .build_request_with_token(
+                format!("{}/api/users/login", self.base_url),
+                Method::POST,
+            )
+            .await?
             .send_json(&login_payload)
             .await?;
 
@@ -347,7 +351,7 @@ impl<'a> Client<'a> {
                 .with_timezone(&FixedOffset::east(0))
                 .duration_trunc(chrono::Duration::days(1))
                 .unwrap())
-            .to_rfc3339();
+                .to_rfc3339();
             escaped_data.push(NicoVideo {
                 id: video.id,
                 title: html_escape::decode_html_entities(&video.title).to_string(),
@@ -867,7 +871,7 @@ impl<'a> Client<'a> {
                 return Err(VocadbClientError::NotFoundError(format!(
                     "song with id={} does not have any PVs",
                     song_id
-                )))
+                )));
             }
             Some(pvs) => {
                 let pvs_parsed = pvs
@@ -899,8 +903,7 @@ impl<'a> Client<'a> {
 
         song_data.insert(String::from("pvs"), Value::from(pvs_temp));
 
-        self.http_post_with_antiforgery_token(song_data, song_id)
-            .await
+        self.save_song_data(song_data, song_id).await
     }
 
     pub async fn get_event_series(&self, series_id: i32) -> Result<ReleaseEventSeriesContract> {
@@ -908,7 +911,7 @@ impl<'a> Client<'a> {
             &format!("{}/api/releaseEventSeries/{}", self.base_url, series_id),
             &vec![("fields", String::from("WebLinks"))],
         )
-        .await
+            .await
     }
 
     pub async fn get_event_by_name(
@@ -945,7 +948,7 @@ impl<'a> Client<'a> {
                                 return Err(VocadbClientError::NotFoundError(format!(
                                     "event series \"{}\" does not exist",
                                     series.name
-                                )))
+                                )));
                             }
                         }
                     }
@@ -1117,8 +1120,7 @@ impl<'a> Client<'a> {
             )),
         );
 
-        self.http_post_with_antiforgery_token(song_data, song_id)
-            .await?;
+        self.save_song_data(song_data, song_id).await?;
 
         return Ok(final_result);
     }
@@ -1144,20 +1146,12 @@ impl<'a> Client<'a> {
             )),
         );
 
-        self.http_post_with_antiforgery_token(song_data, song_id)
-            .await?;
+        self.save_song_data(song_data, song_id).await?;
+
         Ok(())
     }
 
-    async fn http_post_with_antiforgery_token(
-        &self,
-        song_data: Map<String, Value>,
-        song_id: i32,
-    ) -> Result<()> {
-        #[derive(Serialize, Debug)]
-        struct FormData {
-            contract: String,
-        }
+    async fn build_request_with_token(&self, url: String, method: Method) -> Result<ClientRequest, VocadbClientError> {
         let atf_cookies = self
             .create_request(
                 &format!("{}/api/antiforgery/token", self.base_url),
@@ -1178,22 +1172,31 @@ impl<'a> Client<'a> {
             Some(token) => token.value().to_string(),
         };
 
-        let edited_song = serde_json::to_string(&song_data).context("Unable to serialize")?;
-
-        let mut request = self.create_request(
-            &format!("{}/api/songs/{}", self.base_url, song_id),
-            Method::POST,
-        );
+        let mut request = self.create_request(&url, method);
         for cookie in atf_cookies {
             request = request.cookie(cookie.clone());
         }
-        request
-            .content_type("application/x-www-form-urlencoded")
+
+        Ok(request
             .insert_header(("requestVerificationToken", antiforgery_token.as_str()))
-            .insert_header(("X-XSRF-TOKEN", antiforgery_token.as_str()))
-            .send_form(&FormData {
-                contract: edited_song,
-            })
+            .insert_header(("X-XSRF-TOKEN", antiforgery_token.as_str())))
+    }
+
+    async fn save_song_data(
+        &self,
+        song_data: Map<String, Value>,
+        song_id: i32,
+    ) -> Result<()> {
+        #[derive(Serialize, Debug)]
+        struct FormData {
+            contract: String,
+        }
+
+        let edited_song = serde_json::to_string(&song_data).context("Unable to serialize")?;
+
+        self.build_request_with_token(format!("{}/api/songs/{}", self.base_url, song_id), Method::POST).await?
+            .content_type("application/x-www-form-urlencoded")
+            .send_form(&FormData { contract: edited_song })
             .await?
             .body()
             .await?;
@@ -1300,7 +1303,7 @@ impl<'a> Client<'a> {
             ),
             &query,
         )
-        .await?;
+            .await?;
 
         return Ok(());
     }
@@ -1749,7 +1752,7 @@ impl<'a> Client<'a> {
             .filter(|&artist| {
                 !artist.is_support
                     && (artist.categories.contains(&ArtistCategories::Producer)
-                        && artist.roles.contains(&ArtistRoles::Default))
+                    && artist.roles.contains(&ArtistRoles::Default))
                     || (artist.roles.contains(&ArtistRoles::Composer))
             })
             .collect();
