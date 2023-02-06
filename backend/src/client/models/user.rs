@@ -4,7 +4,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 use crate::client::models::entrythumb::EntryThumbForApiContract;
 use crate::client::models::misc::OldUsernameContract;
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub enum GroupId {
     Nothing,
     Limited,

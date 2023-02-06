@@ -155,7 +155,7 @@ pub struct ArtistRelationsForApi {
     popular_songs: Vec<SongForApiContract>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, EnumString)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, EnumString)]
 pub enum ArtistRoles {
     Default,
     Animator,
@@ -201,7 +201,7 @@ pub enum ArtistType {
     Character,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, EnumString)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, EnumString)]
 pub enum ArtistCategories {
     Nothing,
     Vocalist,

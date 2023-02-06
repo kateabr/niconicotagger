@@ -140,7 +140,8 @@ export function getDateDisposition(
       dayDiff: 0,
       eligible: false,
       participatedOnUpload: false,
-      participated: false
+      participated: false,
+      multiple: false
     };
   }
 
@@ -152,7 +153,8 @@ export function getDateDisposition(
         disposition: "perfect",
         eligible: true,
         participatedOnUpload: false,
-        participated: false
+        participated: false,
+        multiple: false
       };
     } else {
       return {
@@ -160,7 +162,8 @@ export function getDateDisposition(
         disposition: dayDiff > 0 ? "late" : dayDiff < 0 ? "early" : "perfect",
         eligible: Math.abs(dayDiff) <= timeDeltaMax,
         participatedOnUpload: false,
-        participated: false
+        participated: false,
+        multiple: false
       };
     }
   }
@@ -172,7 +175,8 @@ export function getDateDisposition(
         disposition: "perfect",
         eligible: true,
         participatedOnUpload: false,
-        participated: false
+        participated: false,
+        multiple: false
       };
     } else {
       const dayDiff1 = Math.abs(subDates(date, dateEnd));
@@ -182,7 +186,8 @@ export function getDateDisposition(
           disposition: "late",
           eligible: dayDiff1 <= timeDeltaMax,
           participatedOnUpload: false,
-          participated: false
+          participated: false,
+          multiple: false
         };
       } else {
         return {
@@ -190,7 +195,8 @@ export function getDateDisposition(
           disposition: "perfect",
           eligible: true,
           participatedOnUpload: false,
-          participated: false
+          participated: false,
+          multiple: false
         };
       }
     }
@@ -202,7 +208,8 @@ export function getDateDisposition(
         disposition: "early",
         eligible: dayDiff2 <= timeDeltaMax,
         participatedOnUpload: false,
-        participated: false
+        participated: false,
+        multiple: false
       };
     } else {
       return {
@@ -210,7 +217,8 @@ export function getDateDisposition(
         disposition: "perfect",
         eligible: true,
         participatedOnUpload: false,
-        participated: false
+        participated: false,
+        multiple: false
       };
     }
   }
@@ -333,6 +341,55 @@ export const songTypeToTag = {
   ],
   Other: []
 };
+
+export interface EntryAction {
+  action:
+    | "Assign"
+    | "TagWithParticipant"
+    | "TagWithMultiple"
+    | "UpdateDescription"
+    | "RemoveEvent"
+    | "NoAction"
+    | "Untag";
+}
+
+export function hasAction(actions: EntryAction[], actionName: string): boolean {
+  return actions.map(value => value.action).findIndex(value => value == actionName) > -1;
+}
+
+export function hasAnyAction(actions: EntryAction[], actionNames: string[]): boolean {
+  return actions.map(value => value.action).some(value => actionNames.includes(value));
+}
+
+export function noActionNeeded(actions: EntryAction[]): boolean {
+  return actions.length == 1 && actions[0].action == "NoAction";
+}
+
+export function getDescriptionAction(
+  actions: EntryAction[],
+  song: VideoWithEntryAndVisibility | EntryWithReleaseEventAndVisibility
+): string {
+  if (
+    (actions.map(value => value.action).find(value => value == "UpdateDescription") ??
+      "NoAction") == "NoAction"
+  ) {
+    return "NoAction";
+  } else if (song.songEntry != null) {
+    if (
+      actions.map(value => value.action).findIndex(value => value == "TagWithParticipant") > -1 ||
+      (!song.songEntry.eventDateComparison.eligible &&
+        song.songEntry.eventDateComparison.disposition == "early")
+    ) {
+      return "TagWithParticipant";
+    } else if (
+      actions.map(value => value.action).findIndex(value => value == "TagWithMultiple") > -1 ||
+      song.songEntry.eventDateComparison.eligible
+    ) {
+      return "TagWithMultiple";
+    }
+  }
+  return "NoAction";
+}
 
 export function getSongTypeColorForDisplay(typeString: string): string {
   if (typeString == "Original" || typeString == "Remaster") {
@@ -710,4 +767,5 @@ export interface DateComparisonResult {
   eligible: boolean;
   participatedOnUpload: boolean;
   participated: boolean;
+  multiple: boolean;
 }

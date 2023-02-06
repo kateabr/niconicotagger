@@ -4,7 +4,7 @@ use crate::client::models::archived::ArchivedObjectVersionForApiContract;
 use crate::client::models::entrythumb::EntryForApiContract;
 use crate::client::models::user::UserForApiContract;
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub enum ActivityEditEvent {
     Created,
     Updated,

@@ -25,6 +25,13 @@
       event participant
     </b-badge>
     <b-badge
+      v-else-if="eventDateComparison.multiple"
+      variant="success"
+      class="mr-1 ml-3"
+    >
+      another release event
+    </b-badge>
+    <b-badge
       v-else-if="eventDateComparison.participatedOnUpload"
       variant="success"
       class="mr-1 ml-3"

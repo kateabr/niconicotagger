@@ -235,16 +235,6 @@
                 </b-dropdown-item>
               </b-dropdown>
             </b-col>
-            <b-col class="my-auto">
-              <b-button
-                :disabled="defaultDisableCondition()"
-                variant="primary"
-                block
-                :pressed.sync="otherEvents"
-                @click="filterEntries()"
-                >Songs with other events
-              </b-button>
-            </b-col>
           </b-row>
         </b-col>
       </b-row>
@@ -271,7 +261,7 @@
           </div>
         </b-col>
       </b-row>
-      <b-row v-if="eventInfoLoaded" class="col-12">
+      <b-row v-if="eventInfoLoaded" class="col-12 m-auto">
         <template>
           <div class="overflow-auto m-auto mt-lg-3">
             <b-pagination
@@ -306,7 +296,8 @@
           <b-th class="col-3 align-middle">Entry</b-th>
           <b-th class="col-2 align-middle">Current release event</b-th>
           <b-th class="col-3 align-middle">Release date</b-th>
-          <b-th class="col-4 align-middle">Proposed actions</b-th>
+          <b-th class="col-3 align-middle">Proposed actions</b-th>
+          <b-th class="col-1"></b-th>
         </b-thead>
         <b-tbody v-if="!allInvisible()">
           <tr
@@ -363,45 +354,44 @@
                 v-if="item.publishDate !== null"
                 :release-date="item.songEntry.publishDate"
                 :event-date-comparison="item.songEntry.eventDateComparison"
+                :delta="timeDelta"
               />
             </td>
             <td>
-              <b-row>
-                <b-col cols="10">
-                  <action
-                    v-if="!item.processed"
-                    :name="event.name"
-                    :process-item="isSelectable(item)"
-                    :link="getVocaDBEventUrl(event.id, event.urlSlug)"
-                    :eligible="isEligible(item)"
-                    :mode="getMode(item)"
-                    :multiple-events-link="multipleEventsLink"
-                    :participant-link="participantLink"
-                    :tag-to-remove="tag.name"
-                    :tag-to-remove-link="getVocaDBTagUrl(tag.id, tag.urlSlug)"
-                  />
-                </b-col>
-                <b-col v-if="isSelectable(item)">
-                  <b-button
-                    v-if="item.processed"
-                    disabled
-                    class="btn"
-                    variant="success"
-                    @click="processSong(item)"
-                  >
-                    <font-awesome-icon icon="fas fa-check" />
-                  </b-button>
-                  <b-button
-                    v-else
-                    :disabled="defaultDisableCondition()"
-                    class="btn"
-                    variant="outline-success"
-                    @click="processSong(item)"
-                  >
-                    <font-awesome-icon icon="fas fa-play" />
-                  </b-button>
-                </b-col>
-              </b-row>
+              <action
+                v-if="!item.processed"
+                :name="event.name"
+                :process-item="isSelectable(item)"
+                :link="getVocaDBEventUrl(event.id, event.urlSlug)"
+                :eligible="isEligible(item)"
+                :entry-actions="getActions(item)"
+                :multiple-events-link="multipleEventsLink"
+                :participant-link="participantLink"
+                :event-link-in-description="item.songEntry.eventIdInDescription"
+                :tag-to-remove="tag.name"
+                :tag-to-remove-link="getVocaDBTagUrl(tag.id, tag.urlSlug)"
+              />
+            </td>
+            <td class="text-center">
+              <span v-if="item.songEntry !== null">
+                <b-button
+                  v-if="item.processed"
+                  disabled
+                  class="btn"
+                  variant="success"
+                >
+                  <font-awesome-icon icon="fas fa-check" />
+                </b-button>
+                <b-button
+                  v-else
+                  :disabled="defaultDisableCondition() || !isSelectable(item)"
+                  class="btn"
+                  variant="outline-success"
+                  @click="processSong(item)"
+                >
+                  <font-awesome-icon icon="fas fa-play" />
+                </b-button>
+              </span>
             </td>
           </tr>
         </b-tbody>
@@ -423,7 +413,8 @@
           <b-th class="col-3 align-middle">Entry</b-th>
           <b-th class="col-2 align-middle">Current release event</b-th>
           <b-th class="col-3 align-middle">Release date</b-th>
-          <b-th class="col-4 align-middle">Proposed actions</b-th>
+          <b-th class="col-3 align-middle">Proposed actions</b-th>
+          <b-th class="col-1"></b-th>
         </b-tfoot>
       </b-table-simple>
       <b-row
@@ -446,7 +437,7 @@
         </b-col>
       </b-row>
 
-      <b-row v-if="eventInfoLoaded()" class="col-12">
+      <b-row v-if="eventInfoLoaded()" class="col-12 m-auto">
         <template>
           <div class="overflow-auto m-auto my-lg-3">
             <b-pagination
@@ -496,7 +487,10 @@ import {
   fillReleaseEventForDisplay,
   DateComparisonResult,
   getEventColorVariant,
-  isEligible
+  isEligible,
+  EntryAction,
+  hasAction,
+  getDescriptionAction
 } from "@/utils";
 import ErrorMessage from "@/components/ErrorMessage.vue";
 import DateDisposition from "@/components/DateDisposition.vue";
@@ -548,7 +542,6 @@ export default class extends Vue {
   private timeDeltaAfter: boolean = true;
   private timeDelta: number = 0;
   private timeDeltaMax: number = 0;
-  private otherEvents: boolean = true;
   private allowIneligibleVideos: boolean = false;
   private page: number = 0;
   private maxPage: number = 0;
@@ -627,10 +620,17 @@ export default class extends Vue {
     return allVideosInvisible(this.entries);
   }
 
+  private hasAction(
+    item: EntryWithReleaseEventAndVisibility,
+    action: string
+  ): boolean {
+    return hasAction(this.getActions(item), action);
+  }
+
   private isSelectable(item: EntryWithReleaseEventAndVisibility): boolean {
     return (
-      item.songEntry != null &&
-      (this.isEligible(item) || this.allowIneligibleVideos)
+      (this.isEligible(item) || this.allowIneligibleVideos) &&
+      this.hasAction(item, "Untag")
     );
   }
 
@@ -694,35 +694,45 @@ export default class extends Vue {
     return getEventColorVariant(entry, this.event.id);
   }
 
-  private getMode(
-    item: EntryWithReleaseEventAndVisibility
-  ):
-    | "Assign"
-    | "TagWithParticipant"
-    | "TagWithMultiple"
-    | "CheckDescription"
-    | "NeedToRemove"
-    | "NoAction" {
+  private getActions(item: EntryWithReleaseEventAndVisibility): EntryAction[] {
     if (
-      !item.songEntry.taggedWithMultipleEvents &&
-      item.songEntry.releaseEvent !== null &&
-      item.songEntry.releaseEvent.id !== this.event.id
+      !item.songEntry.eventDateComparison.eligible &&
+      item.songEntry.eventDateComparison.disposition == "early"
     ) {
-      return "TagWithMultiple";
-    } else if (
-      !this.isEligible(item) &&
-      !item.songEntry.taggedWithEventParticipant
-    ) {
-      return "TagWithParticipant";
-    } else if (item.songEntry.releaseEvent == null) {
-      return "Assign";
-    } else if (
-      item.songEntry.taggedWithMultipleEvents &&
-      item.songEntry.releaseEvent.id !== this.event.id
-    ) {
-      return "CheckDescription";
+      let res: EntryAction[] = [];
+      if (
+        !item.songEntry.eventDateComparison.participatedOnUpload &&
+        !item.songEntry.eventDateComparison.participated
+      ) {
+        res.push({ action: "TagWithParticipant" });
+      }
+      if (!item.songEntry.eventIdInDescription) {
+        res.push({ action: "UpdateDescription" });
+      }
+      if (res.length != 0) {
+        res.push({ action: "Untag" });
+        return res;
+      }
+    } else if (item.songEntry.releaseEvent != null) {
+      if (item.songEntry.releaseEvent.id == this.event.id) {
+        return [{ action: "Untag" }];
+      } else if (item.songEntry.eventDateComparison.eligible) {
+        let res: EntryAction[] = [];
+        if (!item.songEntry.eventDateComparison.multiple) {
+          res.push({ action: "TagWithMultiple" });
+        }
+        if (!item.songEntry.eventIdInDescription) {
+          res.push({ action: "UpdateDescription" });
+        }
+        if (res.length != 0) {
+          res.push({ action: "Untag" });
+          return res;
+        }
+      }
+    } else if (item.songEntry.eventDateComparison.eligible) {
+      return [{ action: "Assign" }, { action: "Untag" }];
     }
-    return "NoAction";
+    return [{ action: "Untag" }];
   }
 
   // row filtering
@@ -748,20 +758,11 @@ export default class extends Vue {
     );
   }
 
-  private otherEventsFlag(entry: EntryWithReleaseEventAndVisibility): boolean {
-    return (
-      this.otherEvents ||
-      entry.songEntry.releaseEvent == null ||
-      entry.songEntry.releaseEvent.id == this.event.id
-    );
-  }
-
   private filterEntries(): void {
     for (const entry of this.entries) {
       entry.rowVisible =
         this.hiddenTypeFlag(entry) &&
-        this.timeDeltaFlag(entry.songEntry.eventDateComparison) &&
-        this.otherEventsFlag(entry);
+        this.timeDeltaFlag(entry.songEntry.eventDateComparison);
       entry.toAssign = entry.toAssign && entry.rowVisible;
     }
   }
@@ -847,6 +848,14 @@ export default class extends Vue {
           this.event.date!,
           this.event.endDate
         );
+        entry.songEntry.eventDateComparison.participated =
+          entry.songEntry.taggedWithEventParticipant &&
+          (entry.songEntry.releaseEvent == null ||
+            entry.songEntry.releaseEvent.id != this.event.id);
+        entry.songEntry.eventDateComparison.multiple =
+          entry.songEntry.taggedWithMultipleEvents &&
+          (entry.songEntry.releaseEvent == null ||
+            entry.songEntry.releaseEvent.id != this.event.id);
       }
       this.filterEntries();
       this.eventTagNameFrozen = this.event.name;
@@ -871,7 +880,7 @@ export default class extends Vue {
   ): Promise<void> {
     this.assigning = true;
     try {
-      const participatedOnUpload = this.getMode(song) == "TagWithParticipant";
+      const actions = this.getActions(song);
       await api.assignEventAndRemoveTag({
         songId: song.songEntry.id,
         event: {
@@ -880,20 +889,33 @@ export default class extends Vue {
           urlSlug: this.event.urlSlug
         },
         tagId: this.tag.id,
-        participatedOnUpload: participatedOnUpload
+        actions: actions.map(value => value.action),
+        descriptionAction: getDescriptionAction(actions, song)
       });
-      song.processed = true;
-      if (song.songEntry.releaseEvent == null && !participatedOnUpload) {
-        song.songEntry.releaseEvent = {
-          id: this.event.id,
-          date: null,
-          nndTags: this.event.nndTags,
-          name: this.event.name,
-          urlSlug: this.event.urlSlug,
-          category: this.event.category,
-          endDate: null
-        };
+      for (const action of actions) {
+        if (action.action == "Assign") {
+          song.songEntry.releaseEvent = {
+            id: this.event.id,
+            date: null,
+            nndTags: this.event.nndTags,
+            name: this.event.name,
+            urlSlug: this.event.urlSlug,
+            category: this.event.category,
+            endDate: null
+          };
+        } else if (action.action == "TagWithParticipant") {
+          song.songEntry.taggedWithEventParticipant = true;
+          song.songEntry.eventDateComparison.participated = true;
+        } else if (action.action == "TagWithMultiple") {
+          song.songEntry.taggedWithMultipleEvents = true;
+          song.songEntry.eventDateComparison.multiple = true;
+        } else if (action.action == "UpdateDescription") {
+          song.songEntry.eventIdInDescription = true;
+        } else if (action.action == "RemoveEvent") {
+          song.songEntry.releaseEvent = null;
+        }
       }
+      song.processed = true;
       song.toAssign = false;
     } catch (err) {
       this.processError(err);

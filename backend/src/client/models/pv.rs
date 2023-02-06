@@ -70,7 +70,7 @@ pub struct PVForSongContract {
     url: String,
 }
 
-#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, strum_macros::Display, Debug)]
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, strum_macros::Display, Debug)]
 pub enum PvService {
     NicoNicoDouga,
     Youtube,
@@ -84,7 +84,7 @@ pub enum PvService {
     Bandcamp,
 }
 
-#[derive(Serialize, Deserialize, Clone, Copy, strum_macros::Display, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Copy, strum_macros::Display, Debug, PartialEq, Eq)]
 pub enum PvType {
     Original,
     Reprint,

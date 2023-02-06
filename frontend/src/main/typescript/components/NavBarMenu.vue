@@ -21,7 +21,7 @@
           ><span
             v-if="dbAddress !== ''"
             class="border rounded-sm border-info p-2 text-info bg-light"
-            ><font-awesome-icon class="mr-2 ml-1" icon="fa-solid fa-key" />{{
+            ><font-awesome-icon class="mx-1" icon="fa-solid fa-key" />{{
               getDbName()
             }}</span
           >

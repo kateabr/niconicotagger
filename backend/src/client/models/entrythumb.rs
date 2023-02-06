@@ -77,7 +77,7 @@ pub struct EntryThumbContract {
     version: Option<i32>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub enum EntryType {
     Undefined,
     Album,

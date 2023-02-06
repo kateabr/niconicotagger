@@ -3,10 +3,7 @@ import { authenticationExpireHandler } from "@/backend/authenticationExpireHandl
 
 export const axios = originalAxios.create({
   timeout: 45 * 1000,
-  baseURL:
-    process.env.NODE_ENV !== "production"
-      ? "http://localhost:8080"
-      : "https://api.niconicotagger.handystuff.net"
+  baseURL: process.env.NODE_ENV !== "production" ? "" : "https://api.niconicotagger.handystuff.net"
 });
 axios.interceptors.request.use(
   value => {

@@ -1,43 +1,32 @@
 <template>
   <div>
     <ol v-if="processItem">
-      <li v-if="mode === 'Assign'">
-        Set "
-        <b-link :href="link" target="_blank">{{ name }} </b-link>
-        " as release event
-      </li>
-      <li v-else-if="mode === 'TagWithParticipant'">
-        Tag with "
-        <b-link target="_blank" :href="participantLink"
-          >event participant</b-link
-        >
-        " and update description
-      </li>
-      <li v-else-if="mode === 'TagWithMultiple'">
-        Tag with "
-        <b-link target="_blank" :href="multipleEventsLink"
-          >multiple events</b-link
-        >
-        " and update description
-      </li>
-      <li v-else-if="mode === 'CheckDescription'">
+      <li v-if="hasAction('RemoveEvent')">
         <span class="text-danger text-monospace">Important:</span>
-        check that description mentions current event
+        release event must be removed because song was not first published
+        during "<b-link :href="link" target="_blank">{{ name }}</b-link
+        >"
       </li>
+      <li v-if="hasAction('Assign')">
+        Set "<b-link :href="link" target="_blank">{{ name }}</b-link
+        >" as release event
+      </li>
+      <li v-else-if="hasAction('TagWithParticipant')">
+        Tag with "<b-link target="_blank" :href="participantLink"
+          >event participant</b-link
+        >"
+      </li>
+      <li v-else-if="hasAction('TagWithMultiple')">
+        Tag with "<b-link target="_blank" :href="multipleEventsLink"
+          >multiple events</b-link
+        >"
+      </li>
+      <li v-if="hasAction('UpdateDescription')">Update entry description</li>
       <li v-if="tagToRemove !== undefined">
         Remove tag "<b-link :href="tagToRemoveLink" target="_blank">{{
           tagToRemove
         }}</b-link
         >"
-      </li>
-    </ol>
-    <ol v-else-if="mode === 'NeedToRemove'">
-      <li>
-        <span class="text-danger text-monospace">Important:</span>
-        need to change or remove the release event because song was not first
-        published during "
-        <b-link :href="link" target="_blank">{{ name }}</b-link>
-        "
       </li>
     </ol>
     <div v-if="!eligible" class="text-muted">
@@ -50,17 +39,12 @@
 <script lang="ts">
 import { Component, Prop } from "vue-property-decorator";
 import Vue from "vue";
+import { EntryAction, hasAction } from "@/utils";
 
 @Component({ components: {} })
 export default class extends Vue {
   @Prop()
-  private readonly mode!:
-    | "Assign"
-    | "TagWithParticipant"
-    | "TagWithMultiple"
-    | "CheckDescription"
-    | "NeedToRemove"
-    | "NoAction";
+  private readonly entryActions!: EntryAction[];
 
   @Prop()
   private readonly eligible!: boolean;
@@ -85,5 +69,12 @@ export default class extends Vue {
 
   @Prop()
   private readonly multipleEventsLink!: string;
+
+  @Prop()
+  private readonly eventLinkInDescription!: boolean;
+
+  private hasAction(action: string): boolean {
+    return hasAction(this.entryActions, action);
+  }
 }
 </script>

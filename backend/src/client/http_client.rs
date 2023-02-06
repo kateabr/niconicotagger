@@ -14,15 +14,18 @@ use awc::ClientRequest;
 use chrono::{DateTime, DurationRound, FixedOffset};
 use itertools::Itertools;
 use log::{debug, info};
+use regex::Regex;
 use roxmltree::Document;
-use scraper::{ElementRef, Node};
 use scraper::node::Element;
+use scraper::{ElementRef, Node};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use serde_json::{Map, Value};
+use EntryAction::{Assign, RemoveEvent, Untag, UpdateDescription};
 
 use crate::client::errors::Result;
 use crate::client::errors::VocadbClientError;
+
 use crate::client::jputils::normalize;
 use crate::client::models::activity::{ActivityEditEvent, ActivityEntryForApiContract};
 use crate::client::models::artist::{
@@ -48,11 +51,12 @@ use crate::client::nicomodels::{
     Tag, TagBaseContractSimplified, ThumbnailError, ThumbnailOk, ThumbnailOkWithMappedTags,
     ThumbnailTagMappedWithAssignAndLockInfo,
 };
+use crate::web::dto::EntryAction::{TagWithMultiple, TagWithParticipant};
 use crate::web::dto::{
     ArtistEntriesForTagRemoval, ArtistEntryForTagRemoval, ArtistForApiContractSimplified,
     ArtistForApiContractSimplifiedWithTagUsageCounts, DBFetchResponseWithTimestamps,
-    DisplayableTag, EventAssigningResult, MinimalEvent, NicoResponse, NicoResponseWithScope,
-    NicoVideo, NicoVideoWithTidyTags, SongEntriesForTagRemoval, SongEntryForTagRemoval,
+    DisplayableTag, EntryAction, MinimalEvent, NicoResponse, NicoResponseWithScope, NicoVideo,
+    NicoVideoWithTidyTags, SongEntriesForTagRemoval, SongEntryForTagRemoval,
     SongForApiContractSimplified, SongForApiContractSimplifiedWithMultipleEventInfo,
     SongForApiContractSimplifiedWithMultipleEventInfoSearchResult,
     SongForApiContractSimplifiedWithTagUsageCounts, TagMappingContract, VideoWithEntry,
@@ -66,19 +70,19 @@ pub struct Client<'a> {
 
 impl<'a> Client<'a> {
     pub fn vocadb(cookies: &Vec<String>) -> Result<Client<'a>> {
-        return Client::new("https://vocadb.net", cookies);
+        Client::new("https://vocadb.net", cookies)
     }
 
     pub fn vocadb_beta(cookies: &Vec<String>) -> Result<Client<'a>> {
-        return Client::new("https://beta.vocadb.net", cookies);
+        Client::new("https://beta.vocadb.net", cookies)
     }
 
     pub fn touhoudb(cookies: &Vec<String>) -> Result<Client<'a>> {
-        return Client::new("https://touhoudb.com", cookies);
+        Client::new("https://touhoudb.com", cookies)
     }
 
     pub fn utaitedb(cookies: &Vec<String>) -> Result<Client<'a>> {
-        return Client::new("https://utaitedb.net", cookies);
+        Client::new("https://utaitedb.net", cookies)
     }
 
     fn new(base_url: &'a str, cookies: &Vec<String>) -> Result<Client<'a>> {
@@ -95,23 +99,23 @@ impl<'a> Client<'a> {
             .max_redirects(0)
             .finish();
 
-        return Ok(Client {
+        Ok(Client {
             client: awc_client,
             base_url,
             cookies: parsed_cookies,
-        });
+        })
     }
 
     fn add_cookies(&mut self, cookies: &Vec<Cookie<'a>>) -> &Client {
         for cookie in cookies {
             self.cookies.push(cookie.clone());
         }
-        return self;
+        self
     }
 
     fn clear_cookie(&mut self) -> &Client {
         self.cookies.clear();
-        return self;
+        self
     }
 
     fn create_request(&self, url: &String, method: Method) -> awc::ClientRequest {
@@ -126,7 +130,7 @@ impl<'a> Client<'a> {
         for cookie in &self.cookies {
             builder = builder.cookie(cookie.clone());
         }
-        return builder;
+        builder
     }
 
     async fn http_get<T, R>(&self, url: &String, query: &T) -> Result<R>
@@ -149,7 +153,7 @@ impl<'a> Client<'a> {
         }
         let json = serde_json::from_slice(&body)
             .context(format!("Unable to deserialize a payload: {}", body_string))?;
-        return Ok(json);
+        Ok(json)
     }
 
     async fn http_get_for_query_console<R>(
@@ -173,8 +177,8 @@ impl<'a> Client<'a> {
         }
         debug!("{:?}", body_string);
         let json =
-            serde_json::from_slice(&body).context(format!("Unable to deserialize response"))?;
-        return Ok(json);
+            serde_json::from_slice(&body).context("Unable to deserialize response".to_string())?;
+        Ok(json)
     }
 
     async fn http_get_no_return_value<T>(&self, url: &String, query: &T) -> Result<()>
@@ -188,7 +192,7 @@ impl<'a> Client<'a> {
             .context("Unable to construct a query")?
             .send()
             .await?;
-        return Ok(());
+        Ok(())
     }
 
     async fn http_post<T, R>(&self, url: &String, query: &T) -> Result<R>
@@ -209,7 +213,7 @@ impl<'a> Client<'a> {
         let body_string = String::from_utf8(body.to_vec()).unwrap();
         let json = serde_json::from_slice(&body)
             .context(format!("Unable to deserialize a payload: {}", body_string))?;
-        return Ok(json);
+        Ok(json)
     }
 
     async fn http_get_raw(&self, url: &String, query: &Vec<(&str, String)>) -> Result<Bytes> {
@@ -224,7 +228,7 @@ impl<'a> Client<'a> {
         if body.is_empty() {
             return Err(VocadbClientError::BadCredentialsError);
         }
-        return Ok(body);
+        Ok(body)
     }
 
     async fn http_put<U, T>(&self, url: &String, query: &Vec<(&str, String)>, json: U) -> Result<T>
@@ -241,7 +245,7 @@ impl<'a> Client<'a> {
             .body()
             .await?;
         let json = serde_json::from_slice(&body).context("Unable to deserialize a payload")?;
-        return Ok(json);
+        Ok(json)
     }
 
     pub async fn login(&mut self, username: &str, password: &str) -> Result<()> {
@@ -254,10 +258,7 @@ impl<'a> Client<'a> {
         ]);
 
         let response = self
-            .build_request_with_token(
-                format!("{}/api/users/login", self.base_url),
-                Method::POST,
-            )
+            .build_request_with_token(format!("{}/api/users/login", self.base_url), Method::POST)
             .await?
             .send_json(&login_payload)
             .await?;
@@ -275,12 +276,11 @@ impl<'a> Client<'a> {
     }
 
     pub async fn current_user(&self) -> Result<UserForApiContract> {
-        return self
-            .http_get(
-                &format!("{}/api/users/current", self.base_url),
-                &vec![("fields", OptionalFields::MainPicture.as_ref().to_string())],
-            )
-            .await;
+        self.http_get(
+            &format!("{}/api/users/current", self.base_url),
+            &vec![("fields", OptionalFields::MainPicture.as_ref().to_string())],
+        )
+            .await
     }
 
     pub async fn get_videos(
@@ -302,7 +302,7 @@ impl<'a> Client<'a> {
 
         new_scope = String::from(new_scope.trim_start());
 
-        let q = if scope_tag != "" {
+        let q = if !scope_tag.is_empty() {
             format!("{} {}", tag, new_scope)
         } else {
             tag
@@ -388,7 +388,7 @@ impl<'a> Client<'a> {
             })
         }
 
-        return Ok(tags_final);
+        Ok(tags_final)
     }
 
     pub async fn get_mappings_raw_normalized(&self) -> Result<Vec<TagMappingContract>> {
@@ -401,7 +401,7 @@ impl<'a> Client<'a> {
             })
             .collect();
 
-        return Ok(normalized);
+        Ok(normalized)
     }
 
     pub async fn get_vocadb_mapping(
@@ -416,11 +416,11 @@ impl<'a> Client<'a> {
             .filter(|t| t.source_tag == normalized_tag)
             .map(|t| t.tag)
             .collect();
-        return if tags.is_empty() {
+        if tags.is_empty() {
             Ok(None)
         } else {
             Ok(Some(tags))
-        };
+        }
     }
 
     pub async fn get_nico_mappings(&self, tag_id: i32) -> Result<Option<Vec<String>>> {
@@ -431,17 +431,17 @@ impl<'a> Client<'a> {
             .filter(|t| t.tag.id == tag_id)
             .map(|t| t.source_tag)
             .collect();
-        return if tags.is_empty() {
+        if tags.is_empty() {
             Ok(None)
         } else {
             Ok(Some(tags))
-        };
+        }
     }
 
     pub async fn get_mapped_tags(&self) -> Result<Vec<String>> {
         let mappings = self.get_mappings_raw_normalized().await?;
 
-        return Ok(mappings.into_iter().map(|t| t.source_tag).collect());
+        Ok(mappings.into_iter().map(|t| t.source_tag).collect())
     }
 
     pub async fn fetch_songs_by_custom_query(
@@ -531,7 +531,7 @@ impl<'a> Client<'a> {
                 &q,
             )
             .await?;
-        return Ok(result);
+        Ok(result)
     }
 
     pub async fn add_tags(&self, tags: Vec<TagBaseContract>, song_id: i32) -> Result<()> {
@@ -542,27 +542,25 @@ impl<'a> Client<'a> {
             .map(|tag| tag.tag.clone())
             .collect();
         new_tags.extend(tags);
-        let _response = self
-            .http_put::<Vec<TagBaseContract>, Vec<TagUsageForApiContract>>(
-                &format!("{}/api/users/current/songTags/{}", self.base_url, song_id),
-                &vec![],
-                new_tags,
-            )
+        self.http_put::<Vec<TagBaseContract>, Vec<TagUsageForApiContract>>(
+            &format!("{}/api/users/current/songTags/{}", self.base_url, song_id),
+            &vec![],
+            new_tags,
+        )
             .await?;
-        return Ok(());
+        Ok(())
     }
 
     pub async fn get_song_by_nico_pv(&self, pv_id: &str) -> Result<Option<SongForApiContract>> {
-        return self
-            .http_get(
-                &format!("{}/api/songs/byPv", self.base_url),
-                &vec![
-                    ("pvService", String::from("NicoNicoDouga")),
-                    ("pvId", String::from(pv_id)),
-                    ("fields", String::from("Tags,ReleaseEvent,Albums,Artists")),
-                ],
-            )
-            .await;
+        self.http_get(
+            &format!("{}/api/songs/byPv", self.base_url),
+            &vec![
+                ("pvService", String::from("NicoNicoDouga")),
+                ("pvId", String::from(pv_id)),
+                ("fields", String::from("Tags,ReleaseEvent,Albums,Artists")),
+            ],
+        )
+            .await
     }
 
     pub async fn lookup_artist_by_nico_account_id(
@@ -584,11 +582,11 @@ impl<'a> Client<'a> {
             )
             .await?;
 
-        return if lookup_result.is_empty() {
+        if lookup_result.is_empty() {
             Ok(None)
         } else {
             Ok(Some(lookup_result[0].entry.clone()))
-        };
+        }
     }
     pub fn assign_colors(
         &self,
@@ -633,20 +631,16 @@ impl<'a> Client<'a> {
             nico_tags.into_iter().map(|t| normalize(&t)).collect();
         let normalized_scope = normalize(&scope.replace(" OR ", " "));
         let normalized_scope_tags = normalized_scope
-            .split(" ")
-            .map(|s| String::from(s))
+            .split(' ')
+            .map(String::from)
             .collect::<Vec<_>>();
 
         let publisher: Option<NicoPublisher> = match video.user_id {
-            Some(id) => self.lookup_artist_by_nico_account_id(id.clone()).await?,
+            Some(id) => self.lookup_artist_by_nico_account_id(id).await?,
             None => None,
         };
 
-        let src_nico_tags = video
-            .tags
-            .split(" ")
-            .map(|s| String::from(s))
-            .collect::<Vec<_>>();
+        let src_nico_tags = video.tags.split(' ').map(String::from).collect::<Vec<_>>();
 
         let tags = self.assign_colors(
             src_nico_tags,
@@ -664,18 +658,19 @@ impl<'a> Client<'a> {
                 .tags
                 .iter()
                 .map(|tag| tag.tag.id)
-                .any(|tag_id| tag_id == i32::from(8275)); // multiple events
+                .any(|tag_id| tag_id == 8275); // multiple events
             let tagged_with_event_participant: bool = res
                 .tags
                 .iter()
                 .map(|tag| tag.tag.id)
-                .any(|tag_id| tag_id == i32::from(9141)); // event participant
+                .any(|tag_id| tag_id == 9141); // event participant
 
             SongForApiContractSimplifiedWithMultipleEventInfo {
                 id: res.id,
                 name: res.name.clone(),
                 tagged_with_multiple_events,
                 tagged_with_event_participant,
+                event_id_in_description: false,
                 song_type: res.song_type,
                 artist_string: res.artist_string.clone(),
                 release_event: res.release_event,
@@ -683,7 +678,7 @@ impl<'a> Client<'a> {
             }
         });
 
-        return Ok(VideoWithEntry {
+        Ok(VideoWithEntry {
             video: NicoVideoWithTidyTags {
                 id: video.id.clone(),
                 title: video.title.clone(),
@@ -693,7 +688,21 @@ impl<'a> Client<'a> {
             song_entry: entry,
             publisher,
             processed: tag_in_tags,
-        });
+        })
+    }
+
+    async fn event_link_in_description(&self, event_id: i32, song_id: i32) -> Result<bool> {
+        let entry = self.get_song_for_edit(song_id).await?;
+        let description_map = entry.get("notes").unwrap().as_object();
+        let description_eng =
+            description_map.map_or("", |d_map| d_map.get("english").unwrap().as_str().unwrap());
+        let description_original =
+            description_map.map_or("", |d_map| d_map.get("original").unwrap().as_str().unwrap());
+        let event_link_regex =
+            Regex::new(format!("vocadb.net/E/{}[^\\d]", event_id).as_str()).unwrap();
+
+        Ok(event_link_regex.is_match(description_eng)
+            || event_link_regex.is_match(description_original))
     }
 
     pub async fn lookup_video_by_event(
@@ -708,27 +717,23 @@ impl<'a> Client<'a> {
 
         let normalized_nico_mappings: Vec<String> = nico_tags
             .iter()
-            .flat_map(|t| t.split(" "))
+            .flat_map(|t| t.split(' '))
             .collect::<Vec<&str>>()
             .iter()
-            .map(|&t| normalize(&t))
+            .map(|&t| normalize(t))
             .collect();
         let normalized_scope = normalize(&scope.replace(" OR ", " "));
         let normalized_scope_tags = normalized_scope
-            .split(" ")
-            .map(|s| String::from(s))
+            .split(' ')
+            .map(String::from)
             .collect::<Vec<_>>();
 
         let publisher: Option<NicoPublisher> = match video.user_id {
-            Some(id) => self.lookup_artist_by_nico_account_id(id.clone()).await?,
+            Some(id) => self.lookup_artist_by_nico_account_id(id).await?,
             None => None,
         };
 
-        let src_nico_tags = video
-            .tags
-            .split(" ")
-            .map(|s| String::from(s))
-            .collect::<Vec<_>>();
+        let src_nico_tags = video.tags.split(' ').map(String::from).collect::<Vec<_>>();
 
         let tags = self.assign_colors(
             src_nico_tags,
@@ -737,6 +742,10 @@ impl<'a> Client<'a> {
             mappings,
         );
 
+        let link_in_description: bool = match response.as_ref() {
+            Some(res) => self.event_link_in_description(event_id, res.id).await?,
+            None => false,
+        };
         let entry = response.map(|r| {
             let event = r.albums.as_ref().and_then(|albums| {
                 albums
@@ -761,29 +770,28 @@ impl<'a> Client<'a> {
                 }),
             };
 
-            let entry = SongForApiContractSimplifiedWithMultipleEventInfo {
+            SongForApiContractSimplifiedWithMultipleEventInfo {
                 id: r.id,
                 name: r.name.clone(),
                 tagged_with_multiple_events,
                 tagged_with_event_participant,
+                event_id_in_description: link_in_description,
                 song_type: r.song_type.clone(),
                 artist_string: r.artist_string.clone(),
                 publish_date: r.publish_date.clone(),
                 release_event: re,
-            };
-
-            entry
+            }
         });
 
-        let processed = match &entry {
-            None => false,
-            Some(e) => match &e.release_event {
-                None => false,
-                Some(event) => event.id == event_id,
-            },
-        };
+        let processed = entry.as_ref().map_or(false, |e| {
+            e.release_event
+                .as_ref()
+                .map_or(false, |re| re.id == event_id)
+                || (e.event_id_in_description
+                && (e.tagged_with_event_participant || e.tagged_with_multiple_events))
+        });
 
-        return Ok(VideoWithEntry {
+        Ok(VideoWithEntry {
             video: NicoVideoWithTidyTags {
                 id: video.id.clone(),
                 title: video.title.clone(),
@@ -793,7 +801,7 @@ impl<'a> Client<'a> {
             song_entry: entry,
             publisher,
             processed,
-        });
+        })
     }
 
     pub async fn lookup_tag(&self, tag_id: i32) -> Result<AssignableTag> {
@@ -805,21 +813,19 @@ impl<'a> Client<'a> {
             .await?;
 
         match response {
-            Some(res) => {
-                return Ok(AssignableTag {
-                    version: res.version.clone(),
-                    usage_count: res.usage_count.clone(),
-                    url_slug: res.url_slug.clone(),
-                    targets: res.targets.clone(),
-                    status: res.status.to_string(),
-                    name: res.name.clone(),
-                    id: res.id.clone(),
-                    additional_names: res.additional_names.clone(),
-                    category_name: res.category_name.clone(),
-                    create_date: res.create_date.clone(),
-                    default_name_language: res.default_name_language.to_string(),
-                });
-            }
+            Some(res) => Ok(AssignableTag {
+                version: res.version,
+                usage_count: res.usage_count,
+                url_slug: res.url_slug.clone(),
+                targets: res.targets,
+                status: res.status.to_string(),
+                name: res.name.clone(),
+                id: res.id,
+                additional_names: res.additional_names.clone(),
+                category_name: res.category_name.clone(),
+                create_date: res.create_date.clone(),
+                default_name_language: res.default_name_language.to_string(),
+            }),
             _ => Err(VocadbClientError::NotFoundError(format!(
                 "tag with id=\"{}\" does not exist",
                 tag_id
@@ -839,15 +845,15 @@ impl<'a> Client<'a> {
             )
             .await?;
 
-        return if !response.items.is_empty() {
+        if !response.items.is_empty() {
             Ok(AssignableTag {
-                version: response.items[0].version.clone(),
-                usage_count: response.items[0].usage_count.clone(),
+                version: response.items[0].version,
+                usage_count: response.items[0].usage_count,
                 url_slug: response.items[0].url_slug.clone(),
-                targets: response.items[0].targets.clone(),
+                targets: response.items[0].targets,
                 status: response.items[0].status.to_string(),
                 name: response.items[0].name.clone(),
-                id: response.items[0].id.clone(),
+                id: response.items[0].id,
                 additional_names: response.items[0].additional_names.clone(),
                 category_name: response.items[0].category_name.clone(),
                 create_date: response.items[0].create_date.clone(),
@@ -858,7 +864,7 @@ impl<'a> Client<'a> {
                 "tag \"{}\" does not exist",
                 tag_name
             )))
-        };
+        }
     }
 
     pub async fn disable_videos(&self, song_id: i32, video_ids: Vec<String>) -> Result<()> {
@@ -931,7 +937,7 @@ impl<'a> Client<'a> {
             )
             .await?;
 
-        return match response.total_count {
+        match response.total_count {
             1 => {
                 let mut web_links: Vec<WebLinkForApiContract> = match &response.items[0].series {
                     None => vec![],
@@ -941,7 +947,7 @@ impl<'a> Client<'a> {
                             Ok(series_with_links_unwrapped) => {
                                 match series_with_links_unwrapped.web_links {
                                     None => vec![],
-                                    Some(series_links) => series_links.clone(),
+                                    Some(series_links) => series_links,
                                 }
                             }
                             Err(_) => {
@@ -978,7 +984,7 @@ impl<'a> Client<'a> {
                 event_name.clone()
             ))),
             _ => Err(VocadbClientError::AmbiguousResponseError),
-        };
+        }
     }
 
     pub async fn get_event_by_tag(
@@ -998,7 +1004,7 @@ impl<'a> Client<'a> {
             )
             .await?;
 
-        return match response.total_count {
+        match response.total_count {
             1 => Ok(ReleaseEventForApiContractSimplified {
                 date: response.items[0].date.clone(),
                 end_date: response.items[0].end_date.clone(),
@@ -1016,7 +1022,7 @@ impl<'a> Client<'a> {
                 tag_name
             ))),
             _ => Err(VocadbClientError::AmbiguousResponseError),
-        };
+        }
     }
 
     fn get_2nd_level_value(
@@ -1042,7 +1048,7 @@ impl<'a> Client<'a> {
         song_data_src: Map<String, Value>,
         value: String,
     ) -> Map<String, Value> {
-        let mut song_data = song_data_src.clone();
+        let mut song_data = song_data_src;
         let mut description_map = Map::new();
         let src_description = self.get_2nd_level_value(&song_data, "notes", "original");
         let additional_notes = Value::from(value).as_str().unwrap().to_string();
@@ -1067,91 +1073,155 @@ impl<'a> Client<'a> {
         song_data
     }
 
-    pub async fn fill_in_event(
+    fn update_description(
         &self,
-        song_id: i32,
+        song_data: Map<String, Value>,
         event: MinimalEvent,
-    ) -> Result<EventAssigningResult> {
-        let mut song_data: Map<String, Value> = self.get_song_for_edit(song_id).await?;
-        let mut final_result: EventAssigningResult = EventAssigningResult::Assigned;
-        if song_data.contains_key("releaseEvent") {
-            if song_data
-                .get("releaseEvent")
-                .unwrap()
-                .as_object()
-                .unwrap()
-                .get("id")
-                .unwrap()
-                .as_i64()
-                .unwrap()
-                != event.id
-            {
-                if song_data
-                    .get("tags")
-                    .unwrap()
-                    .as_array()
-                    .unwrap()
-                    .contains(&Value::from(8275))
-                {
-                    // "multiple events"
-                    return Ok(EventAssigningResult::AlreadyTaggedWithMultipleEvents);
-                }
-                song_data = self.append_description(
-                    song_data,
-                    format!(
-                        "Another release event: [{}]({}/E/{}/{}).",
-                        event.name, self.base_url, event.id, event.url_slug
-                    ),
-                );
-                final_result = EventAssigningResult::MultipleEvents;
-            } else {
-                return Ok(EventAssigningResult::AlreadyAssigned);
-            }
+        action: EntryAction,
+    ) -> Result<Map<String, Value>> {
+        if action == TagWithParticipant {
+            Ok(self.append_description(
+                song_data,
+                format!(
+                    "Participated in [{}]({}/E/{}/{}).",
+                    event.name, self.base_url, event.id, event.url_slug
+                ),
+            ))
+        } else if action == TagWithMultiple {
+            Ok(self.append_description(
+                song_data,
+                format!(
+                    "Another release event: [{}]({}/E/{}/{}).",
+                    event.name, self.base_url, event.id, event.url_slug
+                ),
+            ))
         } else {
-            let mut event_id_map = Map::new();
-            event_id_map.insert("id".to_string(), Value::from(event.id));
-            song_data.insert("releaseEvent".to_string(), Value::from(event_id_map));
+            Err(VocadbClientError::NotFoundError(format!(
+                "Cannot update description: action not recognized ({})",
+                action
+            )))
         }
-        song_data.insert(
-            "updateNotes".to_string(),
-            Value::from(format!(
-                "Added event \"{}\" (via NicoNicoTagger)",
-                event.name
-            )),
-        );
-
-        self.save_song_data(song_data, song_id).await?;
-
-        return Ok(final_result);
     }
 
-    pub async fn add_event_participation_info(
-        &self,
-        song_id: i32,
-        event: MinimalEvent,
-    ) -> Result<()> {
-        let mut song_data: Map<String, Value> = self.get_song_for_edit(song_id).await?;
-        song_data = self.append_description(
-            song_data,
-            format!(
-                "Participated in [{}]({}/E/{}/{}).",
-                event.name, self.base_url, event.id, event.url_slug
-            ),
+    fn remove_event(&self, song_data: Map<String, Value>, event_name: String) -> Result<Map<String, Value>> {
+        let mut song_data_edited = song_data;
+        song_data_edited.remove("releaseEvent");
+        song_data_edited.insert(
+            "updateNotes".to_string(),
+            Value::from(format!(
+                "Removed event \"{}\" (via NicoNicoTagger)",
+                event_name
+            )),
         );
-        song_data.insert(
+        Ok(song_data_edited)
+    }
+
+    fn fill_in_event(
+        &self,
+        song_data: Map<String, Value>,
+        event: MinimalEvent,
+    ) -> Result<Map<String, Value>> {
+        let mut song_data_edited = song_data;
+        let mut event_id_map = Map::new();
+        event_id_map.insert("id".to_string(), Value::from(event.id));
+        song_data_edited.insert("releaseEvent".to_string(), Value::from(event_id_map));
+        song_data_edited.insert(
             "updateNotes".to_string(),
             Value::from(format!(
                 "Added event \"{}\" (via NicoNicoTagger)",
                 event.name
             )),
         );
+        Ok(song_data_edited)
+    }
 
-        self.save_song_data(song_data, song_id).await?;
+    async fn edit_entry(&self, song_id: i32,
+                        event: MinimalEvent,
+                        actions: Vec<EntryAction>,
+                        description_action: EntryAction) -> Result<()> {
+        let mut song_data: Map<String, Value> = self.get_song_for_edit(song_id).await?;
+        for action in &actions {
+            song_data = match action {
+                Assign => {
+                    self.fill_in_event(song_data, event.clone())?
+                }
+                RemoveEvent => {
+                    self.remove_event(song_data, event.name.clone())?
+                }
+                UpdateDescription => {
+                    if description_action == TagWithParticipant || description_action == TagWithMultiple {
+                        self.update_description(song_data, event.clone(), description_action)?
+                    } else {
+                        return Err(VocadbClientError::NotFoundError(format!(
+                            "Cannot process song: description action not recognized ({})",
+                            description_action
+                        )));
+                    }
+                }
+                TagWithParticipant | TagWithMultiple | Untag => { song_data }
+                _ => {
+                    return Err(VocadbClientError::NotFoundError(format!(
+                        "Cannot process song: event action not recognized ({})",
+                        action
+                    )));
+                }
+            };
+        };
+
+        self.save_song_data(song_data, song_id).await
+    }
+
+    pub async fn execute_actions(
+        &self,
+        song_id: i32,
+        event: MinimalEvent,
+        actions: Vec<EntryAction>,
+        description_action: EntryAction,
+    ) -> Result<()> {
+        if actions.contains(&Assign) || actions.contains(&UpdateDescription) || actions.contains(&RemoveEvent) {
+            self.edit_entry(song_id, event, actions.clone(), description_action).await?;
+        }
+
+        for action in &actions {
+            match action {
+                TagWithParticipant => {
+                    self.add_tags(
+                        vec![TagBaseContract {
+                            id: 9141,
+                            name: String::from("event participant"),
+                            category_name: Some(String::from("Editor notes")),
+                            additional_names: Some(String::from("")),
+                            url_slug: String::from("event-participant"),
+                        }], song_id, ).await?
+                }
+                TagWithMultiple => {
+                    self.add_tags(
+                        vec![TagBaseContract {
+                            id: 8275,
+                            name: String::from("multiple events"),
+                            category_name: Some(String::from("Editor notes")),
+                            additional_names: Some(String::from("")),
+                            url_slug: String::from("multiple-events"),
+                        }], song_id).await?
+                }
+                Assign | UpdateDescription | RemoveEvent | Untag => {}
+                _ => {
+                    return Err(VocadbClientError::NotFoundError(format!(
+                        "Cannot process song: event action not recognized ({})",
+                        action
+                    )));
+                }
+            }
+        }
 
         Ok(())
     }
 
-    async fn build_request_with_token(&self, url: String, method: Method) -> Result<ClientRequest, VocadbClientError> {
+    async fn build_request_with_token(
+        &self,
+        url: String,
+        method: Method,
+    ) -> Result<ClientRequest, VocadbClientError> {
         let atf_cookies = self
             .create_request(
                 &format!("{}/api/antiforgery/token", self.base_url),
@@ -1182,11 +1252,7 @@ impl<'a> Client<'a> {
             .insert_header(("X-XSRF-TOKEN", antiforgery_token.as_str())))
     }
 
-    async fn save_song_data(
-        &self,
-        song_data: Map<String, Value>,
-        song_id: i32,
-    ) -> Result<()> {
+    async fn save_song_data(&self, song_data: Map<String, Value>, song_id: i32) -> Result<()> {
         #[derive(Serialize, Debug)]
         struct FormData {
             contract: String,
@@ -1194,9 +1260,15 @@ impl<'a> Client<'a> {
 
         let edited_song = serde_json::to_string(&song_data).context("Unable to serialize")?;
 
-        self.build_request_with_token(format!("{}/api/songs/{}", self.base_url, song_id), Method::POST).await?
+        self.build_request_with_token(
+            format!("{}/api/songs/{}", self.base_url, song_id),
+            Method::POST,
+        )
+            .await?
             .content_type("application/x-www-form-urlencoded")
-            .send_form(&FormData { contract: edited_song })
+            .send_form(&FormData {
+                contract: edited_song,
+            })
             .await?
             .body()
             .await?;
@@ -1216,11 +1288,11 @@ impl<'a> Client<'a> {
                 }
                 return Some(val.to_string());
             }
-            return None;
+            None
         }
 
         fn find_tag_id(tag_id: i64, tr: &ElementRef) -> bool {
-            let id_str = format!("/T/{}/", tag_id).to_string();
+            let id_str = format!("/T/{}/", tag_id);
             for td in tr.children() {
                 for child in td.children() {
                     match child.value() {
@@ -1234,7 +1306,7 @@ impl<'a> Client<'a> {
                     }
                 }
             }
-            return false;
+            false
         }
 
         fn process_row(tag_id: i64, tr: &ElementRef, entity: String) -> Option<i64> {
@@ -1258,7 +1330,7 @@ impl<'a> Client<'a> {
                     }
                 }
             }
-            return None;
+            None
         }
 
         fn extract_tag_usage_id(html: &str, tag_id: i64, entity: String) -> Option<i64> {
@@ -1272,7 +1344,7 @@ impl<'a> Client<'a> {
                     break;
                 }
             }
-            return tag_usage_id;
+            tag_usage_id
         }
 
         let query = vec![];
@@ -1305,12 +1377,13 @@ impl<'a> Client<'a> {
         )
             .await?;
 
-        return Ok(());
+        Ok(())
     }
 
     pub async fn get_songs_by_vocadb_event_tag(
         &self,
         tag_id: i32,
+        event_id: i32,
         start_offset: i32,
         max_results: i32,
         order_by: String,
@@ -1330,33 +1403,34 @@ impl<'a> Client<'a> {
             )
             .await?;
 
-        return if response.total_count > 0 {
+        if response.total_count > 0 {
+            let mut entries = vec![];
+            for ref item in response.items {
+                let link_in_description = self.event_link_in_description(event_id, item.id).await?;
+                entries.push(SongForApiContractSimplifiedWithMultipleEventInfo {
+                    id: item.id,
+                    name: item.name.clone(),
+                    tagged_with_multiple_events: item
+                        .tags
+                        .iter()
+                        .map(|tag| tag.tag.id)
+                        .any(|id| id == 8275),
+                    tagged_with_event_participant: item
+                        .tags
+                        .iter()
+                        .map(|tag| tag.tag.id)
+                        .any(|id| id == 9141),
+                    event_id_in_description: link_in_description,
+                    song_type: item.song_type.clone(),
+                    artist_string: item.artist_string.clone(),
+                    release_event: item.release_event.clone(),
+                    publish_date: item.publish_date.clone(),
+                });
+            }
+
             Ok(
                 SongForApiContractSimplifiedWithMultipleEventInfoSearchResult {
-                    items: response
-                        .items
-                        .iter()
-                        .map(|item| SongForApiContractSimplifiedWithMultipleEventInfo {
-                            id: item.id,
-                            name: item.name.clone(),
-                            tagged_with_multiple_events: item
-                                .tags
-                                .iter()
-                                .map(|tag| tag.tag.id)
-                                .find(|&id| id == 8275)
-                                .is_some(),
-                            tagged_with_event_participant: item
-                                .tags
-                                .iter()
-                                .map(|tag| tag.tag.id)
-                                .find(|&id| id == 9141)
-                                .is_some(),
-                            song_type: item.song_type.clone(),
-                            artist_string: item.artist_string.clone(),
-                            release_event: item.release_event.clone(),
-                            publish_date: item.publish_date.clone(),
-                        })
-                        .collect(),
+                    items: entries,
                     total_count: response.total_count,
                 },
             )
@@ -1365,7 +1439,7 @@ impl<'a> Client<'a> {
                 "tag with id=\"{}\" is not attached to any songs",
                 tag_id
             )))
-        };
+        }
     }
 
     pub async fn get_videos_from_db_before_since(
@@ -1389,7 +1463,7 @@ impl<'a> Client<'a> {
                     ("fields", String::from("Entry")),
                     ("entryFields", String::from("PVs,Tags")),
                     ("lang", String::from("Default")),
-                    ("sortRule", String::from(sort_rule)),
+                    ("sortRule", sort_rule),
                 ],
             )
             .await?;
@@ -1403,54 +1477,49 @@ impl<'a> Client<'a> {
         for response_item in response.items {
             if response_item.entry.entry_type == EntryType::Song
                 && response_item.edit_event == ActivityEditEvent::Created
+                && ((mode == *"since" && response_item.entry.id > song_id)
+                || (mode == *"before" && response_item.entry.id < song_id))
             {
-                if (mode == String::from("since") && response_item.entry.id > song_id)
-                    || (mode == String::from("before") && response_item.entry.id < song_id)
-                {
-                    match response_item.entry.pvs {
-                        Some(ref pvs) => {
-                            let nico_pvs: Vec<&PVContract> = pvs
-                                .iter()
-                                .filter(|pv| pv.service == PvService::NicoNicoDouga)
-                                .collect();
-                            if !nico_pvs.is_empty() {
-                                if nico_pvs.iter().any(|pv| !pv.disabled) {
-                                    response_entries.push(SongForApiContract {
-                                        id: response_item.entry.id,
-                                        name: response_item.entry.name,
-                                        tags: match response_item.entry.tags {
-                                            Some(tags) => tags,
-                                            None => vec![],
-                                        },
-                                        song_type: response_item.entry.song_type.unwrap(),
-                                        artist_string: response_item.entry.artist_string.unwrap(),
-                                        create_date: response_item.entry.create_date,
-                                        pvs: response_item.entry.pvs,
-                                        rating_score: Some(0),
-                                        release_event: None,
-                                        publish_date: None,
-                                        albums: None,
-                                        artists: vec![],
-                                    });
-                                } else {
-                                    response_entries.push(SongForApiContract {
-                                        id: response_item.entry.id,
-                                        name: response_item.entry.name,
-                                        tags: vec![],
-                                        song_type: response_item.entry.song_type.unwrap(),
-                                        artist_string: response_item.entry.artist_string.unwrap(),
-                                        create_date: response_item.entry.create_date,
-                                        pvs: Some(vec![]),
-                                        rating_score: Some(0),
-                                        release_event: None,
-                                        publish_date: None,
-                                        albums: None,
-                                        artists: vec![],
-                                    });
-                                };
-                            }
-                        }
-                        _ => {}
+                if let Some(ref pvs) = response_item.entry.pvs {
+                    let nico_pvs: Vec<&PVContract> = pvs
+                        .iter()
+                        .filter(|pv| pv.service == PvService::NicoNicoDouga)
+                        .collect();
+                    if !nico_pvs.is_empty() {
+                        if nico_pvs.iter().any(|pv| !pv.disabled) {
+                            response_entries.push(SongForApiContract {
+                                id: response_item.entry.id,
+                                name: response_item.entry.name,
+                                tags: match response_item.entry.tags {
+                                    Some(tags) => tags,
+                                    None => vec![],
+                                },
+                                song_type: response_item.entry.song_type.unwrap(),
+                                artist_string: response_item.entry.artist_string.unwrap(),
+                                create_date: response_item.entry.create_date,
+                                pvs: response_item.entry.pvs,
+                                rating_score: Some(0),
+                                release_event: None,
+                                publish_date: None,
+                                albums: None,
+                                artists: vec![],
+                            });
+                        } else {
+                            response_entries.push(SongForApiContract {
+                                id: response_item.entry.id,
+                                name: response_item.entry.name,
+                                tags: vec![],
+                                song_type: response_item.entry.song_type.unwrap(),
+                                artist_string: response_item.entry.artist_string.unwrap(),
+                                create_date: response_item.entry.create_date,
+                                pvs: Some(vec![]),
+                                rating_score: Some(0),
+                                release_event: None,
+                                publish_date: None,
+                                albums: None,
+                                artists: vec![],
+                            });
+                        };
                     }
                 }
             }
@@ -1464,10 +1533,10 @@ impl<'a> Client<'a> {
             .as_ref();
         let mut mapped_response = vec![];
 
-        let res_len = i32::from(response_entries_small.len() as i32);
+        let res_len = response_entries_small.len() as i32;
 
-        if i32::from(res_len) > 0 {
-            if i32::from(res_len) == max_results {
+        if res_len > 0 {
+            if res_len == max_results {
                 timestamp_last = response_entries_small[res_len as usize - 1]
                     .create_date
                     .clone();
@@ -1501,7 +1570,7 @@ impl<'a> Client<'a> {
                 .attribute("status")
                 .unwrap();
 
-            return if status.eq("ok") {
+            if status.eq("ok") {
                 let ok = ThumbnailOk {
                     id: thumnail_id.to_string(),
                     title: get_text(&doc, "title"),
@@ -1522,7 +1591,7 @@ impl<'a> Client<'a> {
                     community,
                 };
                 Err(err)
-            };
+            }
         }
 
         fn get_i32(doc: &Document, param: &str) -> i32 {
@@ -1612,7 +1681,7 @@ impl<'a> Client<'a> {
             });
         }
 
-        return Ok(mapped_response);
+        Ok(mapped_response)
     }
 
     pub async fn get_videos_from_db(
@@ -1657,7 +1726,7 @@ impl<'a> Client<'a> {
             )
             .await?
             .to_vec();
-        return Ok(vec);
+        Ok(vec)
     }
 
     async fn possibly_first_work(&self, song_id: i32) -> Result<bool> {
@@ -1716,12 +1785,12 @@ impl<'a> Client<'a> {
             });
         }
 
-        return Ok(DBFetchResponseWithTimestamps {
+        Ok(DBFetchResponseWithTimestamps {
             items: song_tags_to_map,
             total_count: songs.total_count,
             timestamp_first: songs.timestamp_first,
             timestamp_last: songs.timestamp_last,
-        });
+        })
     }
 
     async fn is_not_first_work(&self, publish_date: String, artist_id: i32) -> Result<bool> {
@@ -1736,7 +1805,7 @@ impl<'a> Client<'a> {
             )
             .await?;
 
-        Ok(response.items.len() != 0)
+        Ok(!response.items.is_empty())
     }
 
     async fn get_effective_creator_id(&self, song_id: i32) -> Result<i32> {
@@ -1819,7 +1888,7 @@ impl<'a> Client<'a> {
             });
         }
 
-        return res;
+        res
     }
 
     pub async fn get_song_for_edit(&self, song_id: i32) -> Result<Map<String, Value>> {
@@ -1832,6 +1901,6 @@ impl<'a> Client<'a> {
             .await?;
         let map = response.as_object().context("Response is not a map")?;
 
-        return Ok(map.clone());
+        Ok(map.clone())
     }
 }

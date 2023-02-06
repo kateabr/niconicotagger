@@ -3,6 +3,7 @@ use crate::client::models::archived::ArchivedObjectVersionForApiContract;
 use crate::client::models::artist::{ArtistType, NicoPublisher};
 use crate::client::models::releaseevent::ReleaseEventForApiContractSimplified;
 use serde::{Deserialize, Serialize};
+use strum_macros::Display;
 
 use crate::client::models::song::{SongForApiContract, SongType};
 use crate::client::models::tag::AssignableTag;
@@ -187,6 +188,8 @@ pub struct SongForApiContractSimplifiedWithMultipleEventInfo {
     pub tagged_with_multiple_events: bool,
     #[serde(rename = "taggedWithEventParticipant")]
     pub tagged_with_event_participant: bool,
+    #[serde(rename = "eventIdInDescription")]
+    pub event_id_in_description: bool,
     #[serde(rename = "songType")]
     pub song_type: SongType,
     #[serde(rename = "artistString")]
@@ -392,8 +395,9 @@ pub struct AssignEventAndRemoveTagPayload {
     pub event: MinimalEvent,
     #[serde(rename = "tagId")]
     pub tag_id: i64,
-    #[serde(rename = "participatedOnUpload")]
-    pub participated_on_upload: bool,
+    pub actions: Vec<EntryAction>,
+    #[serde(rename = "descriptionAction")]
+    pub description_action: EntryAction,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -401,8 +405,9 @@ pub struct AssignEventPayload {
     #[serde(rename = "songId")]
     pub song_id: i32,
     pub event: MinimalEvent,
-    #[serde(rename = "participatedOnUpload")]
-    pub participated_on_upload: bool,
+    pub actions: Vec<EntryAction>,
+    #[serde(rename = "descriptionAction")]
+    pub description_action: EntryAction,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -420,6 +425,17 @@ pub enum EventAssigningResult {
     MultipleEvents,
     AlreadyTaggedWithMultipleEvents,
     Participated,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Display)]
+pub enum EntryAction {
+    Assign,
+    TagWithParticipant,
+    TagWithMultiple,
+    UpdateDescription,
+    RemoveEvent,
+    NoAction,
+    Untag,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
