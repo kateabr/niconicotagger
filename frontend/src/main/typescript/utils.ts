@@ -361,10 +361,6 @@ export function hasAnyAction(actions: EntryAction[], actionNames: string[]): boo
   return actions.map(value => value.action).some(value => actionNames.includes(value));
 }
 
-export function noActionNeeded(actions: EntryAction[]): boolean {
-  return actions.length == 1 && actions[0].action == "NoAction";
-}
-
 export function getDescriptionAction(
   actions: EntryAction[],
   song: VideoWithEntryAndVisibility | EntryWithReleaseEventAndVisibility
@@ -377,13 +373,15 @@ export function getDescriptionAction(
   } else if (song.songEntry != null) {
     if (
       actions.map(value => value.action).findIndex(value => value == "TagWithParticipant") > -1 ||
-      (!song.songEntry.eventDateComparison.eligible &&
-        song.songEntry.eventDateComparison.disposition == "early")
+      song.songEntry.eventDateComparison.eligible ||
+      song.songEntry.eventDateComparison.disposition == "early"
     ) {
       return "TagWithParticipant";
     } else if (
       actions.map(value => value.action).findIndex(value => value == "TagWithMultiple") > -1 ||
-      song.songEntry.eventDateComparison.eligible
+      (song.songEntry.eventDateComparison.eligible &&
+        song.songEntry.releaseEvent != null &&
+        actions.map(value => value.action).findIndex(value => value == "RemoveEvent") == -1)
     ) {
       return "TagWithMultiple";
     }

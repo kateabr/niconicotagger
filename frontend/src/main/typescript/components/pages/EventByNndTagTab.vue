@@ -670,7 +670,14 @@ import DateDisposition from "@/components/DateDisposition.vue";
 import { AxiosResponse } from "axios";
 import Action from "@/components/Action.vue";
 
-@Component({ components: { Action, ErrorMessage, NicoEmbed, DateDisposition } })
+@Component({
+  methods: {
+    getShortenedSongType,
+    getNicoVideoUrl,
+    getSongTypeColorForDisplay
+  },
+  components: { Action, ErrorMessage, NicoEmbed, DateDisposition }
+})
 export default class extends Vue {
   @Prop()
   private readonly mode!: string;
@@ -752,9 +759,6 @@ export default class extends Vue {
   };
 
   // proxy methods
-  private getShortenedSongType(songType: string): string {
-    return getShortenedSongType(songType);
-  }
 
   private getVocaDBEventUrl(id: number, urlSlug: string): string {
     return getVocaDBEventUrl(this.dbAddress, id, urlSlug);
@@ -766,10 +770,6 @@ export default class extends Vue {
 
   private getVocaDBTagUrl(id: number, urlSlug: string): string {
     return getVocaDBTagUrl(this.dbAddress, id, urlSlug);
-  }
-
-  private getNicoVideoUrl(contentId: string): string {
-    return getNicoVideoUrl(contentId);
   }
 
   private getMaxResultsForDisplay(): string {
@@ -786,10 +786,6 @@ export default class extends Vue {
 
   private getVocaDBAddSongUrl(contentId: string): string {
     return getVocaDBAddSongUrl(this.dbAddress, contentId);
-  }
-
-  private getSongTypeColorForDisplay(typeString: string): string {
-    return getSongTypeColorForDisplay(typeString);
   }
 
   private getNicoTagUrl(tag: string): string {
