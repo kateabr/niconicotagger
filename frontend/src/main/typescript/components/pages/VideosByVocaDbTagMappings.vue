@@ -501,8 +501,9 @@ import { AssignableTag } from "@/backend/dto";
 import { api } from "@/backend";
 import ErrorMessage from "@/components/ErrorMessage.vue";
 import { AxiosResponse } from "axios";
+import NicoEmbed from "@/components/NicoEmbed.vue";
 
-@Component({ components: { ErrorMessage } })
+@Component({ components: { NicoEmbed, ErrorMessage } })
 export default class extends Vue {
   @Prop()
   private readonly mode!: string;

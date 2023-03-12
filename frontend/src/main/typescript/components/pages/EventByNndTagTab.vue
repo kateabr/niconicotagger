@@ -480,6 +480,7 @@
                 v-if="hasPublishDate(item)"
                 :release-date="item.songEntry.publishDate"
                 :event-date-comparison="item.songEntry.eventDateComparison"
+                :event-id-in-description="item.songEntry.eventIdInDescription"
                 :delta="timeDelta"
               />
               <b-badge v-else variant="danger"
@@ -491,6 +492,7 @@
                 :release-date="item.video.startTime"
                 :event-date-comparison="item.video.eventDateComparison"
                 :published-in-time="item.video.eventDateComparison.eligible"
+                :event-id-in-description="false"
                 :delta="timeDelta"
               />
             </td>
@@ -1013,8 +1015,7 @@ export default class extends Vue {
           (this.isEligible(item) ||
             (this.allowIneligibleVideos &&
               item.songEntry.eventDateComparison.disposition == "early")) &&
-          !item.songEntry.eventDateComparison.participatedOnUpload &&
-          !item.songEntry.eventDateComparison.participated
+          !item.songEntry.eventDateComparison.participatedOnUpload
         ) {
           res.push({ action: "Assign" });
         }

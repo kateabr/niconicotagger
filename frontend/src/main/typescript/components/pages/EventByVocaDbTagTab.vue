@@ -354,6 +354,7 @@
                 v-if="item.publishDate !== null"
                 :release-date="item.songEntry.publishDate"
                 :event-date-comparison="item.songEntry.eventDateComparison"
+                :event-id-in-description="item.songEntry.eventIdInDescription"
                 :delta="timeDelta"
               />
             </td>

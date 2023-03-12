@@ -18,7 +18,7 @@
       {{ getReleaseDateCommentaryFormatted(eventDateComparison) }}
     </span>
     <b-badge
-      v-if="eventDateComparison.participated"
+      v-if="eventDateComparison.participated && eventIdInDescription"
       variant="success"
       class="mr-1 ml-3"
     >
@@ -57,6 +57,9 @@ export default class extends Vue {
 
   @Prop()
   private readonly delta!: number;
+
+  @Prop()
+  private readonly eventIdInDescription!: boolean;
 
   private getDispositionBadgeColorVariant(
     eventDateComparison: DateComparisonResult
