@@ -58,7 +58,7 @@ pub struct OldUsernameContract {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct OptionalDateTimeContract {
     day: Option<i32>,
-    formatted: String,
+    formatted: Option<String>,
     #[serde(rename = "isEmpty")]
     is_empty: bool,
     month: Option<i32>,

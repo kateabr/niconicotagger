@@ -358,7 +358,10 @@ pub async fn fetch_release_event_with_nnd_tags(
             if path_segments.len() < 2 {
                 continue;
             }
-            let tag = url_escape::decode(path_segments[1]).to_string();
+            let tag = url_escape::decode(path_segments[1])
+                .replace(
+                    String::from("%23").as_str(),
+                    String::from("#").as_str()).to_string();
             result.push(tag);
         }
         Ok(result)
