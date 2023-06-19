@@ -1249,7 +1249,8 @@ impl<'a> Client<'a> {
 
         Ok(request
             .insert_header(("requestVerificationToken", antiforgery_token.as_str()))
-            .insert_header(("X-XSRF-TOKEN", antiforgery_token.as_str())))
+            .insert_header(("X-XSRF-TOKEN", antiforgery_token.as_str()))
+            .insert_header(("Origin", self.base_url)))
     }
 
     async fn save_song_data(&self, song_data: Map<String, Value>, song_id: i32) -> Result<()> {
