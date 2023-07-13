@@ -140,8 +140,8 @@ pub struct SongForApiContractSimplified {
     pub song_type: String,
     #[serde(rename = "artistString")]
     pub artist_string: String,
-    #[serde(rename = "releaseEvent")]
-    pub release_event: Option<ReleaseEventForApiContractSimplified>,
+    #[serde(rename = "releaseEvents")]
+    pub release_events: Vec<ReleaseEventForApiContractSimplified>,
     #[serde(rename = "publishDate")]
     pub publish_date: Option<String>,
     pub tags: Vec<TagBaseContractSimplified>,
@@ -164,8 +164,8 @@ pub struct SongForApiContractSimplifiedWithTagUsageCounts {
     pub song_type: String,
     #[serde(rename = "artistString")]
     pub artist_string: String,
-    #[serde(rename = "releaseEvent")]
-    pub release_event: Option<ReleaseEventForApiContractSimplified>,
+    #[serde(rename = "releaseEvents")]
+    pub release_events: Vec<ReleaseEventForApiContractSimplified>,
     #[serde(rename = "publishDate")]
     pub publish_date: Option<String>,
     pub tags: Vec<TagBaseContractSimplifiedWithUsageCount>,
@@ -194,8 +194,8 @@ pub struct SongForApiContractSimplifiedWithMultipleEventInfo {
     pub song_type: SongType,
     #[serde(rename = "artistString")]
     pub artist_string: String,
-    #[serde(rename = "releaseEvent")]
-    pub release_event: Option<ReleaseEventForApiContractSimplified>,
+    #[serde(rename = "releaseEvents")]
+    pub release_events: Vec<ReleaseEventForApiContractSimplified>,
     #[serde(rename = "publishDate")]
     pub publish_date: Option<String>,
 }
@@ -431,7 +431,6 @@ pub enum EventAssigningResult {
 pub enum EntryAction {
     Assign,
     TagWithParticipant,
-    TagWithMultiple,
     UpdateDescription,
     RemoveEvent,
     NoAction,

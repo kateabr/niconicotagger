@@ -346,7 +346,6 @@ export interface EntryAction {
   action:
     | "Assign"
     | "TagWithParticipant"
-    | "TagWithMultiple"
     | "UpdateDescription"
     | "RemoveEvent"
     | "NoAction"
@@ -377,13 +376,6 @@ export function getDescriptionAction(
       song.songEntry.eventDateComparison.disposition == "early"
     ) {
       return "TagWithParticipant";
-    } else if (
-      actions.map(value => value.action).findIndex(value => value == "TagWithMultiple") > -1 ||
-      (song.songEntry.eventDateComparison.eligible &&
-        song.songEntry.releaseEvent != null &&
-        actions.map(value => value.action).findIndex(value => value == "RemoveEvent") == -1)
-    ) {
-      return "TagWithMultiple";
     }
   }
   return "NoAction";
@@ -442,11 +434,12 @@ export function getDispositionBadgeColorVariant(
 }
 
 export function getEventColorVariant(
-  entry: EntryWithReleaseEventAndVisibility,
-  eventId: number
+  event: ReleaseEventForApiContractSimplified,
+  eventId: number,
+  participatedOnUpload: boolean
 ): string {
-  if (entry.songEntry!.releaseEvent!.id == eventId) {
-    if (!entry.songEntry!.eventDateComparison.participatedOnUpload) {
+  if (event.id == eventId) {
+    if (!participatedOnUpload) {
       return "success";
     } else {
       return "danger";

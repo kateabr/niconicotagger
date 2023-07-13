@@ -8,17 +8,12 @@
         >"
       </li>
       <li v-if="hasAction('Assign')">
-        Set "<b-link :href="link" target="_blank">{{ name }}</b-link
-        >" as release event
+        Add "<b-link :href="link" target="_blank">{{ name }}</b-link
+        >" to release events
       </li>
       <li v-else-if="hasAction('TagWithParticipant')">
         Tag with "<b-link target="_blank" :href="participantLink"
           >event participant</b-link
-        >"
-      </li>
-      <li v-else-if="hasAction('TagWithMultiple')">
-        Tag with "<b-link target="_blank" :href="multipleEventsLink"
-          >multiple events</b-link
         >"
       </li>
       <li v-if="hasAction('UpdateDescription')">Update entry description</li>

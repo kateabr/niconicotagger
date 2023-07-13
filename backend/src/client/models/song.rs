@@ -105,8 +105,8 @@ pub struct SongForApiContract {
     #[serde(rename = "createDate")]
     pub create_date: String,
     pub pvs: Option<Vec<PVContract>>,
-    #[serde(rename = "releaseEvent")]
-    pub release_event: Option<ReleaseEventForApiContractSimplified>,
+    #[serde(rename = "releaseEvents")]
+    pub release_events: Vec<ReleaseEventForApiContractSimplified>,
     #[serde(rename = "ratingScore")]
     pub rating_score: Option<i32>,
     #[serde(rename = "publishDate")]

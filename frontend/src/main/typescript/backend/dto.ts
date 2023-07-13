@@ -82,7 +82,7 @@ export interface SongForApiContractSimplifiedWithReleaseEvent {
   songType: string;
   artistString: string;
   createDate: string;
-  releaseEvent: ReleaseEventForApiContractSimplified | null;
+  releaseEvents: ReleaseEventForApiContractSimplified[];
   publishDate: string | null;
   eventDateComparison: DateComparisonResult;
   taggedWithMultipleEvents: boolean;

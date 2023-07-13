@@ -380,7 +380,7 @@
             />
           </b-th>
           <b-th class="col-3 align-middle">Video</b-th>
-          <b-th class="col-2 align-middle">Current release event</b-th>
+          <b-th class="col-2 align-middle">Current release events</b-th>
           <b-th class="col-3 align-middle">Release date</b-th>
           <b-th class="col-3 align-middle">Proposed actions</b-th>
           <b-th class="col-1"></b-th>
@@ -437,24 +437,33 @@
               </b-collapse>
             </td>
             <td>
-              <span v-if="hasReleaseEvent(item)" class="font-weight-bolder">
-                <b-badge
-                  v-if="
-                    item.songEntry !== null &&
-                    item.songEntry.releaseEvent !== null
-                  "
-                  class="badge text-center"
-                  :variant="getEventColorVariant(item)"
-                  :href="
-                    getVocaDBEventUrl(
-                      item.songEntry.releaseEvent.id,
-                      item.songEntry.releaseEvent.urlSlug
-                    )
-                  "
-                  target="_blank"
+              <span
+                v-if="
+                  item.songEntry != null &&
+                  item.songEntry.releaseEvents.length > 0
+                "
+              >
+                <div
+                  v-for="(releaseEvent, key1) in item.songEntry.releaseEvents"
+                  :key="key1"
+                  class="font-weight-bolder"
                 >
-                  {{ item.songEntry.releaseEvent.name }}
-                </b-badge>
+                  <b-badge
+                    class="badge text-center"
+                    :variant="
+                      getEventColorVariant(
+                        releaseEvent,
+                        item.songEntry.eventDateComparison.participatedOnUpload
+                      )
+                    "
+                    :href="
+                      getVocaDBEventUrl(releaseEvent.id, releaseEvent.urlSlug)
+                    "
+                    target="_blank"
+                  >
+                    {{ releaseEvent.name }}
+                  </b-badge>
+                </div>
               </span>
               <span v-else-if="item.songEntry != null" class="text-muted"
                 >Unspecified</span
@@ -581,7 +590,7 @@
               @change="toggleCheckAll"
           /></b-th>
           <b-th class="col-3 align-middle">Video</b-th>
-          <b-th class="col-2 align-middle">Current release event</b-th>
+          <b-th class="col-2 align-middle">Current release events</b-th>
           <b-th class="col-3 align-middle">Release date</b-th>
           <b-th class="col-3 align-middle">Proposed actions</b-th>
           <b-th class="col-1"></b-th>
@@ -631,7 +640,10 @@
 
 <script lang="ts">
 import Vue from "vue";
-import { ReleaseEventForDisplay } from "@/backend/dto";
+import {
+  ReleaseEventForApiContractSimplified,
+  ReleaseEventForDisplay
+} from "@/backend/dto";
 import { api } from "@/backend";
 import { DateTime } from "luxon";
 import Component from "vue-class-component";
@@ -850,7 +862,7 @@ export default class extends Vue {
   }
 
   private hasReleaseEvent(video: VideoWithEntryAndVisibility): boolean {
-    return video.songEntry != null && video.songEntry.releaseEvent != null;
+    return video.songEntry != null && video.songEntry.releaseEvents != null;
   }
 
   private hasPublishDate(video: VideoWithEntryAndVisibility): boolean {
@@ -884,9 +896,10 @@ export default class extends Vue {
   }
 
   private getEventColorVariant(
-    entry: EntryWithReleaseEventAndVisibility
+    event: ReleaseEventForApiContractSimplified,
+    participatedOnUpload: boolean
   ): string {
-    return getEventColorVariant(entry, this.event.id);
+    return getEventColorVariant(event, this.event.id, participatedOnUpload);
   }
 
   private hasAction(
@@ -957,7 +970,6 @@ export default class extends Vue {
         this.hasAnyAction(item, [
           "Assign",
           "TagWithParticipant",
-          "TagWithMultiple",
           "UpdateDescription"
         ])) ||
       this.hasAction(item, "RemoveEvent")
@@ -969,7 +981,8 @@ export default class extends Vue {
       item.songEntry != null &&
       item.processed &&
       this.hasReleaseEvent(item) &&
-      item.songEntry.releaseEvent!.id === this.event.id &&
+      item.songEntry.releaseEvents.filter(re => re.id == this.event.id).length >
+        0 &&
       item.songEntry.eventDateComparison.participatedOnUpload
     );
   }
@@ -998,19 +1011,7 @@ export default class extends Vue {
         if (res.length != 0) {
           return res;
         }
-      } else if (this.hasReleaseEvent(item)) {
-        if (item.songEntry.releaseEvent!.id != this.event.id) {
-          if (!this.isTaggedWithMultipleEvents(item)) {
-            res.push({ action: "TagWithMultiple" });
-          }
-          if (!this.hasEventIdInDescription(item)) {
-            res.push({ action: "UpdateDescription" });
-          }
-          if (res.length != 0) {
-            return res;
-          }
-        }
-      } else if (!this.hasReleaseEvent(item) && !item.processed) {
+      } else if (!item.processed) {
         if (
           (this.isEligible(item) ||
             (this.allowIneligibleVideos &&
@@ -1135,12 +1136,10 @@ export default class extends Vue {
           );
           item.songEntry.eventDateComparison.participated =
             item.songEntry.taggedWithEventParticipant &&
-            (item.songEntry.releaseEvent == null ||
-              item.songEntry.releaseEvent.id != this.event.id);
-          item.songEntry.eventDateComparison.multiple =
-            item.songEntry.taggedWithMultipleEvents &&
-            (item.songEntry.releaseEvent == null ||
-              item.songEntry.releaseEvent.id != this.event.id);
+            (item.songEntry.releaseEvents.length == 0 ||
+              item.songEntry.releaseEvents.filter(re => re.id != this.event.id)
+                .length > 0);
+          item.songEntry.eventDateComparison.multiple = false;
           if (
             !item.songEntry.eventDateComparison.eligible &&
             item.video.eventDateComparison.eligible
@@ -1199,7 +1198,7 @@ export default class extends Vue {
       });
       for (const action of actions) {
         if (action.action == "Assign") {
-          song.songEntry.releaseEvent = {
+          song.songEntry.releaseEvents.push({
             id: this.event.id,
             date: null,
             nndTags: this.event.nndTags,
@@ -1207,17 +1206,16 @@ export default class extends Vue {
             urlSlug: this.event.urlSlug,
             category: this.event.category,
             endDate: null
-          };
+          });
         } else if (action.action == "TagWithParticipant") {
           song.songEntry.taggedWithEventParticipant = true;
           song.songEntry.eventDateComparison.participated = true;
-        } else if (action.action == "TagWithMultiple") {
-          song.songEntry.taggedWithMultipleEvents = true;
-          song.songEntry.eventDateComparison.multiple = true;
         } else if (action.action == "UpdateDescription") {
           song.songEntry.eventIdInDescription = true;
         } else if (action.action == "RemoveEvent") {
-          song.songEntry.releaseEvent = null;
+          song.songEntry.releaseEvents = song.songEntry.releaseEvents.filter(
+            re => re.id != this.event.id
+          );
         }
       }
       song.processed = true;

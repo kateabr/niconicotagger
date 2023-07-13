@@ -51,7 +51,7 @@ use crate::client::nicomodels::{
     Tag, TagBaseContractSimplified, ThumbnailError, ThumbnailOk, ThumbnailOkWithMappedTags,
     ThumbnailTagMappedWithAssignAndLockInfo,
 };
-use crate::web::dto::EntryAction::{TagWithMultiple, TagWithParticipant};
+use crate::web::dto::EntryAction::TagWithParticipant;
 use crate::web::dto::{
     ArtistEntriesForTagRemoval, ArtistEntryForTagRemoval, ArtistForApiContractSimplified,
     ArtistForApiContractSimplifiedWithTagUsageCounts, DBFetchResponseWithTimestamps,
@@ -473,7 +473,7 @@ impl<'a> Client<'a> {
                         name: song.name.clone(),
                         song_type: song.song_type.clone(),
                         artist_string: song.artist_string.clone(),
-                        release_event: None,
+                        release_events: Vec::new(),
                         publish_date: None,
                         tags: song.tags.iter().map(|t| t.tag.clone()).collect(),
                     },
@@ -673,7 +673,7 @@ impl<'a> Client<'a> {
                 event_id_in_description: false,
                 song_type: res.song_type,
                 artist_string: res.artist_string.clone(),
-                release_event: res.release_event,
+                release_events: res.release_events,
                 publish_date: res.publish_date,
             }
         });
@@ -758,16 +758,20 @@ impl<'a> Client<'a> {
             let tagged_with_event_participant = r.tags.iter().any(|tag| tag.tag.id == 9141);
 
             let re = match event {
-                None => r.release_event,
-                Some(e) => Some(ReleaseEventForApiContractSimplified {
-                    date: e.date.clone(),
-                    end_date: e.end_date.clone(),
-                    id: e.id,
-                    name: e.name.clone(),
-                    url_slug: e.url_slug.clone(),
-                    category: e.category.clone(),
-                    web_links: e.web_links.clone(),
-                }),
+                None => r.release_events,
+                Some(e) => {
+                    let mut re_total = r.release_events.clone();
+                    re_total.push(ReleaseEventForApiContractSimplified {
+                        date: e.date.clone(),
+                        end_date: e.end_date.clone(),
+                        id: e.id,
+                        name: e.name.clone(),
+                        url_slug: e.url_slug.clone(),
+                        category: e.category.clone(),
+                        web_links: e.web_links.clone(),
+                    });
+                    re_total
+                },
             };
 
             SongForApiContractSimplifiedWithMultipleEventInfo {
@@ -779,14 +783,12 @@ impl<'a> Client<'a> {
                 song_type: r.song_type.clone(),
                 artist_string: r.artist_string.clone(),
                 publish_date: r.publish_date.clone(),
-                release_event: re,
+                release_events: re,
             }
         });
 
         let processed = entry.as_ref().map_or(false, |e| {
-            e.release_event
-                .as_ref()
-                .map_or(false, |re| re.id == event_id)
+            e.release_events.iter().any(|re| re.id == event_id)
                 || (e.event_id_in_description
                 && (e.tagged_with_event_participant || e.tagged_with_multiple_events))
         });
@@ -1087,14 +1089,6 @@ impl<'a> Client<'a> {
                     event.name, self.base_url, event.id, event.url_slug
                 ),
             ))
-        } else if action == TagWithMultiple {
-            Ok(self.append_description(
-                song_data,
-                format!(
-                    "Another release event: [{}]({}/E/{}/{}).",
-                    event.name, self.base_url, event.id, event.url_slug
-                ),
-            ))
         } else {
             Err(VocadbClientError::NotFoundError(format!(
                 "Cannot update description: action not recognized ({})",
@@ -1122,9 +1116,15 @@ impl<'a> Client<'a> {
         event: MinimalEvent,
     ) -> Result<Map<String, Value>> {
         let mut song_data_edited = song_data;
-        let mut event_id_map = Map::new();
-        event_id_map.insert("id".to_string(), Value::from(event.id));
-        song_data_edited.insert("releaseEvent".to_string(), Value::from(event_id_map));
+        let mut new_event = Map::new();
+        new_event.insert("id".to_string(), Value::from(event.id));
+        let mut release_events: Vec<Value> = song_data_edited.get("releaseEvents")
+            .unwrap()
+            .as_array()
+            .unwrap()
+            .clone();
+        release_events.push(Value::from(new_event));
+        song_data_edited.insert("releaseEvents".to_string(), Value::Array(release_events));
         song_data_edited.insert(
             "updateNotes".to_string(),
             Value::from(format!(
@@ -1149,7 +1149,7 @@ impl<'a> Client<'a> {
                     self.remove_event(song_data, event.name.clone())?
                 }
                 UpdateDescription => {
-                    if description_action == TagWithParticipant || description_action == TagWithMultiple {
+                    if description_action == TagWithParticipant {
                         self.update_description(song_data, event.clone(), description_action)?
                     } else {
                         return Err(VocadbClientError::NotFoundError(format!(
@@ -1158,7 +1158,7 @@ impl<'a> Client<'a> {
                         )));
                     }
                 }
-                TagWithParticipant | TagWithMultiple | Untag => { song_data }
+                TagWithParticipant | Untag => { song_data }
                 _ => {
                     return Err(VocadbClientError::NotFoundError(format!(
                         "Cannot process song: event action not recognized ({})",
@@ -1193,16 +1193,6 @@ impl<'a> Client<'a> {
                             additional_names: Some(String::from("")),
                             url_slug: String::from("event-participant"),
                         }], song_id, ).await?
-                }
-                TagWithMultiple => {
-                    self.add_tags(
-                        vec![TagBaseContract {
-                            id: 8275,
-                            name: String::from("multiple events"),
-                            category_name: Some(String::from("Editor notes")),
-                            additional_names: Some(String::from("")),
-                            url_slug: String::from("multiple-events"),
-                        }], song_id).await?
                 }
                 Assign | UpdateDescription | RemoveEvent | Untag => {}
                 _ => {
@@ -1424,7 +1414,7 @@ impl<'a> Client<'a> {
                     event_id_in_description: link_in_description,
                     song_type: item.song_type.clone(),
                     artist_string: item.artist_string.clone(),
-                    release_event: item.release_event.clone(),
+                    release_events: item.release_events.clone(),
                     publish_date: item.publish_date.clone(),
                 });
             }
@@ -1500,7 +1490,7 @@ impl<'a> Client<'a> {
                                 create_date: response_item.entry.create_date,
                                 pvs: response_item.entry.pvs,
                                 rating_score: Some(0),
-                                release_event: None,
+                                release_events: Vec::new(),
                                 publish_date: None,
                                 albums: None,
                                 artists: vec![],
@@ -1515,7 +1505,7 @@ impl<'a> Client<'a> {
                                 create_date: response_item.entry.create_date,
                                 pvs: Some(vec![]),
                                 rating_score: Some(0),
-                                release_event: None,
+                                release_events: Vec::new(),
                                 publish_date: None,
                                 albums: None,
                                 artists: vec![],
@@ -1672,7 +1662,7 @@ impl<'a> Client<'a> {
                     create_date: song.create_date.clone(),
                     rating_score: song.rating_score,
                     pvs: Some(nico_pvs),
-                    release_event: song.release_event.clone(),
+                    release_events: song.release_events.clone(),
                     publish_date: song.publish_date.clone(),
                     albums: None,
                     artists: vec![],
