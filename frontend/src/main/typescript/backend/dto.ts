@@ -57,6 +57,7 @@ export interface NicoVideoWithTidyTags {
   startTime: string;
   tags: DisplayableTag[];
   eventDateComparison: DateComparisonResult | null;
+  description: string;
 }
 
 export interface SongForApiContractSimplified {
@@ -186,6 +187,7 @@ export interface ThumbnailOk {
   id: string;
   title: string;
   tags: DisplayableTag[];
+  description: string;
 }
 
 export interface MappedTag {

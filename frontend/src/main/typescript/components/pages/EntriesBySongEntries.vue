@@ -281,6 +281,10 @@
                 >
                   <nico-embed :content-id="thumbnail.thumbnail.id" />
                 </b-collapse>
+                <nico-description
+                  :content-id="thumbnail.thumbnail.id"
+                  :description="thumbnail.thumbnail.description"
+                />
               </b-col>
               <b-col>
                 <span
@@ -494,8 +498,11 @@ import NicoEmbed from "@/components/NicoEmbed.vue";
 import ProgressBar from "@/components/ProgressBar.vue";
 import ErrorMessage from "@/components/ErrorMessage.vue";
 import { AxiosResponse } from "axios";
+import NicoDescription from "@/components/NicoDescription.vue";
 
-@Component({ components: { ProgressBar, NicoEmbed, ErrorMessage } })
+@Component({
+  components: { NicoDescription, ProgressBar, NicoEmbed, ErrorMessage }
+})
 export default class extends Vue {
   @Prop()
   private readonly mode!: string;

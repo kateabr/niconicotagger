@@ -353,7 +353,7 @@ impl<'a> Client<'a> {
                 .unwrap())
                 .to_rfc3339();
             escaped_data.push(NicoVideo {
-                id: video.id,
+                id: video.id.clone(),
                 title: html_escape::decode_html_entities(&video.title).to_string(),
                 tags: video.tags.clone(),
                 user_id: video.user_id,
@@ -673,7 +673,7 @@ impl<'a> Client<'a> {
                 event_id_in_description: false,
                 song_type: res.song_type,
                 artist_string: res.artist_string.clone(),
-                release_events: res.release_events,
+                release_events: if res.release_events.is_some() {res.release_events.unwrap()} else { Vec::new() },
                 publish_date: res.publish_date,
             }
         });
@@ -684,6 +684,7 @@ impl<'a> Client<'a> {
                 title: video.title.clone(),
                 start_time: video.start_time.clone(),
                 tags,
+                description: self.get_formatted_description(video.id.clone()).await?,
             },
             song_entry: entry,
             publisher,
@@ -758,9 +759,12 @@ impl<'a> Client<'a> {
             let tagged_with_event_participant = r.tags.iter().any(|tag| tag.tag.id == 9141);
 
             let re = match event {
-                None => r.release_events,
+                None => if r.release_events.is_some() { r.release_events.unwrap() } else { Vec::new() },
                 Some(e) => {
-                    let mut re_total = r.release_events.clone();
+                    let mut re_total = match r.release_events.clone() {
+                        Some(re) => re,
+                        None => Vec::new()
+                    };
                     re_total.push(ReleaseEventForApiContractSimplified {
                         date: e.date.clone(),
                         end_date: e.end_date.clone(),
@@ -799,6 +803,7 @@ impl<'a> Client<'a> {
                 title: video.title.clone(),
                 start_time: video.start_time.clone(),
                 tags,
+                description: self.get_formatted_description(video.id.clone()).await?,
             },
             song_entry: entry,
             publisher,
@@ -1414,7 +1419,10 @@ impl<'a> Client<'a> {
                     event_id_in_description: link_in_description,
                     song_type: item.song_type.clone(),
                     artist_string: item.artist_string.clone(),
-                    release_events: item.release_events.clone(),
+                    release_events: match item.release_events.clone() {
+                        Some(re) => re,
+                        None => Vec::new()
+                    },
                     publish_date: item.publish_date.clone(),
                 });
             }
@@ -1490,7 +1498,7 @@ impl<'a> Client<'a> {
                                 create_date: response_item.entry.create_date,
                                 pvs: response_item.entry.pvs,
                                 rating_score: Some(0),
-                                release_events: Vec::new(),
+                                release_events: None,
                                 publish_date: None,
                                 albums: None,
                                 artists: vec![],
@@ -1505,7 +1513,7 @@ impl<'a> Client<'a> {
                                 create_date: response_item.entry.create_date,
                                 pvs: Some(vec![]),
                                 rating_score: Some(0),
-                                release_events: Vec::new(),
+                                release_events: None,
                                 publish_date: None,
                                 albums: None,
                                 artists: vec![],
@@ -1642,7 +1650,10 @@ impl<'a> Client<'a> {
                             );
 
                             match thumbnail_parse_result {
-                                Ok(thumb) => ok.push(thumb),
+                                Ok(mut thumb) => {
+                                    thumb.description = self.get_formatted_description(thumb.id.clone()).await?;
+                                    ok.push(thumb)
+                                },
                                 Err(thumb) => err.push(thumb),
                             }
                         }
@@ -1673,6 +1684,25 @@ impl<'a> Client<'a> {
         }
 
         Ok(mapped_response)
+    }
+
+    async fn get_formatted_description(&self, video_id: String) -> Result<String> {
+        let response_bytes = self.http_get_raw(&format!("https://embed.nicovideo.jp/watch/{}", video_id), &vec![]).await?;
+        let html = String::from_utf8(response_bytes.to_vec()).context("Response is not a UTF-8 string")?;
+        let document = scraper::Html::parse_document(&html);
+        let selector = scraper::Selector::parse("html>body>div").unwrap();
+        for el in document.select(&selector) {
+            if el.value().classes().any(|class| class.to_string() == "f1l9igf4") {
+                let data_props = el.value().attr("data-props").unwrap();
+                let description_regex =
+                    Regex::new(r"description.{3}(.+?).{3}thumbnailUrl").unwrap();
+                match description_regex.captures(data_props) {
+                    Some(capture) => return Ok(String::from(html_escape::decode_html_entities(&capture[1]))),
+                    _ => continue
+                }
+            }
+        }
+        Ok(String::from(""))
     }
 
     pub async fn get_videos_from_db(

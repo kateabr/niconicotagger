@@ -343,6 +343,10 @@
                   :content-id="item.video.contentId"
                 />
               </b-collapse>
+              <nico-description
+                :content-id="item.video.contentId"
+                :description="item.video.description"
+              />
             </b-td>
             <b-td>
               <div v-if="item.songEntry != null">
@@ -498,8 +502,9 @@ import {
 import NicoEmbed from "@/components/NicoEmbed.vue";
 import ErrorMessage from "@/components/ErrorMessage.vue";
 import { AxiosResponse } from "axios";
+import NicoDescription from "@/components/NicoDescription.vue";
 
-@Component({ components: { NicoEmbed, ErrorMessage } })
+@Component({ components: { NicoDescription, NicoEmbed, ErrorMessage } })
 export default class extends Vue {
   @Prop()
   private readonly mode!: string;

@@ -18,7 +18,7 @@
           <b-dropdown
             :disabled="defaultDisableCondition()"
             block
-            :text="getMaxResultsForDisplay()"
+            :text="getMaxResultsForDisplay(maxResults)"
             class="my-auto"
             variant="primary"
             menu-class="w-100"
@@ -49,7 +49,7 @@
           <b-dropdown
             block
             :disabled="defaultDisableCondition()"
-            :text="getSortingConditionForDisplay()"
+            :text="getSortingConditionForDisplay(sortingCondition)"
             variant="primary"
             menu-class="w-100"
           >
@@ -148,7 +148,7 @@
           <b-dropdown
             block
             :disabled="defaultDisableCondition()"
-            :text="getAdditionModeForDisplay()"
+            :text="getAdditionModeForDisplay(additionMode)"
             variant="primary"
             menu-class="w-100"
           >
@@ -253,7 +253,9 @@
             </div>
           </td>
           <td>
-            <b-link target="_blank" :href="getVocaDBEntryUrl(video.song.id)"
+            <b-link
+              target="_blank"
+              :href="getVocaDBEntryUrl(dbAddress, video.song.id)"
               >{{ video.song.name
               }}<b-badge
                 class="badge text-center ml-2"
@@ -318,6 +320,10 @@
                 >
                   <nico-embed :content-id="thumbnail.thumbnail.id" />
                 </b-collapse>
+                <nico-description
+                  :content-id="thumbnail.thumbnail.id"
+                  :description="thumbnail.thumbnail.description"
+                />
               </b-col>
               <b-col>
                 <span
@@ -332,7 +338,12 @@
                     @click="toggleTagAssignation(tag, video)"
                   >
                     <font-awesome-icon
-                      :icon="getTagIcon(tag, video.tagsToAssign)"
+                      :icon="
+                        getTagIconForTagAssignationButton(
+                          tag,
+                          video.tagsToAssign
+                        )
+                      "
                       class="sm mr-sm-1"
                     />
                     {{ tag.tag.name }}
@@ -408,6 +419,7 @@
                         target="_blank"
                         :href="
                           getVocaDBTagUrl(
+                            dbAddress,
                             niconicoCommunityExclusive.id,
                             niconicoCommunityExclusive.urlSlug
                           )
@@ -564,11 +576,28 @@ import { DateTime } from "luxon";
 import { api } from "@/backend";
 import { MappedTag, MinimalTag } from "@/backend/dto";
 import NicoEmbed from "@/components/NicoEmbed.vue";
+import NicoDescription from "@/components/NicoDescription.vue";
 import ProgressBar from "@/components/ProgressBar.vue";
 import ErrorMessage from "@/components/ErrorMessage.vue";
 import { AxiosResponse } from "axios";
 
-@Component({ components: { NicoEmbed, ProgressBar, ErrorMessage } })
+@Component({
+  methods: {
+    toggleTagAssignation,
+    getVocaDBTagUrl,
+    getVocaDBEntryUrl,
+    getDeletedVideoUrl,
+    getNicoVideoUrl,
+    getShortenedSongType,
+    getTagIconForTagAssignationButton,
+    getTagVariant,
+    getSongTypeColorForDisplay,
+    getSortingConditionForDisplay,
+    getMaxResultsForDisplay,
+    getAdditionModeForDisplay
+  },
+  components: { NicoDescription, NicoEmbed, ProgressBar, ErrorMessage }
+})
 export default class extends Vue {
   @Prop()
   private readonly mode!: string;
@@ -636,48 +665,8 @@ export default class extends Vue {
   };
 
   //proxy methods
-  private getMaxResultsForDisplay(): string {
-    return getMaxResultsForDisplay(this.maxResults);
-  }
-
-  private getSortingConditionForDisplay() {
-    return getSortingConditionForDisplay(this.sortingCondition);
-  }
-
-  private getSongTypeColorForDisplay(typeString: string): string {
-    return getSongTypeColorForDisplay(typeString);
-  }
-
   private getCollapseId(contentId: string): string {
     return getUniqueElementId("collapse_", contentId);
-  }
-
-  private getTagVariant(tag: MappedTag, tagsToAssign: MinimalTag[]): string {
-    return getTagVariant(tag, tagsToAssign);
-  }
-
-  private getTagIcon(tag: MappedTag, tagsToAssign: MinimalTag[]): string[] {
-    return getTagIconForTagAssignationButton(tag, tagsToAssign);
-  }
-
-  private getShortenedSongType(songType: string): string {
-    return getShortenedSongType(songType);
-  }
-
-  private getVocaDBEntryUrl(id: number): string {
-    return getVocaDBEntryUrl(this.dbAddress, id);
-  }
-
-  private getVocaDBTagUrl(id: number, urlSlug: string): string {
-    return getVocaDBTagUrl(this.dbAddress, id, urlSlug);
-  }
-
-  private getNicoVideoUrl(contentId: string): string {
-    return getNicoVideoUrl(contentId);
-  }
-
-  private getDeletedVideoUrl(videoId: string): string {
-    return getDeletedVideoUrl(videoId);
   }
 
   private validateTimestamp(): boolean | null {
@@ -726,10 +715,6 @@ export default class extends Vue {
     return this.songTypes.filter(t => !t.show).length;
   }
 
-  private getAdditionModeForDisplay() {
-    return getAdditionModeForDisplay(this.additionMode);
-  }
-
   private getSongTypeStatsForDisplay(type: string): string {
     return getSongTypeStatsForDisplay(
       type,
@@ -743,13 +728,6 @@ export default class extends Vue {
 
   private countChecked(): number {
     return this.videos.filter(video => video.toAssign).length;
-  }
-
-  private toggleTagAssignation(
-    tag: MappedTag,
-    video: EntryWithVideosAndVisibility
-  ): void {
-    toggleTagAssignation(tag, video);
   }
 
   private refreshTimestamp() {

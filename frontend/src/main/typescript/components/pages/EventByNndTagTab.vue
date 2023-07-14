@@ -435,6 +435,10 @@
                   :content-id="item.video.contentId"
                 />
               </b-collapse>
+              <nico-description
+                :content-id="item.video.contentId"
+                :description="item.video.description"
+              />
             </td>
             <td>
               <span
@@ -669,7 +673,6 @@ import {
   getVocaDBArtistUrl,
   getVocaDBAddSongUrl,
   DateComparisonResult,
-  EntryWithReleaseEventAndVisibility,
   getEventColorVariant,
   isEligible,
   isEarly,
@@ -683,6 +686,7 @@ import NicoEmbed from "@/components/NicoEmbed.vue";
 import DateDisposition from "@/components/DateDisposition.vue";
 import { AxiosResponse } from "axios";
 import Action from "@/components/Action.vue";
+import NicoDescription from "@/components/NicoDescription.vue";
 
 @Component({
   methods: {
@@ -690,7 +694,13 @@ import Action from "@/components/Action.vue";
     getNicoVideoUrl,
     getSongTypeColorForDisplay
   },
-  components: { Action, ErrorMessage, NicoEmbed, DateDisposition }
+  components: {
+    NicoDescription,
+    Action,
+    ErrorMessage,
+    NicoEmbed,
+    DateDisposition
+  }
 })
 export default class extends Vue {
   @Prop()

@@ -851,7 +851,8 @@ export default class extends Vue {
         entry.songEntry.eventDateComparison.participated =
           entry.songEntry.taggedWithEventParticipant &&
           (entry.songEntry.releaseEvents.length == 0 ||
-            (entry.songEntry.releaseEvents.filter(re => re.id != this.event.id).length > 0));
+            entry.songEntry.releaseEvents.filter(re => re.id != this.event.id)
+              .length > 0);
         entry.songEntry.eventDateComparison.multiple = false;
       }
       this.filterEntries();
