@@ -673,7 +673,7 @@ impl<'a> Client<'a> {
                 event_id_in_description: false,
                 song_type: res.song_type,
                 artist_string: res.artist_string.clone(),
-                release_events: if res.release_events.is_some() {res.release_events.unwrap()} else { Vec::new() },
+                release_events: if res.release_events.is_some() { res.release_events.unwrap() } else { Vec::new() },
                 publish_date: res.publish_date,
             }
         });
@@ -775,7 +775,7 @@ impl<'a> Client<'a> {
                         web_links: e.web_links.clone(),
                     });
                     re_total
-                },
+                }
             };
 
             SongForApiContractSimplifiedWithMultipleEventInfo {
@@ -1102,9 +1102,25 @@ impl<'a> Client<'a> {
         }
     }
 
-    fn remove_event(&self, song_data: Map<String, Value>, event_name: String) -> Result<Map<String, Value>> {
+    fn remove_event(&self, song_data: Map<String, Value>, event_id: i64, event_name: String) -> Result<Map<String, Value>> {
         let mut song_data_edited = song_data;
-        song_data_edited.remove("releaseEvent");
+        info!("removing event: {}", event_id);
+        let release_events_filtered: Vec<Value> = song_data_edited.get("releaseEvents")
+            .unwrap()
+            .as_array()
+            .unwrap()
+            .clone()
+            .into_iter()
+            .filter(|event| event.clone()
+                .as_object()
+                .unwrap()
+                .get("id")
+                .unwrap()
+                .as_i64()
+                .unwrap() != event_id)
+            .collect();
+        info!("events remaining: {}", release_events_filtered.len());
+        song_data_edited.insert(String::from("releaseEvents"), Value::from(release_events_filtered));
         song_data_edited.insert(
             "updateNotes".to_string(),
             Value::from(format!(
@@ -1151,7 +1167,7 @@ impl<'a> Client<'a> {
                     self.fill_in_event(song_data, event.clone())?
                 }
                 RemoveEvent => {
-                    self.remove_event(song_data, event.name.clone())?
+                    self.remove_event(song_data, event.id, event.name.clone())?
                 }
                 UpdateDescription => {
                     if description_action == TagWithParticipant {
@@ -1653,7 +1669,7 @@ impl<'a> Client<'a> {
                                 Ok(mut thumb) => {
                                     thumb.description = self.get_formatted_description(thumb.id.clone()).await?;
                                     ok.push(thumb)
-                                },
+                                }
                                 Err(thumb) => err.push(thumb),
                             }
                         }

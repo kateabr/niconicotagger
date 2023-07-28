@@ -3,9 +3,9 @@
     <ol v-if="processItem">
       <li v-if="hasAction('RemoveEvent')">
         <span class="text-danger text-monospace">Important:</span>
-        release event must be removed because song was not first published
-        during "<b-link :href="link" target="_blank">{{ name }}</b-link
-        >"
+        release event "<b-link :href="link" target="_blank">{{ name }}</b-link
+      >" must be removed because song was first published
+        outside its time frame
       </li>
       <li v-if="hasAction('Assign')">
         Add "<b-link :href="link" target="_blank">{{ name }}</b-link
