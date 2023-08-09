@@ -8,7 +8,6 @@ use chrono::{DateTime, Duration, FixedOffset};
 use futures::future;
 use log::info;
 use url::Url;
-use EntryAction::{NoAction, Untag};
 
 use crate::client::errors::VocadbClientError;
 use crate::client::http_client::Client;
@@ -17,7 +16,7 @@ use crate::client::models::tag::{AssignableTag, TagBaseContract};
 use crate::client::models::weblink::WebLinkForApiContract;
 use crate::web::dto::{
     AssignEventAndRemoveTagPayload, AssignEventPayload, AssignTagRequest, CustomQueryPayload,
-    DBBeforeSinceFetchRequest, DBFetchRequest, Database, EntryAction, EventByTagsFetchRequest,
+    DBBeforeSinceFetchRequest, DBFetchRequest, Database, EventByTagsFetchRequest,
     LoginRequest, LoginResponse, LookupAndAssignTagRequest, ReleaseEventWithNndTagsFetchRequest,
     SongsByEventTagFetchRequest, SongsByEventTagFetchResponse, TagFetchRequest, TagsRemovalPayload,
     Token, VideosWithEntries, VideosWithEntriesByVocaDbTag,
@@ -252,7 +251,6 @@ pub async fn fetch_from_db_by_event_tag(
     let songs = client
         .get_songs_by_vocadb_event_tag(
             vocadb_tag.id,
-            vocadb_event.id,
             payload.start_offset,
             payload.max_results,
             payload.order_by.clone(),
@@ -276,8 +274,6 @@ pub async fn assign_event_and_remove_tag(
         || payload.event.id < 0
         || payload.event.name.is_empty()
         || payload.tag_id < 0
-        || payload.actions.contains(&NoAction)
-        || !payload.actions.contains(&Untag)
     {
         return Err(AppResponseError::ConstraintViolationError(String::from(
             "Invalid arguments",
@@ -287,13 +283,7 @@ pub async fn assign_event_and_remove_tag(
     let token = extract_token(&_req)?;
     let client = client_from_token(&token)?;
 
-    client.execute_actions(
-            payload.song_id,
-            payload.event.clone(),
-            payload.actions.clone(),
-            payload.description_action,
-        )
-        .await?;
+    client.edit_entry(payload.song_id, payload.event.clone()).await?;
     client
         .remove_tag(payload.song_id, String::from("Song"), payload.tag_id)
         .await?;
@@ -309,8 +299,6 @@ pub async fn assign_event(
     if payload.song_id < 0
         || payload.event.id < 0
         || payload.event.name.is_empty()
-        || payload.actions.is_empty()
-        || payload.actions.contains(&NoAction)
     {
         return Err(AppResponseError::ConstraintViolationError(String::from(
             "Invalid arguments",
@@ -320,14 +308,7 @@ pub async fn assign_event(
     let token = extract_token(&_req)?;
     let client = client_from_token(&token)?;
 
-    client
-        .execute_actions(
-            payload.song_id,
-            payload.event.clone(),
-            payload.actions.clone(),
-            payload.description_action,
-        )
-        .await?;
+    client.edit_entry(payload.song_id, payload.event.clone()).await?;
 
     Ok(Json(()))
 }

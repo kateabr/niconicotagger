@@ -38,15 +38,16 @@
               style="width: 80px"
               :disabled="eventName === '' || defaultDisableCondition()"
               @click="fetchEvent(eventName)"
-              >Load</b-button
-            >
+              >Load
+            </b-button>
             <b-button
               v-if="fetching"
               variant="primary"
               style="width: 80px"
               disabled
-              ><b-spinner small></b-spinner
-            ></b-button>
+            >
+              <b-spinner small></b-spinner>
+            </b-button>
           </template>
         </b-input-group>
         <b-collapse
@@ -80,8 +81,8 @@
                     style="width: 80px"
                     :disabled="scopeTagString === ''"
                     @click="scopeTagString = ''"
-                    >Clear</b-button
-                  >
+                    >Clear
+                  </b-button>
                 </template>
               </b-input-group>
             </b-col>
@@ -119,8 +120,8 @@
                     <b-input-group-text
                       class="justify-content-center"
                       style="width: 80px"
-                      >Page:</b-input-group-text
-                    >
+                      >Page:
+                    </b-input-group-text>
                   </template>
                   <template>
                     <b-form-input
@@ -179,20 +180,22 @@
                 v-if="showIneligibleVideos"
                 v-model="allowIneligibleVideos"
                 @change="toggleCheckAll()"
-                >Allow processing ineligible entries</b-form-checkbox
-              >
+                >Allow processing ineligible entries
+              </b-form-checkbox>
             </b-col>
           </b-row>
         </b-collapse>
       </b-col>
-      <b-col class="m-auto text-left mt-lg-3 ml-n1"
-        ><b-button
+      <b-col class="m-auto text-left mt-lg-3 ml-n1">
+        <b-button
           v-if="eventInfoLoaded()"
           variant="link"
           :disabled="defaultDisableCondition()"
           @click="loadPage(page)"
-          ><font-awesome-icon icon="fa-solid fa-arrow-rotate-right" /></b-button
-      ></b-col>
+        >
+          <font-awesome-icon icon="fa-solid fa-arrow-rotate-right" />
+        </b-button>
+      </b-col>
     </b-row>
     <Transition appear>
       <b-row v-if="tagsLoaded && isActiveMode() && !tagsConfirmed" class="mt-5">
@@ -204,30 +207,30 @@
               <b-link
                 :href="getVocaDBEventUrl(event.id, event.urlSlug)"
                 target="_blank"
-                >{{ event.name }}</b-link
-              >:
+                >{{ event.name }}
+              </b-link>
+              :
             </b-card-header>
             <b-card-body>
               <div v-for="(tag, key) in event.nndTags" :key="key">
-                <b-link :href="getNicoTagUrl(tag)" target="_blank"
-                  ><font-awesome-icon icon="fas fa-tag" class="mr-1" />{{
-                    tag
-                  }}</b-link
-                >
+                <b-link :href="getNicoTagUrl(tag)" target="_blank">
+                  <font-awesome-icon icon="fas fa-tag" class="mr-1" />
+                  {{ tag }}
+                </b-link>
               </div>
             </b-card-body>
             <b-card-footer>
               <div v-if="event.date != null" class="mb-3 text-secondary">
                 <b-form-checkbox v-model="filterByEventDates"
-                  >Search strictly within the event date
-                  boundaries</b-form-checkbox
-                >
+                  >Search strictly within the event date boundaries
+                </b-form-checkbox>
               </div>
               <div v-else class="mb-3 text-danger">
                 <font-awesome-icon
                   icon="fa-solid fa-circle-exclamation"
                   class="mr-1"
-                />Event date is not specified. Please fill in the event date and
+                />
+                Event date is not specified. Please fill in the event date and
                 reload.
               </div>
               <span v-if="event.date != null">All good?</span>
@@ -238,22 +241,23 @@
                     block
                     variant="success"
                     @click="confirmAndLoad()"
-                    ><font-awesome-icon
-                      icon="fa-solid fa-check"
-                      class="mr-1"
-                    />Yes, continue</b-button
                   >
+                    <font-awesome-icon icon="fa-solid fa-check" class="mr-1" />
+                    Yes, continue
+                  </b-button>
                 </b-col>
                 <b-col>
                   <b-button
                     :disabled="defaultDisableCondition()"
                     block
                     @click="fetchEvent(eventName)"
-                    ><font-awesome-icon
+                  >
+                    <font-awesome-icon
                       icon="fa-solid fa-arrow-rotate-right"
                       class="mr-1"
-                    />Reload</b-button
-                  >
+                    />
+                    Reload
+                  </b-button>
                 </b-col>
               </b-row>
             </b-card-footer>
@@ -411,8 +415,8 @@
               <b-link
                 target="_blank"
                 :href="getNicoVideoUrl(item.video.contentId)"
-                >{{ item.video.title }}</b-link
-              >
+                >{{ item.video.title }}
+              </b-link>
               <div>
                 <b-badge
                   v-for="(item1, key1) in item.video.tags"
@@ -454,12 +458,7 @@
                 >
                   <b-badge
                     class="badge text-center"
-                    :variant="
-                      getEventColorVariant(
-                        releaseEvent,
-                        item.songEntry.eventDateComparison.participatedOnUpload
-                      )
-                    "
+                    :variant="getEventColorVariant(releaseEvent)"
                     :href="
                       getVocaDBEventUrl(releaseEvent.id, releaseEvent.urlSlug)
                     "
@@ -478,14 +477,14 @@
               <b-link
                 target="_blank"
                 :href="getVocaDBEntryUrl(item.songEntry.id)"
-                >{{ item.songEntry.name
-                }}<b-badge
+                >{{ item.songEntry.name }}
+                <b-badge
                   class="badge text-center ml-2"
                   :variant="getSongTypeColorForDisplay(item.songEntry.songType)"
                 >
                   {{ getShortenedSongType(item.songEntry.songType) }}
-                </b-badge></b-link
-              >
+                </b-badge>
+              </b-link>
               <div class="text-muted mb-2">
                 {{ item.songEntry.artistString }}
               </div>
@@ -497,8 +496,8 @@
                 :delta="timeDelta"
               />
               <b-badge v-else variant="danger"
-                >publish date not specified</b-badge
-              >
+                >publish date not specified
+              </b-badge>
             </td>
             <td v-else>
               <date-disposition
@@ -512,22 +511,15 @@
             <td>
               <div v-if="item.songEntry !== null" class="mb-2">
                 <action
-                  v-if="!item.processed || needToRemoveEvent(item)"
+                  v-if="!item.processed"
                   :process-item="
-                    (!item.processed &&
-                      (isEligible(item) ||
-                        (isEarly(item) && allowIneligibleVideos))) ||
-                    needToRemoveEvent(item)
+                    !item.processed &&
+                    (isEligible(item) ||
+                      (isEarly(item) && allowIneligibleVideos))
                   "
                   :name="event.name"
                   :link="getVocaDBEventUrl(event.id, event.urlSlug)"
                   :eligible="isEligible(item)"
-                  :entry-actions="getActions(item)"
-                  :multiple-events-link="multipleEventsLink"
-                  :participant-link="participantLink"
-                  :event-link-in-description="
-                    item.songEntry.eventIdInDescription
-                  "
                 />
               </div>
               <div v-else class="mb-2">
@@ -546,15 +538,15 @@
                   <b-link
                     target="_blank"
                     :href="getVocaDBArtistUrl(item.publisher.id)"
-                    >{{ item.publisher.name.displayName }}</b-link
-                  >
+                    >{{ item.publisher.name.displayName }}
+                  </b-link>
                 </div>
               </div>
             </td>
             <td class="text-center">
               <span v-if="item.songEntry !== null">
                 <b-button
-                  v-if="item.processed && !needToRemoveEvent(item)"
+                  v-if="item.processed"
                   disabled
                   class="btn"
                   variant="success"
@@ -586,13 +578,14 @@
           </b-tr>
         </b-tbody>
         <b-tfoot>
-          <b-th
-            ><b-form-checkbox
+          <b-th>
+            <b-form-checkbox
               v-model="allChecked"
               size="lg"
               :disabled="defaultDisableCondition()"
               @change="toggleCheckAll"
-          /></b-th>
+            />
+          </b-th>
           <b-th class="col-3 align-middle">Video</b-th>
           <b-th class="col-2 align-middle">Current release events</b-th>
           <b-th class="col-3 align-middle">Release date</b-th>
@@ -653,33 +646,29 @@ import { DateTime } from "luxon";
 import Component from "vue-class-component";
 import { Prop } from "vue-property-decorator";
 import {
-  getShortenedSongType,
-  getVocaDBEventUrl,
-  getVocaDBEntryUrl,
-  getVocaDBTagUrl,
+  allVideosInvisible,
+  DateComparisonResult,
+  defaultScopeTagString,
+  fillReleaseEventForDisplay,
   getDateDisposition,
+  getEventColorVariant,
   getMaxResultsForDisplay,
+  getNicoTagUrl,
+  getNicoVideoUrl,
+  getShortenedSongType,
   getSongTypeColorForDisplay,
+  getSortingConditionForDisplayNico,
+  getUniqueElementId,
+  getVocaDBAddSongUrl,
+  getVocaDBArtistUrl,
+  getVocaDBEntryUrl,
+  getVocaDBEventUrl,
+  getVocaDBTagUrl,
+  isEarly,
+  isEligible,
   pageStateIsValid,
   SongType,
-  getUniqueElementId,
-  allVideosInvisible,
-  fillReleaseEventForDisplay,
-  getNicoTagUrl,
-  defaultScopeTagString,
-  getSortingConditionForDisplayNico,
-  VideoWithEntryAndVisibility,
-  getNicoVideoUrl,
-  getVocaDBArtistUrl,
-  getVocaDBAddSongUrl,
-  DateComparisonResult,
-  getEventColorVariant,
-  isEligible,
-  isEarly,
-  EntryAction,
-  hasAction,
-  hasAnyAction,
-  getDescriptionAction
+  VideoWithEntryAndVisibility
 } from "@/utils";
 import ErrorMessage from "@/components/ErrorMessage.vue";
 import NicoEmbed from "@/components/NicoEmbed.vue";
@@ -879,24 +868,6 @@ export default class extends Vue {
     return video.songEntry != null && video.songEntry.publishDate != null;
   }
 
-  private isTaggedWithMultipleEvents(
-    video: VideoWithEntryAndVisibility
-  ): boolean {
-    return video.songEntry != null && video.songEntry.taggedWithMultipleEvents;
-  }
-
-  private isTaggedWithEventParticipant(
-    video: VideoWithEntryAndVisibility
-  ): boolean {
-    return (
-      video.songEntry != null && video.songEntry.taggedWithEventParticipant
-    );
-  }
-
-  private hasEventIdInDescription(video: VideoWithEntryAndVisibility): boolean {
-    return video.songEntry != null && video.songEntry.eventIdInDescription;
-  }
-
   private isEligible(video: VideoWithEntryAndVisibility): boolean {
     return isEligible(video.songEntry, video.video.eventDateComparison);
   }
@@ -906,24 +877,9 @@ export default class extends Vue {
   }
 
   private getEventColorVariant(
-    event: ReleaseEventForApiContractSimplified,
-    participatedOnUpload: boolean
+    event: ReleaseEventForApiContractSimplified
   ): string {
-    return getEventColorVariant(event, this.event.id, participatedOnUpload);
-  }
-
-  private hasAction(
-    item: VideoWithEntryAndVisibility,
-    action: string
-  ): boolean {
-    return hasAction(this.getActions(item), action);
-  }
-
-  private hasAnyAction(
-    item: VideoWithEntryAndVisibility,
-    actions: string[]
-  ): boolean {
-    return hasAnyAction(this.getActions(item), actions);
+    return getEventColorVariant(event, this.event.id);
   }
 
   // row filtering
@@ -964,78 +920,19 @@ export default class extends Vue {
   private filterVideos(): void {
     for (const item of this.entries) {
       item.rowVisible =
-        (this.currentEventFilledFlag(item) &&
-          this.showVideosWithoutEntriesFlag(item) &&
-          this.showPerfectDispositionOnlyFlag(item)) ||
-        this.needToRemoveEvent(item);
+        this.currentEventFilledFlag(item) &&
+        this.showVideosWithoutEntriesFlag(item) &&
+        this.showPerfectDispositionOnlyFlag(item);
       item.toAssign = item.toAssign && item.rowVisible;
     }
   }
 
   private isSelectable(item: VideoWithEntryAndVisibility): boolean {
     return (
-      (item.songEntry != null &&
-        (this.allowIneligibleVideos || this.isEligible(item)) &&
-        !item.processed &&
-        this.hasAnyAction(item, [
-          "Assign",
-          "TagWithParticipant",
-          "UpdateDescription"
-        ])) ||
-      this.hasAction(item, "RemoveEvent")
-    );
-  }
-
-  private needToRemoveEvent(item: VideoWithEntryAndVisibility): boolean {
-    return (
       item.songEntry != null &&
-      item.processed &&
-      this.hasReleaseEvent(item) &&
-      item.songEntry.releaseEvents.filter(re => re.id == this.event.id).length >
-        0 &&
-      item.songEntry.eventDateComparison.participatedOnUpload
+      (this.allowIneligibleVideos || this.isEligible(item)) &&
+      !item.processed
     );
-  }
-
-  private getActions(item: VideoWithEntryAndVisibility): EntryAction[] {
-    let res: EntryAction[] = [];
-    if (this.needToRemoveEvent(item)) {
-      res.push({ action: "RemoveEvent" });
-    }
-    if (
-      (!item.processed || this.needToRemoveEvent(item)) &&
-      item.songEntry != null
-    ) {
-      if (
-        item.songEntry.eventDateComparison.participatedOnUpload ||
-        (this.allowIneligibleVideos &&
-          !this.isEligible(item) &&
-          item.songEntry.eventDateComparison.disposition == "early")
-      ) {
-        if (!this.isTaggedWithEventParticipant(item)) {
-          res.push({ action: "TagWithParticipant" });
-        }
-        if (!this.hasEventIdInDescription(item)) {
-          res.push({ action: "UpdateDescription" });
-        }
-        if (res.length != 0) {
-          return res;
-        }
-      } else if (!item.processed) {
-        if (
-          (this.isEligible(item) ||
-            (this.allowIneligibleVideos &&
-              item.songEntry.eventDateComparison.disposition == "early")) &&
-          !item.songEntry.eventDateComparison.participatedOnUpload
-        ) {
-          res.push({ action: "Assign" });
-        }
-      }
-    }
-    if (res.length != 0) {
-      return res;
-    }
-    return [{ action: "NoAction" }];
   }
 
   private updateUrl(eventName: string): void {
@@ -1144,18 +1041,11 @@ export default class extends Vue {
             this.event.date!,
             this.event.endDate
           );
-          item.songEntry.eventDateComparison.participated =
-            item.songEntry.taggedWithEventParticipant &&
-            (item.songEntry.releaseEvents.length == 0 ||
-              item.songEntry.releaseEvents.filter(re => re.id != this.event.id)
-                .length > 0);
-          item.songEntry.eventDateComparison.multiple = false;
           if (
             !item.songEntry.eventDateComparison.eligible &&
             item.video.eventDateComparison.eligible
           ) {
             item.songEntry.eventDateComparison.eligible = true;
-            item.songEntry.eventDateComparison.participatedOnUpload = true;
           }
         }
       }
@@ -1195,39 +1085,23 @@ export default class extends Vue {
     }
     this.assigning = true;
     try {
-      let actions = this.getActions(song);
       await api.assignEvent({
         songId: song.songEntry.id,
         event: {
           name: this.event.name,
           id: this.event.id,
           urlSlug: this.event.urlSlug
-        },
-        actions: actions.map(value => value.action),
-        descriptionAction: getDescriptionAction(actions, song)
-      });
-      for (const action of actions) {
-        if (action.action == "Assign") {
-          song.songEntry.releaseEvents.push({
-            id: this.event.id,
-            date: null,
-            nndTags: this.event.nndTags,
-            name: this.event.name,
-            urlSlug: this.event.urlSlug,
-            category: this.event.category,
-            endDate: null
-          });
-        } else if (action.action == "TagWithParticipant") {
-          song.songEntry.taggedWithEventParticipant = true;
-          song.songEntry.eventDateComparison.participated = true;
-        } else if (action.action == "UpdateDescription") {
-          song.songEntry.eventIdInDescription = true;
-        } else if (action.action == "RemoveEvent") {
-          song.songEntry.releaseEvents = song.songEntry.releaseEvents.filter(
-            re => re.id != this.event.id
-          );
         }
-      }
+      });
+      song.songEntry.releaseEvents.push({
+        id: this.event.id,
+        date: null,
+        nndTags: this.event.nndTags,
+        name: this.event.name,
+        urlSlug: this.event.urlSlug,
+        category: this.event.category,
+        endDate: null
+      });
       song.processed = true;
       song.toAssign = false;
     } catch (err) {

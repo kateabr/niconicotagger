@@ -138,10 +138,7 @@ export function getDateDisposition(
     return {
       disposition: "unknown",
       dayDiff: 0,
-      eligible: false,
-      participatedOnUpload: false,
-      participated: false,
-      multiple: false
+      eligible: false
     };
   }
 
@@ -151,19 +148,14 @@ export function getDateDisposition(
       return {
         dayDiff: 0,
         disposition: "perfect",
-        eligible: true,
-        participatedOnUpload: false,
-        participated: false,
-        multiple: false
+        eligible: true
       };
     } else {
+      const disposition = dayDiff > 0 ? "late" : dayDiff < 0 ? "early" : "perfect";
       return {
         dayDiff: Math.abs(dayDiff),
-        disposition: dayDiff > 0 ? "late" : dayDiff < 0 ? "early" : "perfect",
-        eligible: Math.abs(dayDiff) <= timeDeltaMax,
-        participatedOnUpload: false,
-        participated: false,
-        multiple: false
+        disposition: disposition,
+        eligible: disposition === "late" ? Math.abs(dayDiff) <= timeDeltaMax : true
       };
     }
   }
@@ -173,10 +165,7 @@ export function getDateDisposition(
       return {
         dayDiff: 0,
         disposition: "perfect",
-        eligible: true,
-        participatedOnUpload: false,
-        participated: false,
-        multiple: false
+        eligible: true
       };
     } else {
       const dayDiff1 = Math.abs(subDates(date, dateEnd));
@@ -184,19 +173,13 @@ export function getDateDisposition(
         return {
           dayDiff: dayDiff1,
           disposition: "late",
-          eligible: dayDiff1 <= timeDeltaMax,
-          participatedOnUpload: false,
-          participated: false,
-          multiple: false
+          eligible: dayDiff1 <= timeDeltaMax
         };
       } else {
         return {
           dayDiff: 0,
           disposition: "perfect",
-          eligible: true,
-          participatedOnUpload: false,
-          participated: false,
-          multiple: false
+          eligible: true
         };
       }
     }
@@ -206,19 +189,13 @@ export function getDateDisposition(
       return {
         dayDiff: dayDiff2,
         disposition: "early",
-        eligible: dayDiff2 <= timeDeltaMax,
-        participatedOnUpload: false,
-        participated: false,
-        multiple: false
+        eligible: true
       };
     } else {
       return {
         dayDiff: 0,
         disposition: "perfect",
-        eligible: true,
-        participatedOnUpload: false,
-        participated: false,
-        multiple: false
+        eligible: true
       };
     }
   }
@@ -342,45 +319,6 @@ export const songTypeToTag = {
   Other: []
 };
 
-export interface EntryAction {
-  action:
-    | "Assign"
-    | "TagWithParticipant"
-    | "UpdateDescription"
-    | "RemoveEvent"
-    | "NoAction"
-    | "Untag";
-}
-
-export function hasAction(actions: EntryAction[], actionName: string): boolean {
-  return actions.map(value => value.action).findIndex(value => value == actionName) > -1;
-}
-
-export function hasAnyAction(actions: EntryAction[], actionNames: string[]): boolean {
-  return actions.map(value => value.action).some(value => actionNames.includes(value));
-}
-
-export function getDescriptionAction(
-  actions: EntryAction[],
-  song: VideoWithEntryAndVisibility | EntryWithReleaseEventAndVisibility
-): string {
-  if (
-    (actions.map(value => value.action).find(value => value == "UpdateDescription") ??
-      "NoAction") == "NoAction"
-  ) {
-    return "NoAction";
-  } else if (song.songEntry != null) {
-    if (
-      actions.map(value => value.action).findIndex(value => value == "TagWithParticipant") > -1 ||
-      song.songEntry.eventDateComparison.eligible ||
-      song.songEntry.eventDateComparison.disposition == "early"
-    ) {
-      return "TagWithParticipant";
-    }
-  }
-  return "NoAction";
-}
-
 export function getSongTypeColorForDisplay(typeString: string): string {
   if (typeString == "Original" || typeString == "Remaster") {
     return "primary";
@@ -435,17 +373,13 @@ export function getDispositionBadgeColorVariant(
 
 export function getEventColorVariant(
   event: ReleaseEventForApiContractSimplified,
-  eventId: number,
-  participatedOnUpload: boolean
+  eventId: number
 ): string {
   if (event.id == eventId) {
-    if (!participatedOnUpload) {
-      return "success";
-    } else {
-      return "danger";
-    }
+    return "success";
+  } else {
+    return "warning";
   }
-  return "warning";
 }
 
 export function getSongTypeStatsForDisplay(type: string, number: number): string {
@@ -756,7 +690,4 @@ export interface DateComparisonResult {
   dayDiff: number;
   disposition: "perfect" | "late" | "early" | "unknown";
   eligible: boolean;
-  participatedOnUpload: boolean;
-  participated: boolean;
-  multiple: boolean;
 }

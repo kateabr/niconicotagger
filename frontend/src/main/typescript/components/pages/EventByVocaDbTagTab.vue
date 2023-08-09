@@ -342,12 +342,7 @@
                 >
                   <b-badge
                     class="badge text-center"
-                    :variant="
-                      getEventColorVariant(
-                        releaseEvent,
-                        item.songEntry.eventDateComparison.participatedOnUpload
-                      )
-                    "
+                    :variant="getEventColorVariant(releaseEvent)"
                     :href="
                       getVocaDBEventUrl(releaseEvent.id, releaseEvent.urlSlug)
                     "
@@ -502,10 +497,7 @@ import {
   fillReleaseEventForDisplay,
   DateComparisonResult,
   getEventColorVariant,
-  isEligible,
-  EntryAction,
-  hasAction,
-  getDescriptionAction
+  isEligible
 } from "@/utils";
 import ErrorMessage from "@/components/ErrorMessage.vue";
 import DateDisposition from "@/components/DateDisposition.vue";
@@ -635,18 +627,8 @@ export default class extends Vue {
     return allVideosInvisible(this.entries);
   }
 
-  private hasAction(
-    item: EntryWithReleaseEventAndVisibility,
-    action: string
-  ): boolean {
-    return hasAction(this.getActions(item), action);
-  }
-
   private isSelectable(item: EntryWithReleaseEventAndVisibility): boolean {
-    return (
-      (this.isEligible(item) || this.allowIneligibleVideos) &&
-      this.hasAction(item, "Untag")
-    );
+    return this.isEligible(item) || this.allowIneligibleVideos;
   }
 
   private getDateDisposition(
@@ -704,35 +686,9 @@ export default class extends Vue {
   }
 
   private getEventColorVariant(
-    event: ReleaseEventForApiContractSimplified,
-    participatedOnUpload: boolean
+    event: ReleaseEventForApiContractSimplified
   ): string {
-    return getEventColorVariant(event, this.event.id, participatedOnUpload);
-  }
-
-  private getActions(item: EntryWithReleaseEventAndVisibility): EntryAction[] {
-    if (
-      !item.songEntry.eventDateComparison.eligible &&
-      item.songEntry.eventDateComparison.disposition == "early"
-    ) {
-      let res: EntryAction[] = [];
-      if (
-        !item.songEntry.eventDateComparison.participatedOnUpload &&
-        !item.songEntry.eventDateComparison.participated
-      ) {
-        res.push({ action: "TagWithParticipant" });
-      }
-      if (!item.songEntry.eventIdInDescription) {
-        res.push({ action: "UpdateDescription" });
-      }
-      if (res.length != 0) {
-        res.push({ action: "Untag" });
-        return res;
-      }
-    } else if (item.songEntry.eventDateComparison.eligible) {
-      return [{ action: "Assign" }, { action: "Untag" }];
-    }
-    return [{ action: "Untag" }];
+    return getEventColorVariant(event, this.event.id);
   }
 
   // row filtering
@@ -833,7 +789,6 @@ export default class extends Vue {
                 ? DateTime.fromISO(item.publishDate)
                 : null,
             eventDateComparison: null,
-            taggedWithMultipleEvents: item.taggedWithMultipleEvents,
             processed: false
           };
         }
@@ -848,12 +803,6 @@ export default class extends Vue {
           this.event.date!,
           this.event.endDate
         );
-        entry.songEntry.eventDateComparison.participated =
-          entry.songEntry.taggedWithEventParticipant &&
-          (entry.songEntry.releaseEvents.length == 0 ||
-            entry.songEntry.releaseEvents.filter(re => re.id != this.event.id)
-              .length > 0);
-        entry.songEntry.eventDateComparison.multiple = false;
       }
       this.filterEntries();
       this.eventTagNameFrozen = this.event.name;
@@ -878,7 +827,6 @@ export default class extends Vue {
   ): Promise<void> {
     this.assigning = true;
     try {
-      const actions = this.getActions(song);
       await api.assignEventAndRemoveTag({
         songId: song.songEntry.id,
         event: {
@@ -886,32 +834,17 @@ export default class extends Vue {
           id: this.event.id,
           urlSlug: this.event.urlSlug
         },
-        tagId: this.tag.id,
-        actions: actions.map(value => value.action),
-        descriptionAction: getDescriptionAction(actions, song)
+        tagId: this.tag.id
       });
-      for (const action of actions) {
-        if (action.action == "Assign") {
-          song.songEntry.releaseEvents.push({
-            id: this.event.id,
-            date: null,
-            nndTags: this.event.nndTags,
-            name: this.event.name,
-            urlSlug: this.event.urlSlug,
-            category: this.event.category,
-            endDate: null
-          });
-        } else if (action.action == "TagWithParticipant") {
-          song.songEntry.taggedWithEventParticipant = true;
-          song.songEntry.eventDateComparison.participated = true;
-        } else if (action.action == "UpdateDescription") {
-          song.songEntry.eventIdInDescription = true;
-        } else if (action.action == "RemoveEvent") {
-          song.songEntry.releaseEvents = song.songEntry.releaseEvents.filter(
-            re => re.id != this.event.id
-          );
-        }
-      }
+      song.songEntry.releaseEvents.push({
+        id: this.event.id,
+        date: null,
+        nndTags: this.event.nndTags,
+        name: this.event.name,
+        urlSlug: this.event.urlSlug,
+        category: this.event.category,
+        endDate: null
+      });
       song.processed = true;
       song.toAssign = false;
     } catch (err) {

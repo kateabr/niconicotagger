@@ -86,9 +86,6 @@ export interface SongForApiContractSimplifiedWithReleaseEvent {
   releaseEvents: ReleaseEventForApiContractSimplified[];
   publishDate: string | null;
   eventDateComparison: DateComparisonResult;
-  taggedWithMultipleEvents: boolean;
-  taggedWithEventParticipant: boolean;
-  eventIdInDescription: boolean;
 }
 
 export interface VideoWithEntry {
@@ -253,15 +250,11 @@ export interface AssignEventAndRemoveTagPayload {
   songId: number;
   event: MinimalEvent;
   tagId: number;
-  actions: string[];
-  descriptionAction: string;
 }
 
 export interface AssignEventPayload {
   songId: number;
   event: MinimalEvent;
-  actions: string[];
-  descriptionAction: string;
 }
 
 export interface FetchReleaseEventWithNndTagsPayload {
