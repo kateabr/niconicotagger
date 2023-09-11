@@ -1483,7 +1483,13 @@ impl<'a> Client<'a> {
     }
 
     async fn get_formatted_description(&self, video_id: String) -> Result<String> {
-        let response_bytes = self.http_get_raw(&format!("https://embed.nicovideo.jp/watch/{}", video_id), &vec![]).await?;
+        let request = self.client.get(&format!("https://embed.nicovideo.jp/watch/{}", video_id))
+            .insert_header(("User-Agent", "Actix-web"));
+        let response_bytes = request
+            .send()
+            .await?
+            .body()
+            .await?;
         let html = String::from_utf8(response_bytes.to_vec()).context("Response is not a UTF-8 string")?;
         let document = scraper::Html::parse_document(&html);
         let selector = scraper::Selector::parse("html>body>div").unwrap();
