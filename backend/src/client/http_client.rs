@@ -1482,7 +1482,7 @@ impl<'a> Client<'a> {
         Ok(mapped_response)
     }
 
-    async fn get_formatted_description(&self, video_id: String) -> Result<String> {
+    async fn get_embed_response(&self, video_id: String) -> Result<String> {
         let request = self.client.get(&format!("https://embed.nicovideo.jp/watch/{}", video_id))
             .insert_header(("User-Agent", "Actix-web"));
         let response_bytes = request
@@ -1490,7 +1490,15 @@ impl<'a> Client<'a> {
             .await?
             .body()
             .await?;
-        let html = String::from_utf8(response_bytes.to_vec()).context("Response is not a UTF-8 string")?;
+        Ok(String::from_utf8(response_bytes.to_vec()).context("Response is not a UTF-8 string")?)
+    }
+
+    async fn get_formatted_description(&self, video_id: String) -> Result<String> {
+        let mut html = self.get_embed_response(video_id).await?;
+        let secondary_id_regex = Regex::new(r".*Redirecting to https://embed.nicovideo.jp/watch/(.+)").unwrap();
+        if let Some(secondary_id) = secondary_id_regex.captures(html.as_str()) {
+            html = self.get_embed_response(String::from(secondary_id.get(1).unwrap().as_str())).await?
+        }
         let document = scraper::Html::parse_document(&html);
         let selector = scraper::Selector::parse("html>body>div").unwrap();
         for el in document.select(&selector) {
