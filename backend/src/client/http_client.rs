@@ -606,7 +606,7 @@ impl<'a> Client<'a> {
     }
 
     async fn lookup_nico_publisher(&self, video_id: &String) -> Result<NicoPublisherWithoutEntry> {
-        fn get_text(doc: &Document, param: &str) -> String {
+        fn get_text(doc: &Document, param: &str) -> Option<String> {
             doc.descendants()
                 .filter(|node| node.has_tag_name(param))
                 .map(|node| match node.text() {
@@ -615,8 +615,7 @@ impl<'a> Client<'a> {
                 })
                 .collect::<Vec<_>>()
                 .first()
-                .unwrap()
-                .to_string()
+                .map(|str| str.to_string())
         }
 
         let thumbnail = self.get_thumbinfo(video_id).await?;
@@ -624,8 +623,12 @@ impl<'a> Client<'a> {
         let doc = Document::parse(xml.as_str()).unwrap();
 
         Ok(NicoPublisherWithoutEntry {
-            publisher_id: get_text(&doc, "user_id"),
-            publisher_nickname: get_text(&doc, "user_nickname") })
+            publisher_id: get_text(&doc, "user_id")
+                .or(get_text(&doc, "ch_id"))
+                .unwrap_or("(unknown publisher)".to_string()),
+            publisher_nickname: get_text(&doc, "user_nickname")
+                .or(get_text(&doc, "ch_name"))
+                .unwrap_or("-1".to_string())})
     }
 
     pub async fn lookup_video(
@@ -1389,21 +1392,25 @@ impl<'a> Client<'a> {
             if status.eq("ok") {
                 let ok = ThumbnailOk {
                     id: thumnail_id.to_string(),
-                    title: get_text(&doc, "title"),
-                    description: get_text(&doc, "description"),
-                    length: get_text(&doc, "length"),
-                    upload_date: get_text(&doc, "first_retrieve"),
+                    title: get_text(&doc, "title").unwrap(),
+                    description: get_text(&doc, "description").unwrap(),
+                    length: get_text(&doc, "length").unwrap(),
+                    upload_date: get_text(&doc, "first_retrieve").unwrap(),
                     views: get_i32(&doc, "view_counter"),
                     tags: get_tags(&doc),
-                    user_id: get_text(&doc, "user_id"),
-                    user_nickname: get_text(&doc, "user_nickname"),
+                    user_id: get_text(&doc, "user_id")
+                        .or(get_text(&doc, "ch_id"))
+                        .unwrap_or("(unknown publisher)".to_string()),
+                    user_nickname: get_text(&doc, "user_nickname")
+                        .or(get_text(&doc, "ch_name"))
+                        .unwrap_or("-1".to_string()),
                 };
                 Ok(ok)
             } else {
                 let err = ThumbnailError {
                     id: thumnail_id.to_string(),
-                    code: get_text(&doc, "code"),
-                    description: get_text(&doc, "description"),
+                    code: get_text(&doc, "code").unwrap(),
+                    description: get_text(&doc, "description").unwrap(),
                     disabled: pv.disabled,
                     title: String::from(&pv.name),
                     community,
@@ -1413,11 +1420,11 @@ impl<'a> Client<'a> {
         }
 
         fn get_i32(doc: &Document, param: &str) -> i32 {
-            let text = get_text(doc, param);
+            let text = get_text(doc, param).unwrap();
             return i32::from_str(text.as_str()).unwrap();
         }
 
-        fn get_text(doc: &Document, param: &str) -> String {
+        fn get_text(doc: &Document, param: &str) -> Option<String> {
             doc.descendants()
                 .filter(|node| node.has_tag_name(param))
                 .map(|node| match node.text() {
@@ -1426,8 +1433,7 @@ impl<'a> Client<'a> {
                 })
                 .collect::<Vec<_>>()
                 .first()
-                .unwrap()
-                .to_string()
+                .map(|str| str.to_string())
         }
 
         fn get_tags(doc: &Document) -> Vec<Tag> {

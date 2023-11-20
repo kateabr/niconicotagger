@@ -14,7 +14,11 @@
       <b-collapse :id="contentId + '_description'" class="collapsed mt-2">
         <b-card v-cloak>
           <div
-            v-if="publisher !== undefined && publisher !== null"
+            v-if="
+              publisher !== undefined &&
+              publisher !== null &&
+              publisher.publisherId !== '-1'
+            "
             class="mb-2 text-secondary"
           >
             <b-badge
@@ -32,6 +36,16 @@
                 >user/{{ publisher.publisherId }}</b-link
               >)</span
             >
+          </div>
+          <div
+            v-else-if="
+              publisher !== undefined &&
+              publisher !== null &&
+              publisher.publisherId === '-1'
+            "
+            class="small mb-2 text-secondary"
+          >
+            Could not extract publisher info
           </div>
           <span v-html="description" />
         </b-card>
