@@ -266,7 +266,16 @@ pub struct NicoVideoWithTidyTags {
     #[serde(rename = "startTime")]
     pub start_time: String,
     pub tags: Vec<DisplayableTag>,
-    pub description: String
+    pub description: String,
+    pub publisher: Option<NicoPublisherWithoutEntry>
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct NicoPublisherWithoutEntry {
+    #[serde(rename = "publisherId")]
+    pub publisher_id: String,
+    #[serde(rename = "publisherNickname")]
+    pub publisher_nickname: String
 }
 
 #[derive(Deserialize)]

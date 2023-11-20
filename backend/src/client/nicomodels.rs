@@ -21,6 +21,8 @@ pub struct ThumbnailOk {
     pub length: String,
     pub views: i32,
     pub tags: Vec<Tag>,
+    pub user_id: String,
+    pub user_nickname: String
 }
 
 #[derive(Debug, Clone, Serialize)]

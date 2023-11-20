@@ -442,6 +442,7 @@
               <nico-description
                 :content-id="item.video.contentId"
                 :description="item.video.description"
+                :publisher="item.video.publisher"
               />
             </td>
             <td>

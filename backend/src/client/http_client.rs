@@ -27,9 +27,7 @@ use crate::client::errors::VocadbClientError;
 
 use crate::client::jputils::normalize;
 use crate::client::models::activity::{ActivityEditEvent, ActivityEntryForApiContract};
-use crate::client::models::artist::{
-    ArtistCategories, ArtistForSongContract, ArtistRoles, NicoArtistDuplicateResult, NicoPublisher,
-};
+use crate::client::models::artist::{ArtistCategories, ArtistForSongContract, ArtistRoles, NicoArtistDuplicateResult, NicoPublisher};
 use crate::client::models::entrythumb::EntryType;
 use crate::client::models::misc::PartialFindResult;
 use crate::client::models::pv::{PVContract, PvService, PvType};
@@ -50,15 +48,7 @@ use crate::client::nicomodels::{
     Tag, TagBaseContractSimplified, ThumbnailError, ThumbnailOk, ThumbnailOkWithMappedTags,
     ThumbnailTagMappedWithAssignAndLockInfo,
 };
-use crate::web::dto::{
-    ArtistEntriesForTagRemoval, ArtistEntryForTagRemoval, ArtistForApiContractSimplified,
-    ArtistForApiContractSimplifiedWithTagUsageCounts, DBFetchResponseWithTimestamps,
-    DisplayableTag, MinimalEvent, NicoResponse, NicoResponseWithScope, NicoVideo,
-    NicoVideoWithTidyTags, SongEntriesForTagRemoval, SongEntryForTagRemoval,
-    SongForApiContractSimplified, SongForApiContractSimplifiedWithMultipleEventInfo,
-    SongForApiContractSimplifiedWithMultipleEventInfoSearchResult,
-    SongForApiContractSimplifiedWithTagUsageCounts, TagMappingContract, VideoWithEntry,
-};
+use crate::web::dto::{ArtistEntriesForTagRemoval, ArtistEntryForTagRemoval, ArtistForApiContractSimplified, ArtistForApiContractSimplifiedWithTagUsageCounts, DBFetchResponseWithTimestamps, DisplayableTag, MinimalEvent, NicoPublisherWithoutEntry, NicoResponse, NicoResponseWithScope, NicoVideo, NicoVideoWithTidyTags, SongEntriesForTagRemoval, SongEntryForTagRemoval, SongForApiContractSimplified, SongForApiContractSimplifiedWithMultipleEventInfo, SongForApiContractSimplifiedWithMultipleEventInfoSearchResult, SongForApiContractSimplifiedWithTagUsageCounts, TagMappingContract, VideoWithEntry};
 
 pub struct Client<'a> {
     pub client: awc::Client,
@@ -615,6 +605,29 @@ impl<'a> Client<'a> {
             .collect()
     }
 
+    async fn lookup_nico_publisher(&self, video_id: &String) -> Result<NicoPublisherWithoutEntry> {
+        fn get_text(doc: &Document, param: &str) -> String {
+            doc.descendants()
+                .filter(|node| node.has_tag_name(param))
+                .map(|node| match node.text() {
+                    Some(text) => text.trim(),
+                    None => "",
+                })
+                .collect::<Vec<_>>()
+                .first()
+                .unwrap()
+                .to_string()
+        }
+
+        let thumbnail = self.get_thumbinfo(video_id).await?;
+        let xml = String::from_utf8(thumbnail).unwrap();
+        let doc = Document::parse(xml.as_str()).unwrap();
+
+        Ok(NicoPublisherWithoutEntry {
+            publisher_id: get_text(&doc, "user_id"),
+            publisher_nickname: get_text(&doc, "user_nickname") })
+    }
+
     pub async fn lookup_video(
         &self,
         video: &NicoVideo,
@@ -670,6 +683,10 @@ impl<'a> Client<'a> {
                 start_time: video.start_time.clone(),
                 tags,
                 description: self.get_formatted_description(video.id.clone()).await?,
+                publisher: match publisher {
+                    Some(_) => None,
+                    None => Some(self.lookup_nico_publisher(&video.id).await?)
+                },
             },
             song_entry: entry,
             publisher,
@@ -762,6 +779,10 @@ impl<'a> Client<'a> {
                 start_time: video.start_time.clone(),
                 tags,
                 description: self.get_formatted_description(video.id.clone()).await?,
+                publisher: match publisher {
+                    Some(_) => None,
+                    None => Some(self.lookup_nico_publisher(&video.id).await?)
+                },
             },
             song_entry: entry,
             publisher,
@@ -1374,6 +1395,8 @@ impl<'a> Client<'a> {
                     upload_date: get_text(&doc, "first_retrieve"),
                     views: get_i32(&doc, "view_counter"),
                     tags: get_tags(&doc),
+                    user_id: get_text(&doc, "user_id"),
+                    user_nickname: get_text(&doc, "user_nickname"),
                 };
                 Ok(ok)
             } else {

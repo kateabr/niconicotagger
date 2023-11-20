@@ -202,7 +202,8 @@ pub enum ArtistType {
     NEUTRINO,
     VoiSona,
     NewType,
-    Voiceroid
+    Voiceroid,
+    Instrumentalist
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, EnumString)]

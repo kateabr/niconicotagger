@@ -58,6 +58,12 @@ export interface NicoVideoWithTidyTags {
   tags: DisplayableTag[];
   eventDateComparison: DateComparisonResult | null;
   description: string;
+  publisher: NicoPublisherWithoutEntry;
+}
+
+export interface NicoPublisherWithoutEntry {
+  publisherId: string;
+  publisherNickname: string;
 }
 
 export interface SongForApiContractSimplified {

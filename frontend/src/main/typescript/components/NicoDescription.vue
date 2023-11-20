@@ -13,6 +13,26 @@
       >
       <b-collapse :id="contentId + '_description'" class="collapsed mt-2">
         <b-card v-cloak>
+          <div
+            v-if="publisher !== undefined && publisher !== null"
+            class="mb-2 text-secondary"
+          >
+            <b-badge
+              v-clipboard:copy="publisher.publisherNickname"
+              variant="primary"
+              class="m-sm-1"
+              href="#"
+              ><font-awesome-icon class="mr-sm-1" icon="fas fa-user" />{{
+                publisher.publisherNickname
+              }}</b-badge
+            ><span class="ml-1"
+              >(<b-link
+                target="_blank"
+                :href="'https://www.nicovideo.jp/user/' + publisher.publisherId"
+                >user/{{ publisher.publisherId }}</b-link
+              >)</span
+            >
+          </div>
           <span v-html="description" />
         </b-card>
       </b-collapse>
@@ -26,6 +46,7 @@
 <script lang="ts">
 import { Component, Prop } from "vue-property-decorator";
 import Vue from "vue";
+import { NicoPublisherWithoutEntry } from "@/backend/dto";
 
 @Component({ components: {} })
 export default class extends Vue {
@@ -35,5 +56,7 @@ export default class extends Vue {
   private readonly description!: string;
   @Prop()
   private readonly forceCollapse!: boolean;
+  @Prop()
+  private readonly publisher: NicoPublisherWithoutEntry | null | undefined;
 }
 </script>
