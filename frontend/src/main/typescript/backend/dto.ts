@@ -102,16 +102,9 @@ export interface VideoWithEntry {
 }
 
 export interface Publisher {
-  entryTypeName: string;
-  name: PublisherNames;
+  name: string;
   id: number;
 }
-
-export interface PublisherNames {
-  additionalNames: string;
-  displayName: string;
-}
-
 export interface AssignableTag {
   additionalNames: string;
   categoryName: string;

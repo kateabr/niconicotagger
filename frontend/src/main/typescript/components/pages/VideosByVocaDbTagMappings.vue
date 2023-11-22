@@ -388,7 +388,7 @@
                   <b-link
                     target="_blank"
                     :href="getVocaDBArtistUrl(item.publisher.id)"
-                    >{{ item.publisher.name.displayName }}</b-link
+                    >{{ item.publisher.name }}</b-link
                   >
                 </div>
               </div>

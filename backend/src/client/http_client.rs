@@ -27,7 +27,7 @@ use crate::client::errors::VocadbClientError;
 
 use crate::client::jputils::normalize;
 use crate::client::models::activity::{ActivityEditEvent, ActivityEntryForApiContract};
-use crate::client::models::artist::{ArtistCategories, ArtistForSongContract, ArtistRoles, NicoArtistDuplicateResult, NicoPublisher};
+use crate::client::models::artist::{ArtistCategories, ArtistForApiContractPartialFindResult, ArtistForSongContract, ArtistRoles, NicoPublisher};
 use crate::client::models::entrythumb::EntryType;
 use crate::client::models::misc::PartialFindResult;
 use crate::client::models::pv::{PVContract, PvService, PvType};
@@ -181,27 +181,6 @@ impl<'a> Client<'a> {
             .send()
             .await?;
         Ok(())
-    }
-
-    async fn http_post<T, R>(&self, url: &String, query: &T) -> Result<R>
-        where
-            R: DeserializeOwned,
-            T: Serialize,
-    {
-        let request = self.create_request(url, Method::POST);
-        debug!("Sending POST request {:?}", request);
-        let body = request
-            .query(query)
-            .context("Unable to construct a query")?
-            .send()
-            .await?
-            .body()
-            .await?;
-
-        let body_string = String::from_utf8(body.to_vec()).unwrap();
-        let json = serde_json::from_slice(&body)
-            .context(format!("Unable to deserialize a payload: {}", body_string))?;
-        Ok(json)
     }
 
     async fn http_get_raw(&self, url: &String, query: &Vec<(&str, String)>) -> Result<Bytes> {
@@ -555,25 +534,17 @@ impl<'a> Client<'a> {
         &self,
         user_id: i32,
     ) -> Result<Option<NicoPublisher>> {
-        let lookup_result: Vec<NicoArtistDuplicateResult> = self
-            .http_post(
-                &format!("{}/Artist/FindDuplicate", self.base_url),
-                &vec![
-                    ("term1", ""),
-                    ("term2", ""),
-                    ("term3", ""),
-                    (
-                        "linkUrl",
-                        &format!("https://www.nicovideo.jp/user/{}", &user_id.to_string()),
-                    ),
-                ],
-            )
-            .await?;
+        let lookup_result: ArtistForApiContractPartialFindResult = self
+            .http_get(
+                &format!("{}/api/artists", self.base_url),
+                &vec![("query", &format!("user/{}", &user_id.to_string()))],
+            ).await?;
 
-        if lookup_result.is_empty() {
+        if lookup_result.items.is_empty() {
             Ok(None)
         } else {
-            Ok(Some(lookup_result[0].entry.clone()))
+            let artist = lookup_result.items.get(0).unwrap();
+            Ok(Some(NicoPublisher { name: artist.name.clone(), id: artist.id }))
         }
     }
     pub fn assign_colors(
@@ -628,7 +599,8 @@ impl<'a> Client<'a> {
                 .unwrap_or("(unknown publisher)".to_string()),
             publisher_nickname: get_text(&doc, "user_nickname")
                 .or(get_text(&doc, "ch_name"))
-                .unwrap_or("-1".to_string())})
+                .unwrap_or("-1".to_string()),
+        })
     }
 
     pub async fn lookup_video(

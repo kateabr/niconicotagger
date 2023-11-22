@@ -15,12 +15,12 @@ use strum_macros::EnumString;
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ArtistContract {
     #[serde(rename = "additionalNames")]
-    additional_names: String,
+    additional_names: Option<String>,
     #[serde(rename = "artistType")]
     artist_type: ArtistType,
     // deleted: bool,
     pub id: i32,
-    name: String,
+    pub name: String,
     #[serde(rename = "releaseDate")]
     release_date: Option<String>,
     status: Status,
@@ -76,6 +76,14 @@ pub struct ArtistForApiContract {
     version: i32,
     #[serde(rename = "webLinks")]
     web_links: Vec<WebLinkForApiContract>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ArtistForApiContractPartialFindResult {
+    pub items: Vec<ArtistContract>,
+    term: Option<String>,
+    #[serde(rename = "totalCount")]
+    total_count: i32,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -253,18 +261,6 @@ pub struct NicoArtistDuplicateResult {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct NicoPublisher {
-    #[serde(rename = "entryTypeName")]
-    pub entry_type_name: String,
-    pub name: NicoPublisherNames,
+    pub name: String,
     pub id: i32,
-    #[serde(rename = "artistString")]
-    artist_string: Option<String>,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct NicoPublisherNames {
-    #[serde(rename = "additionalNames")]
-    additional_names: String,
-    #[serde(rename = "displayName")]
-    display_name: String,
 }
