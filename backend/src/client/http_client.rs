@@ -118,7 +118,7 @@ impl<'a> Client<'a> {
         for cookie in &self.cookies {
             builder = builder.cookie(cookie.clone());
         }
-        builder
+        builder.insert_header(("User-Agent", "Actix-web"))
     }
 
     async fn http_get<T, R>(&self, url: &String, query: &T) -> Result<R>

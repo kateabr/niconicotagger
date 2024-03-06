@@ -165,29 +165,31 @@
         <b-col cols="2" class="my-auto"></b-col>
       </b-row>
     </div>
-    <b-row v-if="songsInfoLoaded()" class="col-12">
-      <b-col class="my-auto">
-        <div class="text-center pt-sm-3">
-          <b-button-group>
-            <b-button
-              v-for="(type, key) in songTypes"
-              :key="key"
-              class="pl-4 pr-4"
-              :disabled="defaultDisableCondition()"
-              :variant="
-                (type.show ? '' : 'outline-') +
-                getSongTypeColorForDisplay(type.name)
-              "
-              @click="
-                type.show = !type.show;
-                filterVideos();
-              "
-              >{{ getSongTypeStatsForDisplay(type.name) }}
-            </b-button>
-          </b-button-group>
-        </div>
-      </b-col>
-    </b-row>
+    <div v-if="songsInfoLoaded()" class="col-12">
+      <b-row>
+        <b-col class="col-lg-12">
+          <div class="text-center pt-sm-3 my-auto">
+            <b-button-group>
+              <b-button
+                v-for="(type, key) in songTypes"
+                :key="key"
+                class="pl-4 pr-4"
+                :disabled="defaultDisableCondition()"
+                :variant="
+                  (type.show ? '' : 'outline-') +
+                  getSongTypeColorForDisplay(type.name)
+                "
+                @click="
+                  type.show = !type.show;
+                  filterVideos();
+                "
+                >{{ getSongTypeStatsForDisplay(type.name) }}
+              </b-button>
+            </b-button-group>
+          </div>
+        </b-col>
+      </b-row>
+    </div>
     <b-row v-if="songsInfoLoaded()" class="flex-fill text-center">
       <div class="overflow-auto mx-auto flex-fill my-3">
         <b-button-group class="my-1">
