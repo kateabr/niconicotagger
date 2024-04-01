@@ -304,7 +304,7 @@ impl<'a> Client<'a> {
         let response: NicoResponse = self
             .http_get(
                 &String::from(
-                    "https://api.search.nicovideo.jp/api/v2/snapshot/video/contents/search",
+                    "https://snapshot.search.nicovideo.jp/api/v2/snapshot/video/contents/search",
                 ),
                 &query,
             )
