@@ -8,7 +8,7 @@ on:
       - backend/**
 
 env:
-  RUSTFLAGS: "-Dwarnings"
+  RUSTFLAGS: "-Dwarnings -Adead_code"
   REMOTE: handystuff.net
 
 jobs:
