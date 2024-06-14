@@ -596,10 +596,9 @@ impl<'a> Client<'a> {
         Ok(NicoPublisherWithoutEntry {
             publisher_id: get_text(&doc, "user_id")
                 .or(get_text(&doc, "ch_id"))
-                .unwrap_or("(unknown publisher)".to_string()),
+                .unwrap(),
             publisher_nickname: get_text(&doc, "user_nickname")
-                .or(get_text(&doc, "ch_name"))
-                .unwrap_or("-1".to_string()),
+                .or(get_text(&doc, "ch_name")),
         })
     }
 
@@ -657,7 +656,10 @@ impl<'a> Client<'a> {
                 title: video.title.clone(),
                 start_time: video.start_time.clone(),
                 tags,
-                description: self.get_formatted_description(video.id.clone()).await?,
+                description: match self.get_formatted_description(video.id.clone()).await {
+                    Ok(descr) => Some(descr),
+                    Err(_) => None
+                },
                 publisher: match publisher {
                     Some(_) => None,
                     None => Some(self.lookup_nico_publisher(&video.id).await?)
@@ -753,10 +755,21 @@ impl<'a> Client<'a> {
                 title: video.title.clone(),
                 start_time: video.start_time.clone(),
                 tags,
-                description: self.get_formatted_description(video.id.clone()).await?,
+                description: match self.get_formatted_description(video.id.clone()).await {
+                    Ok(descr) => Some(descr),
+                    Err(_) => None
+                },
                 publisher: match publisher {
                     Some(_) => None,
-                    None => Some(self.lookup_nico_publisher(&video.id).await?)
+                    None => match self.lookup_nico_publisher(&video.id).await {
+                        Ok(res) => Some(res),
+                        Err(_) => video.user_id
+                            .map(|existing_user_id|
+                                NicoPublisherWithoutEntry {
+                                    publisher_id: existing_user_id.to_string(),
+                                    publisher_nickname: None,
+                                })
+                    }
                 },
             },
             song_entry: entry,
@@ -1513,7 +1526,7 @@ impl<'a> Client<'a> {
                 }
             }
         }
-        Ok(String::from(""))
+        Err(VocadbClientError::NotFoundError(String::from("failed to extract description")))
     }
 
     pub async fn get_videos_from_db(

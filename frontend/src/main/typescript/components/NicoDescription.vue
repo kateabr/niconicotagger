@@ -1,6 +1,6 @@
 <template>
   <span>
-    <span v-if="description.length > 0">
+    <span v-if="description !== null">
       <b-button
         v-b-toggle="contentId + '_description'"
         variant="link"
@@ -13,15 +13,9 @@
       >
       <b-collapse :id="contentId + '_description'" class="collapsed mt-2">
         <b-card v-cloak>
-          <div
-            v-if="
-              publisher !== undefined &&
-              publisher !== null &&
-              publisher.publisherId !== '-1'
-            "
-            class="mb-2 text-secondary"
-          >
+          <div v-if="publisher !== null" class="mb-2 text-secondary">
             <b-badge
+              v-if="publisher.publisherNickname !== null"
               v-clipboard:copy="publisher.publisherNickname"
               variant="primary"
               class="m-sm-1"
@@ -36,23 +30,30 @@
                 >user/{{ publisher.publisherId }}</b-link
               >)</span
             >
+            <div v-html="description" />
           </div>
-          <div
-            v-else-if="
-              publisher !== undefined &&
-              publisher !== null &&
-              publisher.publisherId === '-1'
-            "
-            class="small mb-2 text-secondary"
-          >
-            Could not extract publisher info
-          </div>
-          <span v-html="description" />
         </b-card>
       </b-collapse>
     </span>
     <span v-else class="text-secondary">
       <small>Could not extract description</small>
+      <div v-if="publisher !== null" class="small">
+        <b-badge
+          v-if="publisher.publisherNickname !== null"
+          v-clipboard:copy="publisher.publisherNickname"
+          variant="primary"
+          class="m-sm-1"
+          href="#"
+          ><font-awesome-icon class="mr-sm-1" icon="fas fa-user" />{{
+            publisher.publisherNickname
+          }}</b-badge
+        >
+        (<b-link
+          target="_blank"
+          :href="'https://www.nicovideo.jp/user/' + publisher.publisherId"
+          >user/{{ publisher.publisherId }}</b-link
+        >)
+      </div>
     </span>
   </span>
 </template>
@@ -67,10 +68,10 @@ export default class extends Vue {
   @Prop()
   private readonly contentId!: string;
   @Prop()
-  private readonly description!: string;
+  private readonly description!: string | null;
   @Prop()
   private readonly forceCollapse!: boolean;
   @Prop()
-  private readonly publisher: NicoPublisherWithoutEntry | null | undefined;
+  private readonly publisher!: NicoPublisherWithoutEntry | null;
 }
 </script>

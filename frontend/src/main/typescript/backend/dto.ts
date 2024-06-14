@@ -57,13 +57,13 @@ export interface NicoVideoWithTidyTags {
   startTime: string;
   tags: DisplayableTag[];
   eventDateComparison: DateComparisonResult | null;
-  description: string;
-  publisher: NicoPublisherWithoutEntry;
+  description: string | null;
+  publisher: NicoPublisherWithoutEntry | null;
 }
 
 export interface NicoPublisherWithoutEntry {
   publisherId: string;
-  publisherNickname: string;
+  publisherNickname: string | null;
 }
 
 export interface SongForApiContractSimplified {
