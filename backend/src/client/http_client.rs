@@ -662,7 +662,15 @@ impl<'a> Client<'a> {
                 },
                 publisher: match publisher {
                     Some(_) => None,
-                    None => Some(self.lookup_nico_publisher(&video.id).await?)
+                    None => match self.lookup_nico_publisher(&video.id).await {
+                        Ok(res) => Some(res),
+                        Err(_) => video.user_id
+                            .map(|existing_user_id|
+                                NicoPublisherWithoutEntry {
+                                    publisher_id: existing_user_id.to_string(),
+                                    publisher_nickname: None,
+                                })
+                    }
                 },
             },
             song_entry: entry,
@@ -1448,16 +1456,27 @@ impl<'a> Client<'a> {
                             new_pvs.push(pv.clone());
 
                             let thumnail_id = pv.pv_id.as_ref().unwrap();
-                            let thumbnail = self.get_thumbinfo(thumnail_id).await?;
-                            let thumbnail_parse_result = parse_thumbnail(
-                                String::from_utf8(thumbnail).unwrap().as_str(),
-                                thumnail_id,
-                                pv,
-                                song.tags
-                                    .iter()
-                                    .map(|tag| tag.tag.id)
-                                    .any(|tag_id| tag_id == 7446),
-                            );
+                            let thumbnail_parse_result = match self.get_thumbinfo(thumnail_id).await {
+                                Ok(thumbnail) => {
+                                    parse_thumbnail(
+                                        String::from_utf8(thumbnail).unwrap().as_str(),
+                                        thumnail_id,
+                                        pv,
+                                        song.tags
+                                            .iter()
+                                            .map(|tag| tag.tag.id)
+                                            .any(|tag_id| tag_id == 7446),
+                                    )
+                                },
+                                Err(_) => Err(ThumbnailError{
+                                    id: thumnail_id.clone(),
+                                    code: String::from("NO DATA"),
+                                    description: String::from(""),
+                                    title: String::from("Look up at Nicolog"),
+                                    disabled: false,
+                                    community: false,
+                                })
+                            };
 
                             match thumbnail_parse_result {
                                 Ok(mut thumb) => {

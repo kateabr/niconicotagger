@@ -382,6 +382,13 @@
                         >{{ niconicoCommunityExclusive.name }}</b-link
                       ></b-badge
                     >
+                    <b-badge
+                      v-else-if="thumbnail.code === 'NO DATA'"
+                      variant="warning"
+                      class="m-1"
+                    >
+                      Service down?
+                    </b-badge>
                     <b-badge v-else variant="warning" class="m-1">
                       Unknown error</b-badge
                     >
