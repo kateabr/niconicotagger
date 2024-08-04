@@ -279,6 +279,7 @@ impl<'a> Client<'a> {
         } else {
             tag
         };
+        let fields = String::from("contentId,title,tags,userId,startTime,lengthSeconds,description");
         let query = if time_bounds.is_empty() {
             vec![
                 ("q", q),
@@ -286,10 +287,7 @@ impl<'a> Client<'a> {
                 ("_limit", max_results.to_string()),
                 ("_sort", order_by),
                 ("targets", String::from("tagsExact")),
-                (
-                    "fields",
-                    String::from("contentId,title,tags,userId,startTime"),
-                ),
+                ("fields", fields),
             ]
         } else {
             vec![
@@ -298,10 +296,7 @@ impl<'a> Client<'a> {
                 ("_limit", max_results.to_string()),
                 ("_sort", order_by),
                 ("targets", String::from("tagsExact")),
-                (
-                    "fields",
-                    String::from("contentId,title,tags,userId,startTime,lengthSeconds"),
-                ),
+                ("fields", fields),
                 ("filters[startTime][gte]", String::from(&time_bounds[0])),
                 ("filters[startTime][lte]", String::from(&time_bounds[1])),
             ]
@@ -330,7 +325,10 @@ impl<'a> Client<'a> {
                 tags: video.tags.clone(),
                 user_id: video.user_id,
                 start_time,
-                length_seconds: video.length_seconds
+                length_seconds: video.length_seconds,
+                description: video.description
+                    .map(|description| html_escape::decode_html_entities(&description).to_string())
+                    .or(None),
             });
         }
 
@@ -656,16 +654,15 @@ impl<'a> Client<'a> {
             }
         });
 
+        info!("{:?}", video.description);
+
         Ok(VideoWithEntry {
             video: NicoVideoWithTidyTags {
                 id: video.id.clone(),
                 title: video.title.clone(),
                 start_time: video.start_time.clone(),
                 tags,
-                description: match self.get_formatted_description(video.id.clone()).await {
-                    Ok(descr) => Some(descr),
-                    Err(_) => None
-                },
+                description: video.description.clone(),
                 publisher: match publisher {
                     Some(_) => None,
                     None => match self.lookup_nico_publisher(&video.id).await {
@@ -770,10 +767,7 @@ impl<'a> Client<'a> {
                 title: video.title.clone(),
                 start_time: video.start_time.clone(),
                 tags,
-                description: match self.get_formatted_description(video.id.clone()).await {
-                    Ok(descr) => Some(descr),
-                    Err(_) => None
-                },
+                description: video.description.clone(),
                 publisher: match publisher {
                     Some(_) => None,
                     None => match self.lookup_nico_publisher(&video.id).await {

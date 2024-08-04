@@ -257,7 +257,8 @@ pub struct NicoVideo {
     #[serde(rename = "startTime")]
     pub start_time: String,
     #[serde(rename = "lengthSeconds")]
-    pub length_seconds: u64
+    pub length_seconds: u64,
+    pub description: Option<String>
 }
 
 #[derive(Serialize, Deserialize)]

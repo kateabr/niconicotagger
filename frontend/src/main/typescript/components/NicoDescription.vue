@@ -30,8 +30,8 @@
                 >user/{{ publisher.publisherId }}</b-link
               >)</span
             >
-            <div v-html="description" />
           </div>
+          <div v-html="description" />
         </b-card>
       </b-collapse>
     </span>
