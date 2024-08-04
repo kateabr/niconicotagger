@@ -321,6 +321,13 @@
                 :href="getNicoVideoUrl(item.video.contentId)"
                 >{{ item.video.title }}</b-link
               >
+              <b-badge
+                v-clipboard:copy="item.video.duration"
+                variant="primary"
+                class="m-sm-1"
+                href="#"
+                >{{ item.video.duration }}</b-badge
+              >
               <div>
                 <b-badge
                   v-for="(item1, key1) in item.video.tags"

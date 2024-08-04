@@ -215,6 +215,11 @@ impl<'a> Client<'a> {
         Ok(json)
     }
 
+    fn format_duration(&self, length_seconds: u64) -> String {
+        let duration = Duration::new(length_seconds, 0);
+        format!("{}:{:0>2}", (duration.as_secs() / 60) % 60, duration.as_secs() % 60)
+    }
+
     pub async fn login(&mut self, username: &str, password: &str) -> Result<()> {
         info!("Logging user {}", username);
 
@@ -295,7 +300,7 @@ impl<'a> Client<'a> {
                 ("targets", String::from("tagsExact")),
                 (
                     "fields",
-                    String::from("contentId,title,tags,userId,startTime"),
+                    String::from("contentId,title,tags,userId,startTime,lengthSeconds"),
                 ),
                 ("filters[startTime][gte]", String::from(&time_bounds[0])),
                 ("filters[startTime][lte]", String::from(&time_bounds[1])),
@@ -325,6 +330,7 @@ impl<'a> Client<'a> {
                 tags: video.tags.clone(),
                 user_id: video.user_id,
                 start_time,
+                length_seconds: video.length_seconds
             });
         }
 
@@ -672,6 +678,7 @@ impl<'a> Client<'a> {
                                 })
                     }
                 },
+                duration: self.format_duration(video.length_seconds)
             },
             song_entry: entry,
             publisher,
@@ -779,6 +786,7 @@ impl<'a> Client<'a> {
                                 })
                     }
                 },
+                duration: self.format_duration(video.length_seconds),
             },
             song_entry: entry,
             publisher,

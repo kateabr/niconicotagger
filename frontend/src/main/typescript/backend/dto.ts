@@ -55,6 +55,7 @@ export interface NicoVideoWithTidyTags {
   contentId: string;
   title: string;
   startTime: string;
+  duration: number;
   tags: DisplayableTag[];
   eventDateComparison: DateComparisonResult | null;
   description: string | null;

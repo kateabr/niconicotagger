@@ -15,13 +15,13 @@ import {
 // url generators
 export function getNicoTagUrl(tag: string, scope: string): string {
   if (scope.length > 0) {
-    return "https://nicovideo.jp/tag/" + tag + " " + scope;
+    return "https://www.nicovideo.jp/tag/" + tag + " " + scope;
   }
-  return "https://nicovideo.jp/tag/" + tag;
+  return "https://www.nicovideo.jp/tag/" + tag;
 }
 
 export function getNicoVideoUrl(contentId: string): string {
-  return "https://nicovideo.jp/watch/" + contentId;
+  return "https://www.nicovideo.jp/watch/" + contentId;
 }
 
 export function getNicoEmbedUrl(videoId: string): string {
