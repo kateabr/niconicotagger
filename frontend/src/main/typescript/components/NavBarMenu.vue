@@ -12,7 +12,10 @@
         <b-nav-item :active="activeMode === 'events'" href="/events"
           >Events</b-nav-item
         >
-        <b-nav-item :active="activeMode === 'console'" href="/console"
+        <b-nav-item
+          class="d-none"
+          :active="activeMode === 'console'"
+          href="/console"
           >Query console</b-nav-item
         >
       </b-navbar-nav>

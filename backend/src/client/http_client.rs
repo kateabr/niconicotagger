@@ -1388,7 +1388,7 @@ impl<'a> Client<'a> {
                 let ok = ThumbnailOk {
                     id: thumnail_id.to_string(),
                     title: get_text(&doc, "title").unwrap(),
-                    description: get_text(&doc, "description").unwrap(),
+                    description: get_text(&doc, "description"),
                     length: get_text(&doc, "length").unwrap(),
                     upload_date: get_text(&doc, "first_retrieve").unwrap(),
                     views: get_i32(&doc, "view_counter"),
@@ -1405,7 +1405,7 @@ impl<'a> Client<'a> {
                 let err = ThumbnailError {
                     id: thumnail_id.to_string(),
                     code: get_text(&doc, "code").unwrap(),
-                    description: get_text(&doc, "description").unwrap(),
+                    description: get_text(&doc, "description"),
                     disabled: pv.disabled,
                     title: String::from(&pv.name),
                     community,
@@ -1473,7 +1473,7 @@ impl<'a> Client<'a> {
                                 Err(_) => Err(ThumbnailError{
                                     id: thumnail_id.clone(),
                                     code: String::from("NO DATA"),
-                                    description: String::from(""),
+                                    description: None,
                                     title: String::from("Look up at Nicolog"),
                                     disabled: false,
                                     community: false,
@@ -1528,26 +1528,22 @@ impl<'a> Client<'a> {
         Ok(String::from_utf8(response_bytes.to_vec()).context("Response is not a UTF-8 string")?)
     }
 
-    async fn get_formatted_description(&self, video_id: String) -> Result<String> {
+    async fn get_formatted_description(&self, video_id: String) -> Result<Option<String>> {
         let mut html = self.get_embed_response(video_id).await?;
         let secondary_id_regex = Regex::new(r".*Redirecting to https://embed.nicovideo.jp/watch/(.+)").unwrap();
         if let Some(secondary_id) = secondary_id_regex.captures(html.as_str()) {
             html = self.get_embed_response(String::from(secondary_id.get(1).unwrap().as_str())).await?
         }
         let document = scraper::Html::parse_document(&html);
-        let selector = scraper::Selector::parse("html>body>div").unwrap();
-        for el in document.select(&selector) {
-            if el.value().classes().any(|class| class.to_string() == "f1l9igf4") {
-                let data_props = el.value().attr("data-props").unwrap();
-                let description_regex =
-                    Regex::new(r"description.{3}(.+?).{3}thumbnailUrl").unwrap();
-                match description_regex.captures(data_props) {
-                    Some(capture) => return Ok(String::from(html_escape::decode_html_entities(&capture[1]).replace("\\\"", "\""))),
-                    _ => continue
-                }
-            }
-        }
-        Err(VocadbClientError::NotFoundError(String::from("failed to extract description")))
+        let selector = scraper::Selector::parse("html body div#ext-player").unwrap();
+        let description_regex = Regex::new(r"description.{3}(.+?).{3}thumbnailUrl").unwrap();
+        Ok(document.select(&selector)
+            .filter_map(|el| el.value().attr("data-props"))
+            .filter_map(|data| description_regex.captures(data))
+            .map(|capture| String::from(html_escape::decode_html_entities(&capture[1]).replace("\\\"", "\"")))
+            .collect_vec()
+            .first()
+            .cloned())
     }
 
     pub async fn get_videos_from_db(

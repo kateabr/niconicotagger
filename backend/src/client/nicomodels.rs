@@ -6,7 +6,7 @@ use crate::client::models::song::SongForApiContract;
 pub struct ThumbnailError {
     pub id: String,
     pub code: String,
-    pub description: String,
+    pub description: Option<String>,
     pub title: String,
     pub disabled: bool,
     pub community: bool,
@@ -16,7 +16,7 @@ pub struct ThumbnailError {
 pub struct ThumbnailOk {
     pub id: String,
     pub title: String,
-    pub description: String,
+    pub description: Option<String>,
     pub upload_date: String,
     pub length: String,
     pub views: i32,

@@ -284,6 +284,7 @@
                 <nico-description
                   :content-id="thumbnail.thumbnail.id"
                   :description="thumbnail.thumbnail.description"
+                  :publisher="null"
                 />
               </b-col>
               <b-col>

@@ -70,8 +70,6 @@ export default class extends Vue {
   @Prop()
   private readonly description!: string | null;
   @Prop()
-  private readonly forceCollapse!: boolean;
-  @Prop()
   private readonly publisher!: NicoPublisherWithoutEntry | null;
 }
 </script>

@@ -184,7 +184,7 @@ export interface ThumbnailOk {
   id: string;
   title: string;
   tags: DisplayableTag[];
-  description: string;
+  description: string | null;
 }
 
 export interface MappedTag {
@@ -196,7 +196,7 @@ export interface MappedTag {
 export interface NicoVideoWithError {
   id: string;
   code: string;
-  description: string;
+  description: string | null;
   title: string;
   disabled: boolean;
   community: boolean;
