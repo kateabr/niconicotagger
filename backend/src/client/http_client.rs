@@ -584,7 +584,7 @@ impl<'a> Client<'a> {
             .collect()
     }
 
-    async fn lookup_nico_publisher(&self, video_id: &String) -> Result<NicoPublisherWithoutEntry> {
+    async fn lookup_nico_publisher(&self, video_id: &String) -> Result<Option<NicoPublisherWithoutEntry>> {
         fn get_text(doc: &Document, param: &str) -> Option<String> {
             doc.descendants()
                 .filter(|node| node.has_tag_name(param))
@@ -601,13 +601,14 @@ impl<'a> Client<'a> {
         let xml = String::from_utf8(thumbnail).unwrap();
         let doc = Document::parse(xml.as_str()).unwrap();
 
-        Ok(NicoPublisherWithoutEntry {
-            publisher_id: get_text(&doc, "user_id")
-                .or(get_text(&doc, "ch_id"))
-                .unwrap(),
-            publisher_nickname: get_text(&doc, "user_nickname")
-                .or(get_text(&doc, "ch_name")),
-        })
+        Ok(get_text(&doc, "user_id")
+            .or(get_text(&doc, "ch_id"))
+            .map(|publisher_id|
+                NicoPublisherWithoutEntry {
+                    publisher_id,
+                    publisher_nickname: get_text(&doc, "user_nickname")
+                        .or(get_text(&doc, "ch_name")),
+                }))
     }
 
     pub async fn lookup_video(
@@ -668,7 +669,7 @@ impl<'a> Client<'a> {
                 publisher: match publisher {
                     Some(_) => None,
                     None => match self.lookup_nico_publisher(&video.id).await {
-                        Ok(res) => Some(res),
+                        Ok(res) => res,
                         Err(_) => video.user_id
                             .map(|existing_user_id|
                                 NicoPublisherWithoutEntry {
@@ -677,7 +678,7 @@ impl<'a> Client<'a> {
                                 })
                     }
                 },
-                duration: self.format_duration(video.length_seconds)
+                duration: self.format_duration(video.length_seconds),
             },
             song_entry: entry,
             publisher,
@@ -773,7 +774,12 @@ impl<'a> Client<'a> {
                 publisher: match publisher {
                     Some(_) => None,
                     None => match self.lookup_nico_publisher(&video.id).await {
-                        Ok(res) => Some(res),
+                        Ok(res) => res.or(Some(NicoPublisherWithoutEntry {
+                            publisher_id: video.user_id
+                                .map(|user_id| user_id.to_string())
+                                .context(format!("Failed to extract publisher id for {}", video.id.clone()))?,
+                            publisher_nickname: None,
+                        })),
                         Err(_) => video.user_id
                             .map(|existing_user_id|
                                 NicoPublisherWithoutEntry {
@@ -1471,8 +1477,8 @@ impl<'a> Client<'a> {
                                             .map(|tag| tag.tag.id)
                                             .any(|tag_id| tag_id == 7446),
                                     )
-                                },
-                                Err(_) => Err(ThumbnailError{
+                                }
+                                Err(_) => Err(ThumbnailError {
                                     id: thumnail_id.clone(),
                                     code: String::from("NO DATA"),
                                     description: None,
