@@ -1,12 +1,12 @@
-use actix_web::http::header::Header;
-use actix_web::web::Json;
-use actix_web::HttpRequest;
 use actix_web::{get, post, Responder};
+use actix_web::http::header::Header;
+use actix_web::HttpRequest;
+use actix_web::web::Json;
 use actix_web_httpauth::headers::authorization::{Authorization, Bearer};
 use anyhow::Context;
 use chrono::{DateTime, Duration, FixedOffset};
 use futures::future;
-use log::info;
+use log::debug;
 use url::Url;
 
 use crate::client::errors::VocadbClientError;
@@ -16,7 +16,7 @@ use crate::client::models::tag::{AssignableTag, TagBaseContract};
 use crate::client::models::weblink::WebLinkForApiContract;
 use crate::web::dto::{
     AssignEventAndRemoveTagPayload, AssignEventPayload, AssignTagRequest, CustomQueryPayload,
-    DBBeforeSinceFetchRequest, DBFetchRequest, Database, EventByTagsFetchRequest,
+    Database, DBBeforeSinceFetchRequest, DBFetchRequest, EventByTagsFetchRequest,
     LoginRequest, LoginResponse, LookupAndAssignTagRequest, ReleaseEventWithNndTagsFetchRequest,
     SongsByEventTagFetchRequest, SongsByEventTagFetchResponse, TagFetchRequest, TagsRemovalPayload,
     Token, VideosWithEntries, VideosWithEntriesByVocaDbTag,
@@ -586,7 +586,7 @@ pub async fn fetch_artists_for_tag_removal(
             .fetch_artists_by_custom_query(payload.query.clone(), payload.db_address.clone())
             .await?,
     );
-    info!("{:?}", json);
+    debug!("{:?}", json);
     Ok(json)
 }
 

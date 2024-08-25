@@ -16,15 +16,14 @@ use itertools::Itertools;
 use log::{debug, info};
 use regex::Regex;
 use roxmltree::Document;
-use scraper::node::Element;
 use scraper::{ElementRef, Node};
+use scraper::node::Element;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::client::errors::Result;
 use crate::client::errors::VocadbClientError;
-
 use crate::client::jputils::normalize;
 use crate::client::models::activity::{ActivityEditEvent, ActivityEntryForApiContract};
 use crate::client::models::artist::{ArtistCategories, ArtistForApiContractPartialFindResult, ArtistForSongContract, ArtistRoles, NicoPublisher};
@@ -319,6 +318,11 @@ impl<'a> Client<'a> {
                 .duration_trunc(chrono::Duration::days(1))
                 .unwrap())
                 .to_rfc3339();
+            let final_description = if video.description.is_some() {
+                video.description
+            } else {
+                self.get_formatted_description(video.id.clone()).await?
+            };
             escaped_data.push(NicoVideo {
                 id: video.id.clone(),
                 title: html_escape::decode_html_entities(&video.title).to_string(),
@@ -326,7 +330,7 @@ impl<'a> Client<'a> {
                 user_id: video.user_id,
                 start_time,
                 length_seconds: video.length_seconds,
-                description: video.description
+                description: final_description
                     .map(|description| html_escape::decode_html_entities(&description).to_string())
                     .or(None),
             });
@@ -653,8 +657,6 @@ impl<'a> Client<'a> {
                 publish_date: res.publish_date,
             }
         });
-
-        info!("{:?}", video.description);
 
         Ok(VideoWithEntry {
             video: NicoVideoWithTidyTags {
