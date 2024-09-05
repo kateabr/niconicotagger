@@ -26,9 +26,9 @@ use crate::client::errors::Result;
 use crate::client::errors::VocadbClientError;
 use crate::client::jputils::normalize;
 use crate::client::models::activity::{ActivityEditEvent, ActivityEntryForApiContract};
-use crate::client::models::artist::{ArtistCategories, ArtistForApiContractPartialFindResult, ArtistForSongContract, ArtistRoles, NicoPublisher};
+use crate::client::models::artist::{ArtistCategories, ArtistForApiContractPartialFindResult, ArtistForSongContract, ArtistRoles, DuplicateFindResult, NicoPublisher};
 use crate::client::models::entrythumb::EntryType;
-use crate::client::models::misc::PartialFindResult;
+use crate::client::models::misc::{PartialFindResult, PublisherType};
 use crate::client::models::pv::{PVContract, PvService, PvType};
 use crate::client::models::query::OptionalFields;
 use crate::client::models::releaseevent::{
@@ -278,7 +278,7 @@ impl<'a> Client<'a> {
         } else {
             tag
         };
-        let fields = String::from("contentId,title,tags,userId,startTime,lengthSeconds,description");
+        let fields = String::from("contentId,title,tags,userId,channelId,startTime,lengthSeconds,description");
         let query = if time_bounds.is_empty() {
             vec![
                 ("q", q),
@@ -328,6 +328,7 @@ impl<'a> Client<'a> {
                 title: html_escape::decode_html_entities(&video.title).to_string(),
                 tags: video.tags.clone(),
                 user_id: video.user_id,
+                channel_id: video.channel_id,
                 start_time,
                 length_seconds: video.length_seconds,
                 description: final_description
@@ -538,7 +539,17 @@ impl<'a> Client<'a> {
             .await
     }
 
-    pub async fn lookup_artist_by_nico_account_id(
+    pub async fn fetch_publisher_from_db(&self, video: &NicoVideo) -> Result<Option<NicoPublisher>> {
+        if video.user_id.is_some() {
+            self.lookup_artist_by_nico_account_id(video.user_id.unwrap()).await
+        } else if video.channel_id.is_some() {
+            self.lookup_channel_by_nico_account_id(video.channel_id.unwrap()).await
+        } else {
+            Ok(None)
+        }
+    }
+
+    async fn lookup_artist_by_nico_account_id(
         &self,
         user_id: i32,
     ) -> Result<Option<NicoPublisher>> {
@@ -555,6 +566,38 @@ impl<'a> Client<'a> {
             Ok(Some(NicoPublisher { name: artist.name.clone(), id: artist.id }))
         }
     }
+
+    async fn lookup_channel_by_nico_account_id(&self, ch_id: i32) -> Result<Option<NicoPublisher>> {
+        let query = &vec![
+            ("term1", String::from("")),
+            ("term2", String::from("")),
+            ("term3", String::from("")),
+            ("linkUrl", format!("https://ch.nicovideo.jp/channel/ch{}", ch_id))];
+        let body = self.create_request(
+            &format!("{}/Artist/FindDuplicate", self.base_url),
+            Method::POST)
+            .query(query)
+            .context("Unable to construct a query")?
+            .send()
+            .await?
+            .body()
+            .await?;
+        let body_string = String::from_utf8(body.to_vec()).unwrap();
+        if body_string.is_empty() {
+            return Err(VocadbClientError::BadCredentialsError);
+        }
+        let lookup_result: Vec<DuplicateFindResult> = serde_json::from_slice(&body)
+            .context(format!("Unable to deserialize a payload: {}", body_string))?;
+
+        Ok(lookup_result.into_iter()
+            .find(|entry| entry.entry.entry_type == EntryType::Artist)
+            .map(|artist| NicoPublisher {
+                name: artist.entry.name.display_name.clone(),
+                id: artist.entry.id,
+            })
+            .or(None))
+    }
+
     pub fn assign_colors(
         &self,
         target_nico_tags: Vec<String>,
@@ -602,13 +645,18 @@ impl<'a> Client<'a> {
         let doc = Document::parse(xml.as_str()).unwrap();
 
         Ok(get_text(&doc, "user_id")
-            .or(get_text(&doc, "ch_id"))
-            .map(|publisher_id|
+            .map(|user_id|
                 NicoPublisherWithoutEntry {
-                    publisher_id,
-                    publisher_nickname: get_text(&doc, "user_nickname")
-                        .or(get_text(&doc, "ch_name")),
-                }))
+                    publisher_id: user_id,
+                    publisher_nickname: get_text(&doc, "user_nickname").or(None),
+                    publisher_type: PublisherType::USER,
+                })
+            .or_else(|| get_text(&doc, "ch_id")
+                .map(|ch_id| NicoPublisherWithoutEntry {
+                    publisher_id: ch_id,
+                    publisher_nickname: get_text(&doc, "ch_name").or(None),
+                    publisher_type: PublisherType::CHANNEL,
+                })))
     }
 
     pub async fn lookup_video(
@@ -629,10 +677,7 @@ impl<'a> Client<'a> {
             .map(String::from)
             .collect::<Vec<_>>();
 
-        let publisher: Option<NicoPublisher> = match video.user_id {
-            Some(id) => self.lookup_artist_by_nico_account_id(id).await?,
-            None => None,
-        };
+        let publisher_in_db: Option<NicoPublisher> = self.fetch_publisher_from_db(video).await?;
 
         let src_nico_tags = video.tags.split(' ').map(String::from).collect::<Vec<_>>();
 
@@ -666,22 +711,16 @@ impl<'a> Client<'a> {
                 start_time: video.start_time.clone(),
                 tags,
                 description: video.description.clone(),
-                publisher: match publisher {
+                publisher: match publisher_in_db {
                     Some(_) => None,
-                    None => match self.lookup_nico_publisher(&video.id).await {
-                        Ok(res) => res,
-                        Err(_) => video.user_id
-                            .map(|existing_user_id|
-                                NicoPublisherWithoutEntry {
-                                    publisher_id: existing_user_id.to_string(),
-                                    publisher_nickname: None,
-                                })
-                    }
+                    None => self.lookup_nico_publisher(&video.id).await
+                        .map(|res| res
+                            .or_else(|| self.publisher_from_api_response(video)))?
                 },
                 duration: self.format_duration(video.length_seconds),
             },
             song_entry: entry,
-            publisher,
+            publisher: publisher_in_db,
             processed: tag_in_tags,
         })
     }
@@ -709,10 +748,7 @@ impl<'a> Client<'a> {
             .map(String::from)
             .collect::<Vec<_>>();
 
-        let publisher: Option<NicoPublisher> = match video.user_id {
-            Some(id) => self.lookup_artist_by_nico_account_id(id).await?,
-            None => None,
-        };
+        let publisher_in_db: Option<NicoPublisher> = self.fetch_publisher_from_db(video).await?;
 
         let src_nico_tags = video.tags.split(' ').map(String::from).collect::<Vec<_>>();
 
@@ -771,29 +807,36 @@ impl<'a> Client<'a> {
                 start_time: video.start_time.clone(),
                 tags,
                 description: video.description.clone(),
-                publisher: match publisher {
+                publisher: match publisher_in_db {
                     Some(_) => None,
-                    None => match self.lookup_nico_publisher(&video.id).await {
-                        Ok(res) => res.or(Some(NicoPublisherWithoutEntry {
-                            publisher_id: video.user_id
-                                .map(|user_id| user_id.to_string())
-                                .context(format!("Failed to extract publisher id for {}", video.id.clone()))?,
-                            publisher_nickname: None,
-                        })),
-                        Err(_) => video.user_id
-                            .map(|existing_user_id|
-                                NicoPublisherWithoutEntry {
-                                    publisher_id: existing_user_id.to_string(),
-                                    publisher_nickname: None,
-                                })
-                    }
+                    None => self.lookup_nico_publisher(&video.id).await
+                        .map(|res| res
+                            .or_else(|| self.publisher_from_api_response(video)))?
                 },
                 duration: self.format_duration(video.length_seconds),
             },
             song_entry: entry,
-            publisher,
+            publisher: publisher_in_db,
             processed,
         })
+    }
+
+    fn publisher_from_api_response(&self, video: &NicoVideo) -> Option<NicoPublisherWithoutEntry> {
+        if video.user_id.is_some() {
+            Some(NicoPublisherWithoutEntry {
+                publisher_id: video.user_id.unwrap().to_string(),
+                publisher_nickname: None,
+                publisher_type: PublisherType::USER,
+            })
+        } else if video.channel_id.is_some() {
+            Some(NicoPublisherWithoutEntry {
+                publisher_id: video.channel_id.unwrap().to_string(),
+                publisher_nickname: None,
+                publisher_type: PublisherType::CHANNEL,
+            })
+        } else {
+            None
+        }
     }
 
     pub async fn lookup_tag(&self, tag_id: i32) -> Result<AssignableTag> {

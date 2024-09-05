@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+use crate::client::models::entrythumb::EntryType;
 use crate::client::models::language::Language;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -78,4 +79,30 @@ pub enum TranslationType {
     Original,
     Romanized,
     Translation,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub enum PublisherType {
+    USER,
+    CHANNEL,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct DuplicateEntry {
+    #[serde(rename = "artistString")]
+    artist_string: Option<String>,
+    #[serde(rename = "entryTypeName")]
+    entry_type_name: String,
+    pub name: ArtistDuplicateNames,
+    #[serde(rename = "entryType")]
+    pub entry_type: EntryType,
+    pub id: i32,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ArtistDuplicateNames {
+    #[serde(rename = "additionalNames")]
+    additional_names: Option<String>,
+    #[serde(rename = "displayName")]
+    pub display_name: String,
 }

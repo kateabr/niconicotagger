@@ -1,16 +1,17 @@
+use std::str::FromStr;
+
 use serde::{Deserialize, Deserializer, Serialize};
+use strum_macros::EnumString;
 
 use crate::client::models::album::AlbumForApiContract;
 use crate::client::models::entrythumb::EntryThumbForApiContract;
 use crate::client::models::language::Language;
-use crate::client::models::misc::LocalizedStringContract;
+use crate::client::models::misc::{DuplicateEntry, LocalizedStringContract};
 use crate::client::models::releaseevent::ReleaseEventForApiContract;
 use crate::client::models::song::SongForApiContract;
 use crate::client::models::status::Status;
 use crate::client::models::tag::TagUsageForApiContract;
 use crate::client::models::weblink::WebLinkForApiContract;
-use std::str::FromStr;
-use strum_macros::EnumString;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ArtistContract {
@@ -84,6 +85,13 @@ pub struct ArtistForApiContractPartialFindResult {
     term: Option<String>,
     #[serde(rename = "totalCount")]
     total_count: i32,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct DuplicateFindResult {
+    pub entry: DuplicateEntry,
+    #[serde(rename = "matchProperty")]
+    match_property: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

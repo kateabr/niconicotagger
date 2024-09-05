@@ -65,6 +65,7 @@ export interface NicoVideoWithTidyTags {
 export interface NicoPublisherWithoutEntry {
   publisherId: string;
   publisherNickname: string | null;
+  publisherType: "USER" | "CHANNEL";
 }
 
 export interface SongForApiContractSimplified {

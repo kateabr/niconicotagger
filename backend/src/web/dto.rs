@@ -1,9 +1,10 @@
+use serde::{Deserialize, Serialize};
+
 use crate::client::models::activity::{ActivityEditEvent, ActivityEntryForApiContract};
 use crate::client::models::archived::ArchivedObjectVersionForApiContract;
 use crate::client::models::artist::{ArtistType, NicoPublisher};
+use crate::client::models::misc::PublisherType;
 use crate::client::models::releaseevent::ReleaseEventForApiContractSimplified;
-use serde::{Deserialize, Serialize};
-
 use crate::client::models::song::{SongForApiContract, SongType};
 use crate::client::models::tag::AssignableTag;
 use crate::client::models::user::UserForApiContract;
@@ -254,11 +255,13 @@ pub struct NicoVideo {
     pub tags: String,
     #[serde(rename = "userId")]
     pub user_id: Option<i32>,
+    #[serde(rename = "channelId")]
+    pub channel_id: Option<i32>,
     #[serde(rename = "startTime")]
     pub start_time: String,
     #[serde(rename = "lengthSeconds")]
     pub length_seconds: u64,
-    pub description: Option<String>
+    pub description: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -279,7 +282,9 @@ pub struct NicoPublisherWithoutEntry {
     #[serde(rename = "publisherId")]
     pub publisher_id: String,
     #[serde(rename = "publisherNickname")]
-    pub publisher_nickname: Option<String>
+    pub publisher_nickname: Option<String>,
+    #[serde(rename = "publisherType")]
+    pub publisher_type: PublisherType,
 }
 
 #[derive(Deserialize)]

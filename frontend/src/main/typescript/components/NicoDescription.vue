@@ -26,8 +26,8 @@
             ><span class="ml-1"
               >(<b-link
                 target="_blank"
-                :href="'https://www.nicovideo.jp/user/' + publisher.publisherId"
-                >user/{{ publisher.publisherId }}</b-link
+                :href="getNicovideoPublisherUrl(publisher)"
+                >{{ getNicovideoPublisherLinkText(publisher) }}</b-link
               >)</span
             >
           </div>
@@ -48,10 +48,9 @@
             publisher.publisherNickname
           }}</b-badge
         >
-        (<b-link
-          target="_blank"
-          :href="'https://www.nicovideo.jp/user/' + publisher.publisherId"
-          >user/{{ publisher.publisherId }}</b-link
+        (<b-link target="_blank" :href="getNicovideoPublisherUrl(publisher)">{{
+          getNicovideoPublisherLinkText(publisher)
+        }}</b-link
         >)
       </div>
     </span>
@@ -62,8 +61,15 @@
 import { Component, Prop } from "vue-property-decorator";
 import Vue from "vue";
 import { NicoPublisherWithoutEntry } from "@/backend/dto";
+import {
+  getNicovideoPublisherLinkText,
+  getNicovideoPublisherUrl
+} from "@/utils";
 
-@Component({ components: {} })
+@Component({
+  methods: { getNicovideoPublisherLinkText, getNicovideoPublisherUrl },
+  components: {}
+})
 export default class extends Vue {
   @Prop()
   private readonly contentId!: string;

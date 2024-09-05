@@ -2,6 +2,7 @@ import { DateTime } from "luxon";
 import {
   MappedTag,
   MinimalTag,
+  NicoPublisherWithoutEntry,
   NicoVideoWithError,
   NicoVideoWithMappedTags,
   NicoVideoWithTidyTags,
@@ -50,6 +51,22 @@ export function getVocaDBArtistUrl(dbAddress: string, artistId: number): string 
 
 export function getDeletedVideoUrl(videoId: string): string {
   return "https://nicolog.jp/watch/" + videoId;
+}
+
+export function getNicovideoPublisherUrl(publisher: NicoPublisherWithoutEntry): string {
+  if (publisher.publisherType == "USER") {
+    return "https://www.nicovideo.jp/user/" + publisher.publisherId;
+  } else {
+    return "https://ch.nicovideo.jp/channel/ch" + publisher.publisherId;
+  }
+}
+
+export function getNicovideoPublisherLinkText(publisher: NicoPublisherWithoutEntry): string {
+  if (publisher.publisherType == "USER") {
+    return "user/" + publisher.publisherId;
+  } else {
+    return "channel/ch" + publisher.publisherId;
+  }
 }
 
 // common predicates
