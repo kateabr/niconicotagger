@@ -53,5 +53,5 @@ jobs:
           path: dist
 
       - run: |
-          ssh $REMOTE "mkdir -p deploy/nginx/html/niconicotagger"
-          rsync --recursive --delete dist/ $REMOTE:~/deploy/nginx/html/niconicotagger
+          ssh $REMOTE "mkdir -p compose/nginx/html/niconicotagger"
+          rsync --recursive --delete dist/ $REMOTE:~/compose/nginx/html/niconicotagger
