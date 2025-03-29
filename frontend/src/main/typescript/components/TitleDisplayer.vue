@@ -23,6 +23,7 @@
 <script lang="ts">
 import { Component, Prop } from "vue-property-decorator";
 import Vue from "vue";
+import { QueryConsoleApiType } from "@/backend/dto/enumeration";
 
 @Component({ components: {} })
 export default class extends Vue {
@@ -39,7 +40,7 @@ export default class extends Vue {
   private readonly elemTypeAbbr!: string;
 
   @Prop()
-  private readonly elemType!: "songs" | "artists";
+  private readonly elemType!: QueryConsoleApiType;
 
   @Prop()
   private readonly artistString!: string;

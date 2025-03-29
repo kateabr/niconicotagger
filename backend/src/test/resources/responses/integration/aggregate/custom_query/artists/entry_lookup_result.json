@@ -1,0 +1,81 @@
+{
+  "items": [
+    {
+      "artistType": "OtherIndividual",
+      "createDate": "2022-11-10T20:42:47.98",
+      "defaultName": "DJ TOMODACHI",
+      "defaultNameLanguage": "English",
+      "id": 111393,
+      "name": "DJ TOMODACHI",
+      "status": "Draft",
+      "tags": [
+        {
+          "count": 1,
+          "tag": {
+            "additionalNames": "",
+            "categoryName": "Jobs",
+            "id": 274,
+            "name": "mixer",
+            "urlSlug": "mixer"
+          }
+        },
+        {
+          "count": 1,
+          "tag": {
+            "additionalNames": "DJing, disc jockey, ディスクジョッキー",
+            "categoryName": "Jobs",
+            "id": 2874,
+            "name": "DJ",
+            "urlSlug": "dj"
+          }
+        },
+        {
+          "count": 1,
+          "tag": {
+            "additionalNames": "",
+            "categoryName": "Editor notes",
+            "id": 3034,
+            "name": "limited artist information",
+            "urlSlug": "limited-artist-information"
+          }
+        }
+      ],
+      "version": 1
+    },
+    {
+      "artistType": "Producer",
+      "createDate": "2022-10-19T21:27:13.927",
+      "defaultName": "DJ UE3",
+      "defaultNameLanguage": "English",
+      "id": 110395,
+      "name": "DJ UE3",
+      "pictureMime": "image/jpeg",
+      "status": "Finished",
+      "tags": [
+        {
+          "count": 1,
+          "tag": {
+            "additionalNames": "ユーロビート, Italo disco",
+            "categoryName": "Genres",
+            "id": 134,
+            "name": "eurobeat",
+            "urlSlug": "eurobeat"
+          }
+        },
+        {
+          "count": 1,
+          "tag": {
+            "additionalNames": "DJing, disc jockey, ディスクジョッキー",
+            "categoryName": "Jobs",
+            "id": 2874,
+            "name": "DJ",
+            "urlSlug": "dj"
+          }
+        }
+      ],
+      "version": 3
+    }
+  ],
+  "term": "",
+  "totalCount": 116727
+}

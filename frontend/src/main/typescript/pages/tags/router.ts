@@ -20,7 +20,7 @@ const routes: RouteConfig[] = [
     path: "/",
     name: "tags",
     props: {
-      browseMode: "activity-entries"
+      browseMode: "song-entries"
     },
     component: () => import("@/pages/tags/views/Tags.vue")
   }

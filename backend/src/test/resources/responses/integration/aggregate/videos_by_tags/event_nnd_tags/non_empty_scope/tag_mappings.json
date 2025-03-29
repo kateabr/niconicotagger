@@ -1,0 +1,29 @@
+{
+  "items": [
+    {
+      "sourceTag": "shoegazer",
+      "tag": {
+        "id": 395,
+        "name": "shoegaze",
+        "urlSlug": "shoegaze"
+      }
+    },
+    {
+      "sourceTag": "VOCAROCK",
+      "tag": {
+        "id": 481,
+        "name": "rock",
+        "urlSlug": "rock"
+      }
+    },
+    {
+      "sourceTag": "ミノセンス",
+      "tag": {
+        "id": 9086,
+        "name": "イノセンス",
+        "urlSlug": "naive"
+      }
+    }
+  ],
+  "totalCount": 2
+}

@@ -1,0 +1,190 @@
+[
+  {
+    "resultingTagSet": [],
+    "entry": null,
+    "priorSongsCheckResult": null,
+    "caseDescription": "song entry does not exist"
+  },
+  {
+    "resultingTagSet": [
+      {
+        "tag": {
+          "id": 158,
+          "name": "first work"
+        },
+        "selected": true
+      }
+    ],
+    "entry": {
+      "id": 1457,
+      "name": "SLIDRJCMPSO",
+      "songType": "Other",
+      "artists": [
+        {
+          "isSupport": false,
+          "artistEntryData": {
+            "id": 1498,
+            "name": "QUMNM",
+            "artistType": "VOICEVOX"
+          },
+          "effectiveRoles": "Animator"
+        }
+      ],
+      "artistString": "PDZPILS",
+      "publishDate": "2061-07-04T06:03:45.474765729Z",
+      "tags": [
+        {
+          "count": 1,
+          "tag": {
+            "id": 158,
+            "name": "first work"
+          }
+        }
+      ],
+      "releaseEvents": []
+    },
+    "priorSongsCheckResult": null,
+    "caseDescription": "tag already present"
+  },
+  {
+    "resultingTagSet": [],
+    "entry": {
+      "id": 1457,
+      "name": "SLIDRJCMPSO",
+      "songType": "Other",
+      "artists": [
+        {
+          "isSupport": false,
+          "artistEntryData": {
+            "id": 1498,
+            "name": "QUMNM",
+            "artistType": "Producer"
+          },
+          "effectiveRoles": "Default"
+        },
+        {
+          "isSupport": false,
+          "artistEntryData": {
+            "id": 1498,
+            "name": "QUMNM",
+            "artistType": "Lyricist"
+          },
+          "effectiveRoles": "Composer"
+        }
+      ],
+      "artistString": "PDZPILS",
+      "publishDate": "2061-07-04T06:03:45.474765729Z",
+      "tags": [],
+      "releaseEvents": []
+    },
+    "priorSongsCheckResult": null,
+    "caseDescription": "two non-support creators, could be first work for one but not for the other"
+  },
+  {
+    "resultingTagSet": [
+      {
+        "tag": {
+          "id": 158,
+          "name": "first work"
+        },
+        "selected": false
+      }
+    ],
+    "entry": {
+      "id": 1457,
+      "name": "SLIDRJCMPSO",
+      "songType": "Other",
+      "artists": [
+        {
+          "isSupport": false,
+          "artistEntryData": {
+            "id": 1498,
+            "name": "QUMNM",
+            "artistType": "Producer"
+          },
+          "effectiveRoles": "Default"
+        },
+        {
+          "id": 1498,
+          "name": "QUMNM",
+          "isSupport": true,
+          "artistType": "Producer",
+          "effectiveRoles": "Default"
+        }
+      ],
+      "artistString": "PDZPILS",
+      "publishDate": "2061-07-04T06:03:45.474765729Z",
+      "tags": [],
+      "releaseEvents": []
+    },
+    "priorSongsCheckResult": false,
+    "caseDescription": "one non-support creator (Producer+Default)"
+  },
+  {
+    "resultingTagSet": [
+      {
+        "tag": {
+          "id": 158,
+          "name": "first work"
+        },
+        "selected": false
+      }
+    ],
+    "entry": {
+      "id": 1457,
+      "name": "SLIDRJCMPSO",
+      "songType": "Other",
+      "artists": [
+        {
+          "isSupport": false,
+          "artistEntryData": {
+            "id": 1498,
+            "name": "QUMNM",
+            "artistType": "Animator"
+          },
+          "effectiveRoles": "Animator, Composer"
+        },
+        {
+          "isSupport": true,
+          "artistEntryData": {
+            "id": 1498,
+            "name": "QUMNM",
+            "artistType": "Animator"
+          },
+          "effectiveRoles": "Composer"
+        }
+      ],
+      "artistString": "PDZPILS",
+      "publishDate": "2061-07-04T06:03:45.474765729Z",
+      "tags": [],
+      "releaseEvents": []
+    },
+    "priorSongsCheckResult": false,
+    "caseDescription": "one non-support creator (Animator+Composer)"
+  },
+  {
+    "resultingTagSet": [],
+    "entry": {
+      "id": 1457,
+      "name": "SLIDRJCMPSO",
+      "songType": "Other",
+      "artists": [
+        {
+          "isSupport": false,
+          "artistEntryData": {
+            "id": 150,
+            "name": "QUMNM",
+            "artistType": "Producer"
+          },
+          "effectiveRoles": "Composer"
+        }
+      ],
+      "artistString": "PDZPILS",
+      "publishDate": "2061-07-04T06:03:45.474765729Z",
+      "tags": [],
+      "releaseEvents": []
+    },
+    "priorSongsCheckResult": true,
+    "caseDescription": "one non-support creator, but there are earlier works"
+  }
+]

@@ -1,0 +1,57 @@
+{
+  "items": [
+    {
+      "id": 111393,
+      "name": "DJ TOMODACHI",
+      "tags": [
+        {
+          "id": 274,
+          "name": "mixer"
+        },
+        {
+          "id": 2874,
+          "name": "DJ"
+        },
+        {
+          "id": 3034,
+          "name": "limited artist information"
+        }
+      ],
+      "type": "OtherIndividual"
+    },
+    {
+      "id": 110395,
+      "name": "DJ UE3",
+      "tags": [
+        {
+          "id": 134,
+          "name": "eurobeat"
+        },
+        {
+          "id": 2874,
+          "name": "DJ"
+        }
+      ],
+      "type": "Producer"
+    }
+  ],
+  "tagPool": [
+    {
+      "id": 274,
+      "name": "mixer"
+    },
+    {
+      "id": 2874,
+      "name": "DJ"
+    },
+    {
+      "id": 3034,
+      "name": "limited artist information"
+    },
+    {
+      "id": 134,
+      "name": "eurobeat"
+    }
+  ],
+  "totalCount": 116727
+}

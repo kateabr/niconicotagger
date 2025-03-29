@@ -1,0 +1,88 @@
+{
+  "id": 111393,
+  "defaultName": "DJ TOMODACHI",
+  "canRemoveTagUsages": true,
+  "tagUsages": [
+    {
+      "date": "2022-11-10T20:42:55.193",
+      "count": 1,
+      "id": 283336,
+      "tag": {
+        "id": 274,
+        "name": "mixer",
+        "urlSlug": "mixer"
+      },
+      "votes": [
+        {
+          "active": true,
+          "groupId": "Moderator",
+          "mainPicture": {
+            "mime": "image/png",
+            "urlOriginal": "https://beta.vocadb.net/static/img/user/mainOrig/149.png",
+            "urlSmallThumb": "https://beta.vocadb.net/static/img/user/mainSmall/149.png",
+            "urlThumb": "https://beta.vocadb.net/static/img/user/mainThumb/149.png",
+            "urlTinyThumb": "https://beta.vocadb.net/static/img/user/mainTiny/149.png"
+          },
+          "memberSince": "2011-11-13T14:46:56",
+          "verifiedArtist": true,
+          "id": 149,
+          "name": "mi.chan"
+        }
+      ]
+    },
+    {
+      "date": "2023-03-19T02:03:54.103",
+      "count": 1,
+      "id": 312358,
+      "tag": {
+        "id": 2874,
+        "name": "DJ",
+        "urlSlug": "dj"
+      },
+      "votes": [
+        {
+          "active": true,
+          "groupId": "Admin",
+          "mainPicture": {
+            "mime": "image/jpeg",
+            "urlOriginal": "https://beta.vocadb.net/static/img/user/mainOrig/1083.jpg",
+            "urlSmallThumb": "https://beta.vocadb.net/static/img/user/mainSmall/1083.jpg",
+            "urlThumb": "https://beta.vocadb.net/static/img/user/mainThumb/1083.jpg",
+            "urlTinyThumb": "https://beta.vocadb.net/static/img/user/mainTiny/1083.jpg"
+          },
+          "memberSince": "2013-12-12T21:24:54",
+          "verifiedArtist": true,
+          "id": 1083,
+          "name": "andreoda"
+        }
+      ]
+    },
+    {
+      "date": "2022-11-10T20:43:54.033",
+      "count": 1,
+      "id": 283337,
+      "tag": {
+        "id": 3034,
+        "name": "limited artist information",
+        "urlSlug": "limited-artist-information"
+      },
+      "votes": [
+        {
+          "active": true,
+          "groupId": "Moderator",
+          "mainPicture": {
+            "mime": "image/png",
+            "urlOriginal": "https://beta.vocadb.net/static/img/user/mainOrig/149.png",
+            "urlSmallThumb": "https://beta.vocadb.net/static/img/user/mainSmall/149.png",
+            "urlThumb": "https://beta.vocadb.net/static/img/user/mainThumb/149.png",
+            "urlTinyThumb": "https://beta.vocadb.net/static/img/user/mainTiny/149.png"
+          },
+          "memberSince": "2011-11-13T14:46:56",
+          "verifiedArtist": true,
+          "id": 149,
+          "name": "mi.chan"
+        }
+      ]
+    }
+  ]
+}

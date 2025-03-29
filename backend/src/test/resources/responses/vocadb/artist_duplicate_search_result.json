@@ -1,0 +1,15 @@
+[
+  {
+    "entry": {
+      "artistString": null,
+      "entryTypeName": "Music producer",
+      "name": {
+        "additionalNames": "Mushoku Toumei-sai, mushokutomeisai",
+        "displayName": "無色透名祭"
+      },
+      "entryType": "Artist",
+      "id": 106476
+    },
+    "matchProperty": "Names"
+  }
+]

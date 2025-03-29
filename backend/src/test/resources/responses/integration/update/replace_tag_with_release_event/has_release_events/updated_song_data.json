@@ -1,0 +1,124 @@
+{
+  "artists": [
+    {
+      "artist": {
+        "additionalNames": "Ren SAEKI",
+        "artistType": "Producer",
+        "deleted": false,
+        "id": 135052,
+        "name": "佐伯れん",
+        "status": "Finished",
+        "version": 4
+      },
+      "categories": "Producer",
+      "effectiveRoles": "Default",
+      "id": 2107888,
+      "isCustomName": false,
+      "isSupport": false,
+      "name": "佐伯れん",
+      "roles": "Default"
+    },
+    {
+      "artist": {
+        "additionalNames": "Kagamine Rin, 鏡音鈴, 카가미네 린, 镜音铃",
+        "artistType": "Vocaloid",
+        "deleted": false,
+        "id": 14,
+        "name": "鏡音リン",
+        "pictureMime": "image/png",
+        "releaseDate": "2007-12-27T00:00:00Z",
+        "status": "Locked",
+        "version": 32
+      },
+      "categories": "Vocalist",
+      "effectiveRoles": "Default",
+      "id": 2107889,
+      "isCustomName": false,
+      "isSupport": false,
+      "name": "鏡音リン",
+      "roles": "Default"
+    }
+  ],
+  "canDelete": true,
+  "defaultNameLanguage": "Japanese",
+  "hasAlbums": false,
+  "id": 743185,
+  "lengthSeconds": 145,
+  "lyrics": [],
+  "name": "オッドライアー",
+  "names": [
+    {
+      "id": 1211360,
+      "language": "Japanese",
+      "value": "オッドライアー"
+    },
+    {
+      "id": 1211361,
+      "language": "English",
+      "value": "odd liar"
+    }
+  ],
+  "notes": {
+    "english": "",
+    "original": ""
+  },
+  "publishDate": "2025-01-25T00:00:00Z",
+  "pvs": [
+    {
+      "author": "佐伯れん - Ren SAEKI",
+      "disabled": false,
+      "id": 1122073,
+      "length": 145,
+      "name": "【MV】オッドライアー  /  佐伯れん feat. 鏡音リン",
+      "publishDate": "2025-01-25T00:00:00",
+      "pvId": "p-R7igoNYlA",
+      "service": "Youtube",
+      "pvType": "Original",
+      "thumbUrl": "https://i.ytimg.com/vi/p-R7igoNYlA/default.jpg",
+      "url": "https://youtu.be/p-R7igoNYlA"
+    },
+    {
+      "author": "佐伯れん",
+      "disabled": false,
+      "id": 1122074,
+      "length": 144,
+      "name": "【MV】オッドライアー  /  佐伯れん feat. 鏡音リン",
+      "publishDate": "2025-01-25T00:00:00",
+      "pvId": "sm44574009",
+      "service": "NicoNicoDouga",
+      "pvType": "Original",
+      "thumbUrl": "https://nicovideo.cdn.nimg.jp/thumbnails/44574009/44574009.41989189",
+      "url": "http://www.nicovideo.jp/watch/sm44574009"
+    }
+  ],
+  "releaseEvents": [
+    {
+      "category": "Unspecified",
+      "date": "2024-06-09T00:00:00Z",
+      "endDate": "2025-06-08T00:00:00Z",
+      "id": 7231,
+      "name": "モミアゲヲ投稿祭 2024",
+      "seriesId": 545,
+      "seriesNumber": 2024,
+      "seriesSuffix": "",
+      "status": "Draft",
+      "urlSlug": "momi-agewo-upload-festival-202",
+      "venueName": "",
+      "version": 2
+    },
+    {
+      "id": 8006
+    }
+  ],
+  "songType": "Original",
+  "status": "Finished",
+  "tags": [
+    7323,
+    7322
+  ],
+  "updateNotes": "Added event E/8006 \"プロセカNEXT 28\" (via NicoNicoTagger 2.0)",
+  "webLinks": [],
+  "cultureCodes": [
+    "ja"
+  ]
+}

@@ -1,0 +1,156 @@
+{
+  "items": [
+    {
+      "entry": {
+        "id": 741501,
+        "name": "バア",
+        "type": "Original",
+        "artistString": "幽霊一文字 feat. 巡音ルカ",
+        "publishedOn": "2025-01-28"
+      },
+      "availablePvs": [
+        {
+          "video": {
+            "id": "sm44594436",
+            "title": "バア / 幽霊一文字 feat.巡音ルカ",
+            "description": "8作目 「夜明けは近いゼヨ」 巡音ルカ16周年おめでとうございます！！Music/Lyric/MV : 幽霊一文字 https://x.com/YureiIchimonji illustration : えふすけ https://x.com/F_5uke Off Vocal : https://piapro.jp/t/JIcx",
+            "tags": [
+              {
+                "name": "VOCALOID",
+                "type": "secondary",
+                "locked": true
+              },
+              {
+                "name": "巡音ルカ",
+                "type": "secondary",
+                "locked": true
+              },
+              {
+                "name": "ルカオリジナル曲",
+                "type": "secondary",
+                "locked": true
+              },
+              {
+                "name": "幽霊一文字",
+                "type": "secondary",
+                "locked": true
+              },
+              {
+                "name": "えふすけ",
+                "type": "secondary",
+                "locked": true
+              },
+              {
+                "name": "巡音ルカ誕生祭2025",
+                "type": "secondary",
+                "locked": true
+              },
+              {
+                "name": "バア",
+                "type": "secondary",
+                "locked": true
+              },
+              {
+                "name": "VOCAROCK",
+                "type": "dark",
+                "locked": false
+              },
+              {
+                "name": "rock",
+                "type": "dark",
+                "locked": false
+              }
+            ]
+          },
+          "suggestedTags": [
+            {
+              "tag": {
+                "id": 481,
+                "name": "rock"
+              },
+              "selected": false
+            }
+          ]
+        },
+        {
+          "video": {
+            "id": "sm44594434",
+            "title": "バア / 幽霊一文字 feat.巡音ルカ",
+            "description": "8作目 「夜明けは近いゼヨ」 巡音ルカ16周年おめでとうございます！！Music/Lyric/MV : 幽霊一文字 https://x.com/YureiIchimonji illustration : えふすけ https://x.com/F_5uke Off Vocal : https://piapro.jp/t/JIcx",
+            "tags": [
+              {
+                "name": "VOCALOID",
+                "type": "secondary",
+                "locked": true
+              },
+              {
+                "name": "巡音ルカ",
+                "type": "secondary",
+                "locked": true
+              },
+              {
+                "name": "ルカオリジナル曲",
+                "type": "secondary",
+                "locked": true
+              },
+              {
+                "name": "幽霊一文字",
+                "type": "secondary",
+                "locked": true
+              },
+              {
+                "name": "えふすけ",
+                "type": "secondary",
+                "locked": true
+              },
+              {
+                "name": "巡音ルカ誕生祭2025",
+                "type": "secondary",
+                "locked": true
+              },
+              {
+                "name": "バア",
+                "type": "secondary",
+                "locked": true
+              },
+              {
+                "name": "良調声",
+                "type": "dark",
+                "locked": false
+              }
+            ]
+          },
+          "suggestedTags": [
+            {
+              "tag": {
+                "id": 4582,
+                "name": "good tuning"
+              },
+              "selected": true
+            }
+          ]
+        }
+      ],
+      "unavailablePvs": [
+        {
+          "id": "sm44594435",
+          "title": "バア / 幽霊一文字 feat.巡音ルカ",
+          "error": "NOT_FOUND"
+        }
+      ]
+    }
+  ],
+  "songTypeStats": {
+    "Original": 1,
+    "Unspecified": 0,
+    "Remaster": 0,
+    "Remix": 0,
+    "Cover": 0,
+    "Instrumental": 0,
+    "MusicPV": 0,
+    "Mashup": 0,
+    "DramaPV": 0,
+    "Other": 0
+  },
+  "totalCount": 373865
+}

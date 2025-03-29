@@ -1,0 +1,205 @@
+{
+  "artists": [
+    {
+      "artist": {
+        "additionalNames": "Haruno Nemuri, ねむにゃんP, NemunyanP, 春乃ねむり",
+        "artistType": "Producer",
+        "deleted": false,
+        "id": 67282,
+        "name": "ハルノネムリ",
+        "pictureMime": "image/jpeg",
+        "status": "Finished",
+        "version": 5
+      },
+      "categories": "Producer",
+      "effectiveRoles": "Default",
+      "id": 1849844,
+      "isCustomName": false,
+      "isSupport": false,
+      "name": "ハルノネムリ",
+      "roles": "Default"
+    },
+    {
+      "artist": {
+        "additionalNames": "Natsuki Karin, Synthesizer V AI 夏色花梨, Synthesizer V AI Natsuki Karin, 나츠키 카린",
+        "artistType": "SynthesizerV",
+        "deleted": false,
+        "id": 94959,
+        "name": "夏色花梨",
+        "pictureMime": "image/png",
+        "releaseDate": "2022-04-13T00:00:00Z",
+        "status": "Finished",
+        "version": 17
+      },
+      "categories": "Vocalist",
+      "effectiveRoles": "Default",
+      "id": 1849845,
+      "isCustomName": false,
+      "isSupport": false,
+      "name": "夏色花梨",
+      "roles": "Default"
+    },
+    {
+      "artist": {
+        "additionalNames": "Koharu Rikka AI, Synthesizer V 小春六花 AI, Synthesizer V Koharu Rikka AI, 코하루 릿카 AI",
+        "artistType": "SynthesizerV",
+        "deleted": false,
+        "id": 85847,
+        "name": "小春六花 AI",
+        "pictureMime": "image/png",
+        "releaseDate": "2021-03-18T00:00:00Z",
+        "status": "Finished",
+        "version": 20
+      },
+      "categories": "Vocalist",
+      "effectiveRoles": "Default",
+      "id": 1849846,
+      "isCustomName": false,
+      "isSupport": false,
+      "name": "小春六花 AI",
+      "roles": "Default"
+    },
+    {
+      "artist": {
+        "additionalNames": "Hanakuma Chifuyu, Synthesizer V AI 花隈千冬, Synthesizer V AI Hanakuma Chifuyu",
+        "artistType": "SynthesizerV",
+        "deleted": false,
+        "id": 103592,
+        "name": "花隈千冬",
+        "pictureMime": "image/png",
+        "releaseDate": "2022-10-20T00:00:00Z",
+        "status": "Finished",
+        "version": 18
+      },
+      "categories": "Vocalist",
+      "effectiveRoles": "Default",
+      "id": 1849847,
+      "isCustomName": false,
+      "isSupport": false,
+      "name": "花隈千冬",
+      "roles": "Default"
+    }
+  ],
+  "canDelete": true,
+  "defaultNameLanguage": "Japanese",
+  "hasAlbums": false,
+  "id": 657775,
+  "lengthSeconds": 76,
+  "lyrics": [],
+  "name": "星たちは歌う",
+  "names": [
+    {
+      "id": 1074859,
+      "language": "Japanese",
+      "value": "星たちは歌う"
+    }
+  ],
+  "notes": {
+    "english": "",
+    "original": ""
+  },
+  "publishDate": "2024-08-06T00:00:00Z",
+  "pvs": [
+    {
+      "author": "春乃ねむり",
+      "disabled": false,
+      "id": 993817,
+      "length": 76,
+      "name": "星たちは歌う/小春六花・夏色花梨・花隈千冬",
+      "publishDate": "2024-08-06T00:00:00",
+      "pvId": "sm43909677",
+      "service": "NicoNicoDouga",
+      "pvType": "Original",
+      "thumbUrl": "https://nicovideo.cdn.nimg.jp/thumbnails/43909677/43909677.54891018",
+      "url": "http://www.nicovideo.jp/watch/sm43909677"
+    },
+    {
+      "author": "春乃ねむり",
+      "disabled": false,
+      "id": 993820,
+      "length": 77,
+      "name": "星たちは歌う/小春六花・夏色花梨・花隈千冬",
+      "publishDate": "2024-08-05T00:00:00",
+      "pvId": "1mXudbqPgPQ",
+      "service": "Youtube",
+      "pvType": "Original",
+      "thumbUrl": "https://i.ytimg.com/vi/1mXudbqPgPQ/default.jpg",
+      "url": "https://youtu.be/1mXudbqPgPQ"
+    },
+    {
+      "author": "春乃ねむり",
+      "disabled": false,
+      "id": 993817,
+      "length": 76,
+      "name": "星たちは歌う/小春六花・夏色花梨・花隈千冬",
+      "publishDate": "2024-08-06T00:00:00",
+      "pvId": "sm43909678",
+      "service": "NicoNicoDouga",
+      "pvType": "Reprint",
+      "thumbUrl": "https://nicovideo.cdn.nimg.jp/thumbnails/43909677/43909677.54891018",
+      "url": "http://www.nicovideo.jp/watch/sm43909677"
+    },
+    {
+      "author": "春乃ねむり",
+      "disabled": false,
+      "id": 993817,
+      "length": 76,
+      "name": "星たちは歌う/小春六花・夏色花梨・花隈千冬",
+      "publishDate": "2024-08-06T00:00:00",
+      "pvId": "sm43909677",
+      "service": "NicoNicoDouga",
+      "pvType": "Reprint",
+      "thumbUrl": "https://nicovideo.cdn.nimg.jp/thumbnails/43909677/43909677.54891018",
+      "url": "http://www.nicovideo.jp/watch/sm43909677"
+    },
+    {
+      "author": "春乃ねむり",
+      "disabled": false,
+      "id": 993817,
+      "length": 76,
+      "name": "星たちは歌う/小春六花・夏色花梨・花隈千冬",
+      "publishDate": "2024-08-06T00:00:00",
+      "pvId": "sm43909678",
+      "service": "NicoNicoDouga",
+      "pvType": "Reprint",
+      "thumbUrl": "https://nicovideo.cdn.nimg.jp/thumbnails/43909677/43909677.54891018",
+      "url": "http://www.nicovideo.jp/watch/sm43909677"
+    },
+    {
+      "author": "春乃ねむり",
+      "disabled": false,
+      "id": 993820,
+      "length": 77,
+      "name": "星たちは歌う/小春六花・夏色花梨・花隈千冬",
+      "publishDate": "2024-08-05T00:00:00",
+      "pvId": "1mXudbqPgPQ",
+      "service": "Youtube",
+      "pvType": "Original",
+      "thumbUrl": "https://i.ytimg.com/vi/1mXudbqPgPQ/default.jpg",
+      "url": "https://youtu.be/1mXudbqPgPQ"
+    }
+  ],
+  "releaseEvents": [
+    {
+      "category": "Festival",
+      "date": "2024-08-05T00:00:00Z",
+      "endDate": "2024-09-02T00:00:00Z",
+      "id": 7783,
+      "name": "ぼかえり2024夏 ～1回限りのボカロ夏祭り～",
+      "seriesNumber": 0,
+      "seriesSuffix": "",
+      "status": "Draft",
+      "urlSlug": "vokaeri-2024-natsu-ikkai-kagir",
+      "venueName": "",
+      "version": 5
+    }
+  ],
+  "songType": "Original",
+  "status": "Finished",
+  "tags": [
+    10162
+  ],
+  "updateNotes": "",
+  "webLinks": [],
+  "cultureCodes": []
+}

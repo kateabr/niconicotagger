@@ -1,19 +1,20 @@
 <template>
   <div>
     <error-message
-      :alert-code="alertCode"
+      :alert-status-text="alertStatusText"
       :alert-message="alertMessage"
       :this-mode="thisMode"
     />
     <b-row>
-      <span class="m-auto col-lg-5">
+      <b-col></b-col>
+      <b-col cols="5" class="m-auto">
         <b-input-group inline class="mt-lg-3">
           <template #prepend>
             <b-button
               v-b-toggle="'scope-collapse-' + thisMode"
               variant="primary"
               style="width: 80px"
-              :disabled="defaultDisableCondition() || event.id < 0"
+              :disabled="defaultDisableCondition() || !event.valid"
               ><font-awesome-icon
                 class="mr-sm-1"
                 icon="fas fa-angle-down"
@@ -22,9 +23,9 @@
           </template>
           <b-form-input
             id="tag-form"
-            v-model="eventTagName"
+            v-model="eventName"
             :disabled="defaultDisableCondition()"
-            placeholder="Event tag name"
+            placeholder="Event name"
             @keydown.enter.native="loadInitialPage()"
           >
           </b-form-input>
@@ -33,8 +34,8 @@
               v-if="!fetching"
               variant="primary"
               style="width: 80px"
-              :disabled="eventTagName === '' || defaultDisableCondition()"
-              @click="loadInitialPage()"
+              :disabled="eventName === '' || defaultDisableCondition()"
+              @click="fetchEvent()"
               >Load</b-button
             >
             <b-button v-else variant="primary" style="width: 80px" disabled
@@ -48,55 +49,6 @@
           class="mt-2"
         >
           <b-row>
-            <b-col>
-              <template>
-                <b-input-group inline>
-                  <b-form-input
-                    v-model="timeDelta"
-                    :disabled="defaultDisableCondition() || !isActiveMode()"
-                    number
-                    type="range"
-                    min="0"
-                    :max="timeDeltaMax"
-                    @change="filterEntriesIfValidState()"
-                  />
-                  <template #prepend>
-                    <b-input-group-text class="justify-content-center">
-                      <b-form-checkbox
-                        v-model="timeDeltaEnabled"
-                        :disabled="fetching || !isActiveMode()"
-                        @change="filterEntriesIfValidState()"
-                      />
-                      Time delta
-                    </b-input-group-text>
-                  </template>
-                  <template #append>
-                    <b-input-group-text class="justify-content-center"
-                      >{{ timeDelta }}
-                      day(s)
-                    </b-input-group-text>
-                  </template>
-                </b-input-group>
-                <b-input-group inline class="mt-2 text-center">
-                  <b-checkbox
-                    v-model="timeDeltaBefore"
-                    :state="getTimeDeltaState()"
-                    :disabled="!timeDeltaEnabled"
-                    class="col-6"
-                    @change="filterEntriesIfValidState()"
-                    >before</b-checkbox
-                  >
-                  <b-checkbox
-                    v-model="timeDeltaAfter"
-                    :state="getTimeDeltaState()"
-                    :disabled="!timeDeltaEnabled"
-                    class="col-6"
-                    @change="filterEntriesIfValidState()"
-                    >after</b-checkbox
-                  >
-                </b-input-group>
-              </template>
-            </b-col>
             <b-col>
               <template>
                 <b-input-group
@@ -141,21 +93,89 @@
               </template>
             </b-col>
           </b-row>
-          <b-row>
-            <b-col class="mt-2">
-              <b-form-checkbox
-                v-model="allowIneligibleVideos"
-                :disabled="
-                  !(!timeDeltaEnabled || !timeDeltaBefore || !timeDeltaAfter)
-                "
-                @change="toggleCheckAll()"
-                >Allow processing ineligible entries</b-form-checkbox
-              >
-            </b-col>
-          </b-row>
         </b-collapse>
-      </span>
+      </b-col>
+      <b-col class="m-auto text-left mt-lg-3 ml-n1">
+        <b-button
+          v-if="eventInfoLoaded()"
+          variant="link"
+          :disabled="defaultDisableCondition()"
+          @click="loadPage(page)"
+        >
+          <font-awesome-icon icon="fa-solid fa-arrow-rotate-right" />
+        </b-button>
+      </b-col>
     </b-row>
+    <Transition appear>
+      <b-row v-if="tempTags.length > 0 && isActiveMode()" class="mt-5">
+        <b-col cols="3"></b-col>
+        <b-col>
+          <b-card>
+            <b-card-header>
+              Following tags are currently associated with
+              <b-link :href="getVocaDBEventUrl(event.id)" target="_blank"
+                >{{ event.name }}
+              </b-link>
+              <span v-if="event.dateString != null"
+                >({{ event.dateString }})</span
+              ><span v-else class="text-danger"
+                >(event dates not specified)</span
+              >:
+            </b-card-header>
+            <b-card-body>
+              <b-button-group>
+                <span
+                  v-for="tempTag in tempTags"
+                  :key="tempTag.id"
+                  class="mx-1"
+                >
+                  <b-button
+                    :pressed="tempTag.id == eventTag.id"
+                    variant="outline-dark"
+                    @click="setEventTag(tempTag)"
+                  >
+                    <font-awesome-icon icon="fas fa-tag" class="mr-1" />
+                    {{ tempTag.name }}
+                  </b-button>
+                </span>
+              </b-button-group>
+              <div v-if="eventTag.id < 0" class="small text-danger mt-2">
+                Please select one
+              </div>
+            </b-card-body>
+            <b-card-footer>
+              <b-row class="flex-fill mt-3">
+                <b-col cols="6">
+                  <b-button
+                    :disabled="defaultDisableCondition() || eventTag.id < 0"
+                    block
+                    variant="success"
+                    @click="confirmAndLoad()"
+                  >
+                    <font-awesome-icon icon="fa-solid fa-check" class="mr-1" />
+                    Continue
+                  </b-button>
+                </b-col>
+                <b-col>
+                  <b-button
+                    :disabled="defaultDisableCondition()"
+                    block
+                    @click="fetchEvent()"
+                  >
+                    <font-awesome-icon
+                      icon="fa-solid fa-arrow-rotate-right"
+                      class="mr-1"
+                    />
+                    Reload
+                  </b-button>
+                </b-col>
+              </b-row>
+            </b-card-footer>
+          </b-card>
+        </b-col>
+        <b-col cols="3"></b-col>
+      </b-row>
+    </Transition>
     <b-row v-if="eventInfoLoaded() && isActiveMode()">
       <b-row
         class="mt-lg-3 pt-lg-3 pb-lg-3 col-lg-12 text-center m-auto alert-primary rounded p-sm-2 bg-light progress-bar-striped"
@@ -165,9 +185,7 @@
             <b-col>
               {{ event.category }}:<br />
               <strong>
-                <b-link
-                  :href="getVocaDBEventUrl(event.id, event.urlSlug)"
-                  target="_blank"
+                <b-link :href="getVocaDBEventUrl(event.id)" target="_blank"
                   >{{ event.name }}
                 </b-link>
               </strong>
@@ -175,13 +193,21 @@
             <b-col>
               Held on:<br />
               <strong>
-                <font-awesome-icon icon="fa-solid fa-calendar" class="mr-1" />
-                {{ event.date.toLocaleString()
-                }}<span v-if="event.endDate !== null">
-                  - {{ event.endDate.toLocaleString() }}</span
-                ></strong
+                <font-awesome-icon icon="fa-solid fa-calendar" class="mr-1" />{{
+                  event.dateString
+                }}</strong
               >
             </b-col>
+            <b-col
+              >Tag to replace:
+              <div>
+                <strong
+                  ><b-link :href="getVocaDBTagUrl(eventTag.id)" target="_blank"
+                    >{{ eventTag.name }}
+                  </b-link></strong
+                >
+              </div></b-col
+            >
             <b-col>
               Songs found:<br />
               <strong>{{ totalEntryCount }}</strong>
@@ -195,26 +221,16 @@
                 variant="primary"
                 menu-class="w-100"
               >
-                <b-dropdown-item
-                  :disabled="maxResults === 10"
-                  @click="setMaxResults(10)"
-                  >10
-                </b-dropdown-item>
-                <b-dropdown-item
-                  :disabled="maxResults === 25"
-                  @click="setMaxResults(25)"
-                  >25
-                </b-dropdown-item>
-                <b-dropdown-item
-                  :disabled="maxResults === 50"
-                  @click="setMaxResults(50)"
-                  >50
-                </b-dropdown-item>
-                <b-dropdown-item
-                  :disabled="maxResults === 100"
-                  @click="setMaxResults(100)"
-                  >100
-                </b-dropdown-item>
+                <span
+                  v-for="maxResultOption in maxResultsOptions"
+                  :key="maxResultOption"
+                >
+                  <b-dropdown-item
+                    :disabled="maxResults === maxResultOption"
+                    @click="setMaxResults(maxResultOption)"
+                    >{{ maxResultOption }}
+                  </b-dropdown-item>
+                </span>
               </b-dropdown>
             </b-col>
             <b-col class="my-auto">
@@ -243,19 +259,19 @@
           <div class="text-center pt-sm-3">
             <b-button-group>
               <b-button
-                v-for="(type, key) in songTypes"
-                :key="key"
+                v-for="(songType, songTypeKey) in songTypeStats"
+                :key="songTypeKey"
                 class="pl-4 pr-4"
                 :disabled="defaultDisableCondition()"
                 :variant="
-                  (type.show ? '' : 'outline-') +
-                  getSongTypeColorForDisplay(type.name)
+                  (songType.show ? '' : 'outline-') +
+                  getSongTypeColorForDisplay(songType.type)
                 "
                 @click="
-                  type.show = !type.show;
+                  songType.show = !songType.show;
                   filterEntries();
                 "
-                >{{ getSongTypeStatsForDisplay(type.name) }}
+                >{{ songType.type }} ({{ songType.count }})
               </b-button>
             </b-button-group>
           </div>
@@ -300,55 +316,43 @@
           <b-th class="col-1"></b-th>
         </b-thead>
         <b-tbody v-if="!allInvisible()">
-          <tr
-            v-for="item in entries.filter(item1 => item1.rowVisible)"
-            :key="item.songEntry.id"
-          >
+          <tr v-for="entry in entries.filter(e => e.visible)" :key="entry.id">
             <td>
               <b-form-checkbox
-                v-if="isSelectable(item) && !item.processed"
-                v-model="item.toAssign"
+                v-if="!entry.processed"
+                v-model="entry.checked"
                 :disabled="defaultDisableCondition()"
                 size="lg"
               />
             </td>
             <td>
-              <b-link
-                target="_blank"
-                :href="getVocaDBEntryUrl(item.songEntry.id)"
-                >{{ item.songEntry.name
+              <b-link target="_blank" :href="getVocaDBEntryUrl(entry.id)"
+                >{{ entry.name
                 }}<b-badge
                   class="badge text-center ml-2"
-                  :variant="getSongTypeColorForDisplay(item.songEntry.songType)"
+                  :variant="getSongTypeColorForDisplay(entry.type)"
                 >
-                  {{ getShortenedSongType(item.songEntry.songType) }}
+                  {{ getShortenedSongType(entry.type) }}
                 </b-badge></b-link
               >
               <div class="text-muted">
-                {{ item.songEntry.artistString }}
+                {{ entry.artistString }}
               </div>
             </td>
             <td>
-              <span
-                v-if="
-                  item.songEntry != null &&
-                  item.songEntry.releaseEvents.length > 0
-                "
-              >
+              <span v-if="entry.events.length > 0">
                 <div
-                  v-for="(releaseEvent, key1) in item.songEntry.releaseEvents"
-                  :key="key1"
+                  v-for="event in entry.events"
+                  :key="event.id"
                   class="font-weight-bolder"
                 >
                   <b-badge
                     class="badge text-center"
-                    :variant="getEventColorVariant(releaseEvent)"
-                    :href="
-                      getVocaDBEventUrl(releaseEvent.id, releaseEvent.urlSlug)
-                    "
+                    :variant="getEventColorVariant(event)"
+                    :href="getVocaDBEventUrl(event.id)"
                     target="_blank"
                   >
-                    {{ releaseEvent.name }}
+                    {{ event.name }}
                   </b-badge>
                 </div>
               </span>
@@ -356,48 +360,37 @@
             </td>
             <td>
               <date-disposition
-                v-if="item.publishDate !== null"
-                :release-date="item.songEntry.publishDate"
-                :event-date-comparison="item.songEntry.eventDateComparison"
-                :event-id-in-description="item.songEntry.eventIdInDescription"
-                :delta="timeDelta"
+                :disposition="entry.disposition"
+                :publish-date="entry.publishedOn"
               />
             </td>
             <td>
               <action
-                v-if="!item.processed"
-                :name="event.name"
-                :process-item="isSelectable(item)"
-                :link="getVocaDBEventUrl(event.id, event.urlSlug)"
-                :eligible="isEligible(item)"
-                :entry-actions="getActions(item)"
-                :multiple-events-link="multipleEventsLink"
-                :participant-link="participantLink"
-                :event-link-in-description="item.songEntry.eventIdInDescription"
-                :tag-to-remove="tag.name"
-                :tag-to-remove-link="getVocaDBTagUrl(tag.id, tag.urlSlug)"
+                v-if="!entry.processed"
+                :event="entry.toAddEvent ? event : null"
+                :tag-to-remove="eventTag"
+                :client-type="clientType"
               />
+              <entry-error-report :error-report="entry.errorReport" />
             </td>
             <td class="text-center">
-              <span v-if="item.songEntry !== null">
-                <b-button
-                  v-if="item.processed"
-                  disabled
-                  class="btn"
-                  variant="success"
-                >
-                  <font-awesome-icon icon="fas fa-check" />
-                </b-button>
-                <b-button
-                  v-else
-                  :disabled="defaultDisableCondition() || !isSelectable(item)"
-                  class="btn"
-                  variant="outline-success"
-                  @click="processSong(item)"
-                >
-                  <font-awesome-icon icon="fas fa-play" />
-                </b-button>
-              </span>
+              <b-button
+                v-if="!entry.visible"
+                disabled
+                class="btn"
+                variant="success"
+              >
+                <font-awesome-icon icon="fas fa-check" />
+              </b-button>
+              <b-button
+                v-else
+                :disabled="defaultDisableCondition()"
+                class="btn"
+                variant="outline-success"
+                @click="processSingle(entry)"
+              >
+                <font-awesome-icon icon="fas fa-play" />
+              </b-button>
             </td>
           </tr>
         </b-tbody>
@@ -467,44 +460,48 @@
 
 <script lang="ts">
 import Vue from "vue";
-import {
-  MinimalTag,
-  ReleaseEventForApiContractSimplified,
-  ReleaseEventForDisplay
-} from "@/backend/dto";
 import { api } from "@/backend";
-import { DateTime } from "luxon";
 import Component from "vue-class-component";
 import { Prop } from "vue-property-decorator";
 import {
-  getShortenedSongType,
-  getVocaDBEventUrl,
-  getVocaDBEntryUrl,
-  getVocaDBTagUrl,
-  getDateDisposition,
+  getErrorData,
+  formatDate,
+  formatDateString,
+  getClientType,
+  getEventColorVariant,
   getMaxResultsForDisplay,
   getOrderingConditionForDisplay,
+  getShortenedSongType,
   getSongTypeColorForDisplay,
-  getSongTypeStatsForDisplay,
-  pageStateIsValid,
-  infoLoaded,
-  EntryWithReleaseEventAndVisibility,
-  SongType,
   getUniqueElementId,
-  allVideosInvisible,
-  dateIsWithinTimeDelta,
-  getTimeDeltaState,
-  fillReleaseEventForDisplay,
-  DateComparisonResult,
-  getEventColorVariant,
-  isEligible
+  getVocaDBEventUrl,
+  getVocaDBSongUrl,
+  getVocaDBTagUrl,
+  mapSongTypeStats,
+  pageStateIsValid
 } from "@/utils";
 import ErrorMessage from "@/components/ErrorMessage.vue";
 import DateDisposition from "@/components/DateDisposition.vue";
 import { AxiosResponse } from "axios";
 import Action from "@/components/Action.vue";
+import EntryErrorReport from "@/components/EntryErrorReport.vue";
+import { ClientType, SongType, DbSortOrder } from "@/backend/dto/enumeration";
+import { SongTypeStatsRecord } from "@/backend/dto/songTypeStats";
+import { ReleaseEvent, VocaDbTag } from "@/backend/dto/lowerLevelStruct";
+import { SongTagsAndEventsMassUpdateRequest } from "@/backend/dto/request/songTagsAndEventsUpdateRequest";
+import { ReleaseEventDataWithVocaDbTag } from "@/backend/dto/higherLevelStruct";
+import { SongEntryByVocaDbTagForEvent } from "@/backend/dto/response/songsByVocaDbEventTagResponse";
+import {
+  localStorageKeyDbOrderBy,
+  localStorageKeyEventByDbTagName,
+  localStorageKeyMaxResults,
+  maxResultsOptions,
+  vocaDbOrderOptions
+} from "@/constants";
 
-@Component({ components: { Action, ErrorMessage, DateDisposition } })
+@Component({
+  components: { EntryErrorReport, Action, ErrorMessage, DateDisposition }
+})
 export default class extends Vue {
   @Prop()
   private readonly mode!: string;
@@ -515,85 +512,67 @@ export default class extends Vue {
   @Prop()
   private readonly targName: string | undefined;
 
+  private readonly maxResultsOptions: number[] = maxResultsOptions;
+
   // main variables
-  private event: ReleaseEventForDisplay = {
+  private event: ReleaseEventDataWithVocaDbTag = {
     id: -1,
     name: "",
-    category: "",
+    category: "Unspecified",
     date: null,
     endDate: null,
-    urlSlug: "",
-    nndTags: []
+    dateString: null,
+    tag: null,
+    valid: false
   };
-  private entries: EntryWithReleaseEventAndVisibility[] = [];
-  private tag: MinimalTag = { name: "", id: -1, urlSlug: "" };
-  private eventTagName: string = "";
+  private entries: SongEntryByVocaDbTagForEvent[] = [];
+  private tempTags: VocaDbTag[] = [];
+  private eventTag: VocaDbTag = { id: -1, name: "" };
+  private eventName: string = "";
+  private locale = "";
   private eventTagNameFrozen: string = "";
+  private songTypeStats: SongTypeStatsRecord[] = [];
 
   // api variables
   private pageToJump: number = 1;
   private startOffset: number = 0;
   private maxResults: number = 10;
-  private orderingCondition = "PublishDate";
+  private orderingCondition: DbSortOrder = "PublishDate";
   private fetching: boolean = false;
   private massAssigning: boolean = false;
   private assigning: boolean = false;
-  private dbAddress: string = "";
+  private clientType: ClientType = getClientType();
 
   // interface variables
   private allChecked: boolean = false;
   private showCollapse: boolean = false;
   private totalEntryCount: number = 0;
-  private timeDeltaEnabled: boolean = true;
-  private timeDeltaBefore: boolean = true;
-  private timeDeltaAfter: boolean = true;
-  private timeDelta: number = 0;
-  private timeDeltaMax: number = 0;
-  private allowIneligibleVideos: boolean = false;
   private page: number = 0;
   private maxPage: number = 0;
   private numOfPages: number = 0;
-  private participantLink = this.getVocaDBTagUrl(9141, "event-participant");
-  private multipleEventsLink = this.getVocaDBTagUrl(8275, "multiple-events");
 
   // error handling
-  private alertCode: number = 0;
+  private alertStatusText = "";
   private alertMessage: string = "";
 
   // interface dictionaries
-  private readonly orderOptions = {
-    PublishDate: "upload time",
-    AdditionDate: "addition time",
-    RatingScore: "user rating"
-  };
-  private songTypes: SongType[] = [
-    { name: "Unspecified", show: true },
-    { name: "Original", show: true },
-    { name: "Remaster", show: true },
-    { name: "Remix", show: true },
-    { name: "Cover", show: true },
-    { name: "Instrumental", show: true },
-    { name: "Mashup", show: true },
-    { name: "MusicPV", show: true },
-    { name: "DramaPV", show: true },
-    { name: "Other", show: true }
-  ];
+  private readonly orderOptions = vocaDbOrderOptions;
 
   // proxy methods
   private getShortenedSongType(songType: string): string {
     return getShortenedSongType(songType);
   }
 
-  private getVocaDBEventUrl(id: number, urlSlug: string): string {
-    return getVocaDBEventUrl(this.dbAddress, id, urlSlug);
+  private getVocaDBEventUrl(id: number): string {
+    return getVocaDBEventUrl(this.clientType, id);
   }
 
   private getVocaDBEntryUrl(id: number): string {
-    return getVocaDBEntryUrl(this.dbAddress, id);
+    return getVocaDBSongUrl(this.clientType, id);
   }
 
-  private getVocaDBTagUrl(id: number, urlSlug: string): string {
-    return getVocaDBTagUrl(this.dbAddress, id, urlSlug);
+  private getVocaDBTagUrl(tag: VocaDbTag): string {
+    return getVocaDBTagUrl(this.clientType, tag.id);
   }
 
   private getMaxResultsForDisplay(): string {
@@ -604,15 +583,8 @@ export default class extends Vue {
     return getOrderingConditionForDisplay(this.orderingCondition);
   }
 
-  private getSongTypeColorForDisplay(typeString: string): string {
+  private getSongTypeColorForDisplay(typeString: SongType): string {
     return getSongTypeColorForDisplay(typeString);
-  }
-
-  private getSongTypeStatsForDisplay(type: string): string {
-    return getSongTypeStatsForDisplay(
-      type,
-      this.entries.filter(item => item.songEntry.songType == type).length
-    );
   }
 
   private pageStateIsValid(): boolean {
@@ -620,36 +592,11 @@ export default class extends Vue {
   }
 
   private eventInfoLoaded(): boolean {
-    return infoLoaded(this.entries.length, this.eventTagNameFrozen);
+    return this.event.valid && this.numOfPages > 0;
   }
 
   private allInvisible(): boolean {
-    return allVideosInvisible(this.entries);
-  }
-
-  private isSelectable(item: EntryWithReleaseEventAndVisibility): boolean {
-    return this.isEligible(item) || this.allowIneligibleVideos;
-  }
-
-  private getDateDisposition(
-    date: DateTime | null,
-    dateStart: DateTime,
-    dateEnd: DateTime | null
-  ): DateComparisonResult {
-    return getDateDisposition(date, dateStart, dateEnd, this.timeDeltaMax);
-  }
-
-  private getTimeDeltaState(): boolean {
-    return getTimeDeltaState(
-      this.timeDeltaEnabled,
-      this.timeDeltaBefore,
-      this.timeDeltaAfter,
-      this.timeDelta
-    );
-  }
-
-  private isEligible(video: EntryWithReleaseEventAndVisibility): boolean {
-    return isEligible(video.songEntry, null);
+    return !this.entries.some(entry => entry.visible);
   }
 
   // interface methods
@@ -662,70 +609,54 @@ export default class extends Vue {
   }
 
   private getHiddenTypes(): number {
-    return this.songTypes.filter(t => !t.show).length;
+    return this.songTypeStats.filter(statsItem => !statsItem.show).length;
   }
 
   private toggleCheckAll(): void {
-    for (const item of this.entries.filter(
-      value => value.rowVisible && this.isSelectable(value) && !value.processed
-    )) {
-      item.toAssign = this.allChecked;
+    for (const item of this.entries) {
+      if (!item.visible || item.processed) continue;
+      item.checked = this.allChecked;
     }
   }
 
   private countChecked(): number {
-    return this.entries.filter(item => item.toAssign).length;
+    return this.entries.filter(item => item.checked).length;
   }
 
   private setMaxResults(maxResults: number): void {
     this.maxResults = maxResults;
+    localStorage.setItem(localStorageKeyMaxResults, this.maxResults.toString());
   }
 
-  private setOrderingCondition(value: string): void {
+  private setOrderingCondition(value: DbSortOrder): void {
     this.orderingCondition = value;
+    localStorage.setItem(localStorageKeyDbOrderBy, this.orderingCondition);
   }
 
-  private getEventColorVariant(
-    event: ReleaseEventForApiContractSimplified
-  ): string {
+  private getEventColorVariant(event: ReleaseEvent): string {
     return getEventColorVariant(event, this.event.id);
   }
 
-  // row filtering
-  private hiddenTypeFlag(entry: EntryWithReleaseEventAndVisibility): boolean {
-    return (
-      this.getHiddenTypes() == 0 ||
-      !this.songTypes
-        .filter(t => !t.show)
-        .map(t => t.name)
-        .includes(entry.songEntry.songType)
-    );
+  private setEventTag(tempTag: VocaDbTag) {
+    this.eventTag = tempTag;
   }
 
-  private timeDeltaFlag(eventDateComparison: DateComparisonResult): boolean {
+  // row filtering
+  private hiddenTypeFlag(entry: SongEntryByVocaDbTagForEvent): boolean {
     return (
-      !this.timeDeltaEnabled ||
-      dateIsWithinTimeDelta(
-        this.timeDelta,
-        this.timeDeltaBefore,
-        this.timeDeltaAfter,
-        eventDateComparison
-      )
+      this.getHiddenTypes() == 0 ||
+      !this.songTypeStats
+        .filter(statsItem => !statsItem.show)
+        .map(statsItem => statsItem.type)
+        .includes(entry.type)
     );
   }
 
   private filterEntries(): void {
     for (const entry of this.entries) {
-      entry.rowVisible =
-        this.hiddenTypeFlag(entry) &&
-        this.timeDeltaFlag(entry.songEntry.eventDateComparison);
-      entry.toAssign = entry.toAssign && entry.rowVisible;
-    }
-  }
-
-  private filterEntriesIfValidState(): void {
-    if (this.getTimeDeltaState()) {
-      this.filterEntries();
+      entry.visible =
+        !entry.processed &&
+        (entry.errorReport != null || this.hiddenTypeFlag(entry));
     }
   }
 
@@ -733,7 +664,7 @@ export default class extends Vue {
     this.$router
       .push({
         name: "events-full",
-        params: { browseMode: this.thisMode, targName: this.eventTagName }
+        params: { browseMode: this.thisMode, targName: this.eventName }
       })
       .catch(err => {
         return false;
@@ -741,80 +672,102 @@ export default class extends Vue {
   }
 
   // error handling
-  private processError(
-    err: { response: AxiosResponse } | { response: undefined; message: string }
-  ): void {
+  private processError(err: { response: AxiosResponse }): void {
+    const errorData = getErrorData(err);
+    this.alertMessage = errorData.message;
+    this.alertStatusText = errorData.statusText;
     this.$bvToast.show(getUniqueElementId("error_", this.thisMode.toString()));
-    if (err.response == undefined) {
-      this.alertCode = 0;
-      this.alertMessage = err.message;
-    } else {
-      this.alertCode = err.response.data.code;
-      this.alertMessage = err.response.data.message;
-    }
   }
 
   // api methods
-  async fetch(
-    eventTagName: string,
-    newStartOffset: number,
-    newPage: number
-  ): Promise<void> {
-    if (eventTagName == "") {
-      return;
+  async fetchEvent(): Promise<void> {
+    this.updateUrl();
+    this.showCollapse = false;
+    this.entries = [];
+    this.fetching = true;
+    this.eventTag = { id: -1, name: "" };
+    this.event.valid = false;
+    try {
+      let response = await api.getReleaseEventWithLinkedTag({
+        eventName: this.eventName,
+        clientType: this.clientType
+      });
+      this.event = {
+        id: response.id,
+        name: response.name,
+        category: response.category,
+        dateString: formatDateString(
+          response.date,
+          response.endDate,
+          this.locale
+        ),
+        date: response.date,
+        endDate: response.endDate,
+        valid: false
+      };
+      this.tempTags = response.vocaDbTags;
+    } catch (err) {
+      this.processError(err);
+    } finally {
+      localStorage.setItem(localStorageKeyEventByDbTagName, this.eventName);
+      this.fetching = false;
     }
+  }
+
+  async fetchSongs(newStartOffset: number, newPage: number): Promise<void> {
     this.showCollapse = false;
     this.fetching = true;
     try {
-      localStorage.setItem("max_results", this.maxResults.toString());
-      localStorage.setItem("order_by", this.orderingCondition);
       this.pageToJump = newPage;
-      let response = await api.fetchEntriesFromDbByEventTag({
-        tag: eventTagName,
+      let response = await api.getVocaDbSongEntriesByVocaDbTagId({
+        tagId: this.eventTag.id,
         startOffset: newStartOffset,
         maxResults: this.maxResults,
-        orderBy: this.orderingCondition
+        orderBy: this.orderingCondition,
+        dates: {
+          from: this.event.date,
+          to: this.event.endDate,
+          applyToSearch: false
+        },
+        clientType: this.clientType
       });
-      if (response.releaseEvent.date == null) {
-        throw { response: undefined, message: "Invalid event date" };
-      }
-      let entries_temp: EntryWithReleaseEventAndVisibility[] = response.items.map(
-        item => {
-          return {
-            songEntry: item,
-            rowVisible: true,
-            toAssign: false,
-            publishDate:
-              item.publishDate !== null
-                ? DateTime.fromISO(item.publishDate)
-                : null,
-            eventDateComparison: null,
-            processed: false
-          };
-        }
+      this.entries = response.items.map(item => {
+        return {
+          id: item.id,
+          name: item.name,
+          type: item.type,
+          artistString: item.artistString,
+          publishedOn: formatDate(item.publishedOn, this.locale),
+          events: item.events,
+          toAddEvent: !item.events.some(
+            itemEvent => itemEvent.id == this.event.id
+          ),
+          processed: false,
+          disposition: item.disposition,
+          checked: false,
+          visible: true,
+          errorReport: null
+        };
+      });
+      this.songTypeStats = mapSongTypeStats(
+        response.songTypeStats,
+        this.songTypeStats
       );
-      this.totalEntryCount = response.totalCount;
-      this.entries = entries_temp;
-      this.tag = response.eventTag;
-      fillReleaseEventForDisplay(response.releaseEvent, this.event);
-      for (let entry of this.entries) {
-        entry.songEntry.eventDateComparison = this.getDateDisposition(
-          entry.publishDate,
-          this.event.date!,
-          this.event.endDate
-        );
-      }
       this.filterEntries();
+      this.totalEntryCount = response.totalCount;
       this.eventTagNameFrozen = this.event.name;
       this.numOfPages = this.totalEntryCount / this.maxResults + 1;
       this.startOffset = newStartOffset;
       this.allChecked = false;
-      this.timeDeltaMax = this.event.endDate == null ? 7 : 1;
-      this.timeDelta = this.timeDeltaMax;
-      localStorage.setItem("vocadb_event_tag_name", eventTagName);
     } catch (err) {
       this.processError(err);
     } finally {
+      localStorage.setItem(localStorageKeyEventByDbTagName, this.eventName);
+      localStorage.setItem(
+        localStorageKeyMaxResults,
+        this.maxResults.toString()
+      );
+      localStorage.setItem(localStorageKeyDbOrderBy, this.orderingCondition);
       this.maxPage = Math.ceil(this.totalEntryCount / this.maxResults);
       this.fetching = false;
       this.pageToJump = newPage;
@@ -822,31 +775,12 @@ export default class extends Vue {
     }
   }
 
-  private async processSong(
-    song: EntryWithReleaseEventAndVisibility
+  private async processSingle(
+    song: SongEntryByVocaDbTagForEvent
   ): Promise<void> {
     this.assigning = true;
     try {
-      await api.assignEventAndRemoveTag({
-        songId: song.songEntry.id,
-        event: {
-          name: this.event.name,
-          id: this.event.id,
-          urlSlug: this.event.urlSlug
-        },
-        tagId: this.tag.id
-      });
-      song.songEntry.releaseEvents.push({
-        id: this.event.id,
-        date: null,
-        nndTags: this.event.nndTags,
-        name: this.event.name,
-        urlSlug: this.event.urlSlug,
-        category: this.event.category,
-        endDate: null
-      });
-      song.processed = true;
-      song.toAssign = false;
+      await this.update([song]);
     } catch (err) {
       this.processError(err);
     } finally {
@@ -857,54 +791,104 @@ export default class extends Vue {
   private async processMultiple(): Promise<void> {
     this.massAssigning = true;
     try {
-      for (const item1 of this.entries.filter(item => item.toAssign)) {
-        await this.processSong(item1);
-        item1.toAssign = false;
-      }
+      await this.update(this.entries.filter(entry => entry.checked));
+    } catch (err) {
+      this.processError(err);
     } finally {
       this.massAssigning = false;
       this.allChecked = false;
     }
   }
 
+  private async update(
+    entriesToUpdate: SongEntryByVocaDbTagForEvent[]
+  ): Promise<void> {
+    const errors = await api.updateSongEventsAndTags(
+      this.buildRequest(entriesToUpdate)
+    );
+    const entriesWithErrors = errors.map(error => error.entryId);
+    const eventToAdd = {
+      id: this.event.id,
+      name: this.event.name
+    };
+    for (const entry of entriesToUpdate) {
+      if (!entriesWithErrors.includes(entry.id)) {
+        if (entry.toAddEvent) {
+          entry.events.push(eventToAdd);
+          entry.toAddEvent = false;
+        }
+        entry.processed = true;
+        entry.checked = false;
+        entry.errorReport = null;
+      } else {
+        entry.errorReport = errors.filter(
+          error => error.entryId == entry.id
+        )[0];
+      }
+    }
+  }
+
+  private buildRequest(
+    entries: SongEntryByVocaDbTagForEvent[]
+  ): SongTagsAndEventsMassUpdateRequest {
+    const eventToAdd = {
+      id: this.event.id,
+      name: this.event.name
+    };
+    return {
+      subRequests: entries.map(entry => {
+        return {
+          entryId: entry.id,
+          tags: [this.eventTag],
+          event: entry.toAddEvent ? eventToAdd : null
+        };
+      }),
+      clientType: this.clientType
+    };
+  }
+
   private loadInitialPage(): void {
     this.updateUrl();
-    this.fetch(this.eventTagName, 0, 1);
+    this.fetchSongs(this.eventName, 0, 1);
+  }
+
+  private confirmAndLoad(): void {
+    this.event.valid = true;
+    this.tempTags = [];
+    this.numOfPages = 0;
+    this.fetchSongs(0, 1);
   }
 
   private loadPage(page: number): void {
     this.updateUrl();
-    this.fetch(this.tag.name, (page - 1) * this.maxResults, page);
+    this.fetchSongs((page - 1) * this.maxResults, page);
   }
 
   // session
   created(): void {
-    let max_results = localStorage.getItem("max_results");
+    let max_results = localStorage.getItem(localStorageKeyMaxResults);
     if (max_results != null) {
       this.maxResults = parseInt(max_results);
     }
-    let order_by = localStorage.getItem("order_by");
+    let order_by = localStorage.getItem(localStorageKeyDbOrderBy);
     if (order_by != null) {
       this.orderingCondition = order_by;
     }
     if (this.targName != undefined) {
-      this.eventTagName = this.targName;
+      this.eventName = this.targName;
     }
-    let event_tag_name = localStorage.getItem("vocadb_event_tag_name");
+    let event_tag_name = localStorage.getItem(localStorageKeyEventByDbTagName);
     if (event_tag_name != null) {
-      this.eventTagName = event_tag_name;
+      this.eventName = event_tag_name;
     }
-    let dbAddress = localStorage.getItem("dbAddress");
-    if (this.dbAddress == "" && dbAddress != null) {
-      this.dbAddress = dbAddress;
-    }
+    this.locale = navigator.language;
   }
 
   // fill event tag name from address params (override local storage)
   mounted(): void {
     let targName = this.$route.params["targName"];
     if (targName != undefined) {
-      this.eventTagName = targName;
+      this.eventName = targName;
     }
   }
 }

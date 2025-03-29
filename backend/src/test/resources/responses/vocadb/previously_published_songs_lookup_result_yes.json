@@ -1,0 +1,38 @@
+{
+  "items": [
+    {
+      "artistString": "原口沙輔",
+      "createDate": "2025-01-29T05:34:56.64",
+      "defaultName": "涙",
+      "defaultNameLanguage": "Japanese",
+      "favoritedTimes": 0,
+      "id": 741971,
+      "lengthSeconds": 164,
+      "name": "涙",
+      "publishDate": "2023-05-08T00:00:00Z",
+      "pvServices": "Youtube",
+      "ratingScore": 0,
+      "songType": "Original",
+      "status": "Finished",
+      "version": 2
+    },
+    {
+      "artistString": "原口沙輔",
+      "createDate": "2025-01-28T06:11:29.057",
+      "defaultName": "為に",
+      "defaultNameLanguage": "Japanese",
+      "favoritedTimes": 0,
+      "id": 741546,
+      "lengthSeconds": 229,
+      "name": "為に",
+      "publishDate": "2023-05-09T00:00:00Z",
+      "pvServices": "Youtube",
+      "ratingScore": 0,
+      "songType": "Original",
+      "status": "Finished",
+      "version": 7
+    }
+  ],
+  "term": "",
+  "totalCount": 2
+}

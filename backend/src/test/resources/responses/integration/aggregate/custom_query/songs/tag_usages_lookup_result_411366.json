@@ -1,0 +1,34 @@
+{
+  "id": 411366,
+  "defaultName": "‌.",
+  "canRemoveTagUsages": true,
+  "tagUsages": [
+    {
+      "date": "2022-10-04T18:53:47.98",
+      "count": 1,
+      "id": 1093650,
+      "tag": {
+        "id": 9148,
+        "name": "unusual title",
+        "urlSlug": "unusual-title"
+      },
+      "votes": [
+        {
+          "active": true,
+          "groupId": "Admin",
+          "mainPicture": {
+            "mime": "image/jpeg",
+            "urlOriginal": "https://beta.vocadb.net/static/img/user/mainOrig/1083.jpg",
+            "urlSmallThumb": "https://beta.vocadb.net/static/img/user/mainSmall/1083.jpg",
+            "urlThumb": "https://beta.vocadb.net/static/img/user/mainThumb/1083.jpg",
+            "urlTinyThumb": "https://beta.vocadb.net/static/img/user/mainTiny/1083.jpg"
+          },
+          "memberSince": "2013-12-12T21:24:54",
+          "verifiedArtist": true,
+          "id": 1083,
+          "name": "andreoda"
+        }
+      ]
+    }
+  ]
+}

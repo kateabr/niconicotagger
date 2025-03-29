@@ -1,0 +1,53 @@
+{
+  "items": [
+    {
+      "sourceTag": "トリップミック",
+      "tag": {
+        "id": 2956,
+        "name": "trip hop",
+        "urlSlug": "trip-hop"
+      }
+    },
+    {
+      "sourceTag": "triphop",
+      "tag": {
+        "id": 2956,
+        "name": "trip hop",
+        "urlSlug": "trip-hop"
+      }
+    },
+    {
+      "sourceTag": "三拍子",
+      "tag": {
+        "id": 8224,
+        "name": "triple metre",
+        "urlSlug": "triple-metre"
+      }
+    },
+    {
+      "sourceTag": "3拍子",
+      "tag": {
+        "id": 8224,
+        "name": "triple metre",
+        "urlSlug": "triple-metre"
+      }
+    },
+    {
+      "sourceTag": "Tropical_House",
+      "tag": {
+        "id": 1582,
+        "name": "tropical house",
+        "urlSlug": "tropical-house"
+      }
+    },
+    {
+      "sourceTag": "トロピカルハウス",
+      "tag": {
+        "id": 1582,
+        "name": "tropical house",
+        "urlSlug": "tropical-house"
+      }
+    }
+  ],
+  "totalCount": 6
+}

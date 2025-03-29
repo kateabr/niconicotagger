@@ -1,0 +1,24 @@
+{
+  "category": "Anniversary",
+  "id": 176,
+  "name": "11月1日はネル誕生祭",
+  "status": "Finished",
+  "urlSlug": "111-is-nerus-birthday",
+  "version": 7,
+  "webLinks": [
+    {
+      "category": "Reference",
+      "description": "NND Tag",
+      "disabled": false,
+      "id": 731,
+      "url": "https://www.nicovideo.jp/tag/11%E6%9C%88%EF%BC%91%E6%97%A5%E3%81%AF%E3%83%8D%E3%83%AB%E8%AA%95%E7%94%9F%E7%A5%AD"
+    },
+    {
+      "category": "Reference",
+      "description": "亞北ネル / Akita Neru",
+      "disabled": false,
+      "id": 245,
+      "url": "https://vocadb.net/T/7204/akita-neru"
+    }
+  ]
+}

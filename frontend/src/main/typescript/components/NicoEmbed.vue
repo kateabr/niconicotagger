@@ -14,13 +14,9 @@ import { Component, Prop } from "vue-property-decorator";
 import Vue from "vue";
 import { getNicoEmbedUrl } from "@/utils";
 
-@Component({ components: {} })
+@Component({ components: {}, methods: { getNicoEmbedUrl } })
 export default class extends Vue {
   @Prop()
   private readonly contentId!: string;
-
-  private getNicoEmbedUrl(contentId: string): string {
-    return getNicoEmbedUrl(contentId);
-  }
 }
 </script>

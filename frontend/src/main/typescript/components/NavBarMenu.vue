@@ -1,6 +1,6 @@
 <template>
   <b-navbar print toggleable="lg" variant="faded" type="light">
-    <b-navbar-brand tag="h1" href="/login">NicoNicoTagger</b-navbar-brand>
+    <b-navbar-brand tag="h1" href="/login">NicoNicoTagger 2.0</b-navbar-brand>
 
     <b-navbar-toggle target="nav-collapse"></b-navbar-toggle>
 
@@ -12,26 +12,35 @@
         <b-nav-item :active="activeMode === 'events'" href="/events"
           >Events</b-nav-item
         >
-        <b-nav-item
-          class="d-none"
-          :active="activeMode === 'console'"
-          href="/console"
+        <b-nav-item :active="activeMode === 'console'" href="/console"
           >Query console</b-nav-item
         >
       </b-navbar-nav>
       <b-navbar-nav class="ml-auto">
         <b-nav-text class="mr-2"
           ><span
-            v-if="dbAddress !== ''"
+            v-if="clientType !== ''"
             class="border rounded-sm border-info p-2 text-info bg-light"
-            ><font-awesome-icon class="mx-1" icon="fa-solid fa-key" />{{
-              getDbName()
-            }}</span
+            ><b-icon icon="key-fill" class="mr-1"></b-icon
+            >{{ getDbName() }}</span
           >
           <span
             v-else
             class="border rounded-sm border-danger p-2 text-danger bg-light"
-            >PLEASE LOG IN</span
+            ><b-iconstack class="mr-2">
+              <b-icon
+                stacked
+                icon="key-fill"
+                variant="danger"
+                scale="0.80"
+              ></b-icon>
+              <b-icon
+                stacked
+                icon="slash-circle"
+                variant="danger"
+                scale="1.20"
+              ></b-icon></b-iconstack
+            >NOT LOGGED IN</span
           ></b-nav-text
         >
         <b-nav-item
@@ -50,6 +59,7 @@
 <script lang="ts">
 import { Component, Prop } from "vue-property-decorator";
 import Vue from "vue";
+import { ClientType } from "@/backend/dto/enumeration";
 
 @Component({ components: {} })
 export default class extends Vue {
@@ -57,16 +67,10 @@ export default class extends Vue {
   private readonly activeMode!: string;
 
   @Prop()
-  private readonly dbAddress!: string;
+  private readonly clientType!: ClientType;
 
   getDbName(): string {
-    return this.dbAddress
-      .replace("https://", "")
-      .replace(".net", "")
-      .toUpperCase()
-      .split(".")
-      .reverse()
-      .join(" ");
+    return this.clientType.toUpperCase().split("_").join(" ");
   }
 }
 </script>

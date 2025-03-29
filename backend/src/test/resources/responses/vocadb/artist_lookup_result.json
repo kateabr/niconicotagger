@@ -1,0 +1,17 @@
+{
+  "items": [
+    {
+      "artistType": "Producer",
+      "createDate": "2014-05-01T05:21:06",
+      "defaultName": "おゆう",
+      "defaultNameLanguage": "Japanese",
+      "id": 21260,
+      "name": "おゆう",
+      "pictureMime": "image/jpeg",
+      "status": "Finished",
+      "version": 7
+    }
+  ],
+  "term": "user/34514369",
+  "totalCount": 0
+}

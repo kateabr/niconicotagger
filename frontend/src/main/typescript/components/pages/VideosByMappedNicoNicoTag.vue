@@ -1,12 +1,13 @@
 <template>
   <span>
     <error-message
-      :alert-code="alertCode"
+      :alert-status-text="alertStatusText"
       :alert-message="alertMessage"
       :this-mode="thisMode"
     />
     <b-row>
-      <span class="m-auto col-lg-5">
+      <b-col></b-col>
+      <b-col cols="5" class="m-auto">
         <b-input-group inline class="mt-lg-3">
           <template #prepend>
             <b-button
@@ -33,7 +34,7 @@
               v-if="!fetching"
               variant="primary"
               style="width: 80px"
-              :disabled="tagName === '' || defaultDisableCondition()"
+              :disabled="defaultDisableCondition()"
               @click="loadInitialPage()"
               >Load</b-button
             >
@@ -153,7 +154,17 @@
             </b-col>
           </b-row>
         </b-collapse>
-      </span>
+      </b-col>
+      <b-col class="m-auto text-left mt-lg-3 ml-n1">
+        <b-button
+          v-if="tagInfoLoaded()"
+          variant="link"
+          :disabled="defaultDisableCondition()"
+          @click="loadPage(page)"
+        >
+          <font-awesome-icon icon="fa-solid fa-arrow-rotate-right" />
+        </b-button>
+      </b-col>
     </b-row>
     <b-row
       v-if="tagInfoLoaded() && isActiveMode()"
@@ -172,16 +183,29 @@
       <b-col class="my-auto"
         >Mapped to:<br />
         <strong v-for="(tag, key) in tagMappings" :key="key">
-          <b-link
-            target="_blank"
-            :href="getVocaDBTagUrl(tagInfo[key].id, tagInfo[key].urlSlug)"
-            >{{ tag }}</b-link
+          <b-link target="_blank" :href="getVocaDBTagUrl(tag.id)">{{
+            tag.name
+          }}</b-link
           ><span v-if="tagMappings.length - key > 1">, </span>
         </strong>
       </b-col>
       <b-col class="my-auto"
-        >Videos found:<br /><strong>{{ totalVideoCount }}</strong></b-col
-      >
+        >Videos found:<br /><strong
+          >{{ totalVideoCount
+          }}<b-iconstack v-if="scopeTagStringFrozen != ''" class="ml-1">
+            <b-icon stacked icon="circle" scale="1.20"></b-icon>
+            <b-icon
+              stacked
+              icon="circle-fill"
+              scale="0.8"
+            ></b-icon></b-iconstack
+          ><b-icon
+            v-else
+            class="ml-1"
+            icon="circle-fill"
+            scale="1.20"
+          ></b-icon></strong
+      ></b-col>
       <b-col class="my-auto">
         <b-dropdown
           block
@@ -191,26 +215,16 @@
           variant="primary"
           menu-class="w-100"
         >
-          <b-dropdown-item
-            :disabled="maxResults === 10"
-            @click="setMaxResults(10)"
-            >10
-          </b-dropdown-item>
-          <b-dropdown-item
-            :disabled="maxResults === 25"
-            @click="setMaxResults(25)"
-            >25
-          </b-dropdown-item>
-          <b-dropdown-item
-            :disabled="maxResults === 50"
-            @click="setMaxResults(50)"
-            >50
-          </b-dropdown-item>
-          <b-dropdown-item
-            :disabled="maxResults === 100"
-            @click="setMaxResults(100)"
-            >100
-          </b-dropdown-item>
+          <span
+            v-for="maxResultOption in maxResultsOptions"
+            :key="maxResultOption"
+          >
+            <b-dropdown-item
+              :disabled="maxResults === maxResultOption"
+              @click="setMaxResults(maxResultOption)"
+              >{{ maxResultOption }}
+            </b-dropdown-item>
+          </span>
         </b-dropdown>
       </b-col>
       <b-col class="my-auto">
@@ -239,19 +253,19 @@
         <div class="text-center pt-sm-3">
           <b-button-group>
             <b-button
-              v-for="(type, key) in songTypes"
-              :key="key"
+              v-for="(songType, songTypeKey) in songTypeStats"
+              :key="songTypeKey"
               class="pl-4 pr-4"
               :disabled="defaultDisableCondition()"
               :variant="
-                (type.show ? '' : 'outline-') +
-                getSongTypeColorForDisplay(type.name)
+                (songType.show ? '' : 'outline-') +
+                getSongTypeColorForDisplay(songType.type)
               "
               @click="
-                type.show = !type.show;
+                songType.show = !songType.show;
                 filterVideos();
               "
-              >{{ getSongTypeStatsForDisplay(type.name) }}
+              >{{ songType.type }} ({{ songType.count }})
             </b-button>
           </b-button-group>
         </div>
@@ -292,15 +306,15 @@
         </b-thead>
         <b-tbody v-if="!allInvisible()">
           <b-tr
-            v-for="(item, key) in videos"
-            :id="item.video.contentId"
+            v-for="(video, key) in videos"
+            :id="video.video.id"
             :key="key"
-            :style="item.rowVisible ? '' : 'display: none'"
+            :style="video.visible ? '' : 'display: none'"
           >
             <b-td>
-              <div v-if="item.songEntry != null && !item.processed">
+              <div v-if="video.entry != null && !video.processed">
                 <b-form-checkbox
-                  v-model="item.toAssign"
+                  v-model="video.selected"
                   size="lg"
                   :disabled="defaultDisableCondition()"
                 ></b-form-checkbox>
@@ -312,95 +326,95 @@
                 size="sm"
                 variant="primary-outline"
                 class="mr-2"
-                @click="item.embedVisible = !item.embedVisible"
+                @click="video.video.visible = !video.video.visible"
               >
                 <font-awesome-icon icon="fas fa-play" />
               </b-button>
-              <b-link
-                target="_blank"
-                :href="getNicoVideoUrl(item.video.contentId)"
-                >{{ item.video.title }}</b-link
-              >
+              <b-link target="_blank" :href="getNicoVideoUrl(video.video.id)">{{
+                video.video.title
+              }}</b-link>
               <b-badge
-                v-clipboard:copy="item.video.duration"
+                v-clipboard:copy="video.video.length"
                 variant="primary"
                 class="m-sm-1"
                 href="#"
-                >{{ item.video.duration }}</b-badge
+                >{{ video.video.length }}</b-badge
               >
               <div>
                 <b-badge
-                  v-for="(item1, key1) in item.video.tags"
-                  :key="key1"
-                  v-clipboard:copy="item1.name"
+                  v-for="(tag, tagKey) in video.video.tags"
+                  :key="tagKey"
+                  v-clipboard:copy="tag.name"
                   class="m-sm-1"
-                  :variant="item1.variant"
+                  :variant="tag.type"
                   href="#"
                 >
                   <font-awesome-icon icon="fas fa-tag" class="mr-1" />
-                  {{ item1.name }}
+                  {{ tag.name }}
                 </b-badge>
               </div>
               <b-collapse
-                :visible="item.embedVisible && !fetching"
+                :visible="video.video.visible && !fetching"
                 class="mt-2 collapsed"
               >
                 <nico-embed
-                  v-if="item.embedVisible && !fetching"
-                  :content-id="item.video.contentId"
+                  v-if="video.video.visible && !fetching"
+                  :content-id="video.video.id"
                 />
               </b-collapse>
               <nico-description
-                :content-id="item.video.contentId"
-                :description="item.video.description"
-                :publisher="item.video.publisher"
+                :content-id="video.video.id"
+                :description="video.video.description"
+                :publisher="video.publisher"
               />
             </b-td>
             <b-td>
-              <div v-if="item.songEntry != null">
+              <div v-if="video.entry != null">
                 <b-link
                   target="_blank"
-                  :href="getVocaDBEntryUrl(item.songEntry.id)"
-                  >{{ item.songEntry.name
+                  :href="getVocaDBEntryUrl(video.entry.id)"
+                  >{{ video.entry.name
                   }}<b-badge
                     class="badge text-center ml-2"
-                    :variant="
-                      getSongTypeColorForDisplay(item.songEntry.songType)
-                    "
+                    :variant="getSongTypeColorForDisplay(video.entry.type)"
                   >
-                    {{ getShortenedSongType(item.songEntry.songType) }}
+                    {{ getShortenedSongType(video.entry.type) }}
                   </b-badge></b-link
                 >
                 <div class="text-muted">
-                  {{ item.songEntry.artistString }}
+                  {{ video.entry.artistString }}
                 </div>
               </div>
               <div v-else>
                 <b-button
                   size="sm"
                   :disabled="fetching"
-                  :href="getVocaDBAddSongUrl(item.video.contentId)"
+                  :href="getVocaDBAddSongUrl(video.video.id)"
                   target="_blank"
                   >Add to the database
                 </b-button>
                 <div
-                  v-if="item.publisher !== null"
+                  v-if="
+                    video.publisher !== null &&
+                    video.publisher.type == 'DATABASE'
+                  "
                   class="small text-secondary"
                 >
                   Published by
                   <b-link
                     target="_blank"
-                    :href="getVocaDBArtistUrl(item.publisher.id)"
-                    >{{ item.publisher.name }}</b-link
+                    :href="getVocaDBArtistUrl(video.publisher.id)"
+                    >{{ video.publisher.name }}</b-link
                   >
                 </div>
               </div>
+              <entry-error-report :error-report="video.errorReport" />
             </b-td>
             <b-td>
-              <div v-if="item.songEntry != null">
+              <div v-if="video.entry != null">
                 <b-button-toolbar key-nav>
                   <b-button
-                    v-if="item.processed"
+                    v-if="video.processed"
                     style="pointer-events: none"
                     class="btn disabled"
                     variant="success"
@@ -412,7 +426,7 @@
                     :disabled="defaultDisableCondition()"
                     class="btn"
                     variant="outline-success"
-                    @click="assign(item)"
+                    @click="updateSingle(video)"
                   >
                     <font-awesome-icon icon="fas fa-plus" />
                   </b-button>
@@ -452,7 +466,7 @@
           block
           variant="primary"
           :disabled="countChecked() === 0 || massAssigning || fetching"
-          @click="assignMultiple"
+          @click="updateMultiple"
         >
           <div v-if="massAssigning">
             <b-spinner small class="mr-1"></b-spinner>
@@ -486,33 +500,47 @@
 import { Component, Prop } from "vue-property-decorator";
 import Vue from "vue";
 import { api } from "@/backend";
-import { AssignableTag } from "@/backend/dto";
 import {
-  getShortenedSongType,
-  getVocaDBEntryUrl,
-  getVocaDBTagUrl,
+  getErrorData,
+  getClientType,
   getMaxResultsForDisplay,
-  getSortingConditionForDisplayNico,
-  getSongTypeColorForDisplay,
-  getSongTypeStatsForDisplay,
-  pageStateIsValid,
-  infoLoaded,
-  defaultScopeTagString,
-  SongType,
   getNicoTagUrl,
-  allVideosInvisible,
   getNicoVideoUrl,
+  getShortenedSongType,
+  getSongTypeColorForDisplay,
+  getSortingConditionForDisplayNico,
   getUniqueElementId,
   getVocaDBAddSongUrl,
   getVocaDBArtistUrl,
-  VideoWithEntryAndVisibility
+  getVocaDBSongUrl,
+  getVocaDBTagUrl,
+  infoLoaded,
+  mapSongTypeStats,
+  pageStateIsValid
 } from "@/utils";
 import NicoEmbed from "@/components/NicoEmbed.vue";
 import ErrorMessage from "@/components/ErrorMessage.vue";
 import { AxiosResponse } from "axios";
 import NicoDescription from "@/components/NicoDescription.vue";
+import EntryErrorReport from "@/components/EntryErrorReport.vue";
+import { ClientType, NndSortOrder, SongType } from "@/backend/dto/enumeration";
+import { SongTypeStatsRecord } from "@/backend/dto/songTypeStats";
+import { VocaDbTag } from "@/backend/dto/lowerLevelStruct";
+import { SongTagsAndPvsMassUpdateRequest } from "@/backend/dto/request/songTagsAndPvsUpdateRequest";
+import { NndVideoWithAssociatedVocaDbEntryForTag } from "@/backend/dto/higherLevelStruct";
+import {
+  defaultScopeTagString,
+  localStorageKeyMaxResults,
+  localStorageKeyNndOrderBy,
+  localStorageKeyNndTag,
+  localStorageKeyNndTagScope,
+  maxResultsOptions,
+  nndOrderOptions
+} from "@/constants";
 
-@Component({ components: { NicoDescription, NicoEmbed, ErrorMessage } })
+@Component({
+  components: { EntryErrorReport, NicoDescription, NicoEmbed, ErrorMessage }
+})
 export default class extends Vue {
   @Prop()
   private readonly mode!: string;
@@ -523,23 +551,27 @@ export default class extends Vue {
   @Prop()
   private readonly targName: string | undefined;
 
+  private readonly orderOptionsNico = nndOrderOptions;
+  private readonly maxResultsOptions: number[] = maxResultsOptions;
+
   // main variables
   private tagName: string = "";
   private tagNameFrozen: string = "";
   private scopeTagString: string = "";
   private scopeTagStringFrozen: string = "";
-  private videos: VideoWithEntryAndVisibility[] = [];
-  private tagInfo: AssignableTag[] = [];
+  private videos: NndVideoWithAssociatedVocaDbEntryForTag[] = [];
+  private tagMappings: VocaDbTag[] = [];
+  private songTypeStats: SongTypeStatsRecord[] = [];
 
   // api variables
   private pageToJump: number = 1;
   private startOffset: number = 0;
   private maxResults: number = 10;
-  private sortingCondition = "startTime";
+  private sortingCondition: NndSortOrder = "startTime";
   private fetching: boolean = false;
   private massAssigning: boolean = false;
   private assigning: boolean = false;
-  private dbAddress: string = "";
+  private clientType: ClientType = getClientType();
 
   // interface variables
   private allChecked: boolean = false;
@@ -547,34 +579,12 @@ export default class extends Vue {
   private totalVideoCount: number = 0;
   private page: number = 0;
   private maxPage: number = 0;
-  private numOfPages: number = 0;
   private noEntry: boolean = false;
   private showVideosWithUploaderEntry: boolean = true;
   private tagged: boolean = false;
-  private tagMappings: string[] = [];
-
-  // interface dictionaries
-  private songTypes: SongType[] = [
-    { name: "Unspecified", show: true },
-    { name: "Original", show: true },
-    { name: "Remaster", show: true },
-    { name: "Remix", show: true },
-    { name: "Cover", show: true },
-    { name: "Instrumental", show: true },
-    { name: "Mashup", show: true },
-    { name: "MusicPV", show: true },
-    { name: "DramaPV", show: true },
-    { name: "Other", show: true }
-  ];
-
-  private orderOptionsNico = {
-    startTime: "upload time",
-    viewCounter: "views",
-    lengthSeconds: "length"
-  };
 
   // error handling
-  private alertCode: number = 0;
+  private alertStatusText = "";
   private alertMessage: string = "";
 
   // proxy methods
@@ -598,30 +608,20 @@ export default class extends Vue {
     return getNicoTagUrl(tagName, scopeTag);
   }
 
-  private getVocaDBTagUrl(id: number, urlSlug: string): string {
-    return getVocaDBTagUrl(this.dbAddress, id, urlSlug);
+  private getVocaDBTagUrl(id: number): string {
+    return getVocaDBTagUrl(this.clientType, id);
   }
 
   private getResultNumberStr(): string {
     return getMaxResultsForDisplay(this.maxResults);
   }
 
-  private getSongTypeColorForDisplay(songType: string): string {
+  private getSongTypeColorForDisplay(songType: SongType): string {
     return getSongTypeColorForDisplay(songType);
   }
 
-  private getSongTypeStatsForDisplay(songType: string): string {
-    return getSongTypeStatsForDisplay(
-      songType,
-      this.videos.filter(
-        video =>
-          video.songEntry != null && video.songEntry?.songType == songType
-      ).length
-    );
-  }
-
   private allInvisible(): boolean {
-    return allVideosInvisible(this.videos);
+    return !this.videos.some(video => video.visible);
   }
 
   private getNicoVideoUrl(contentId: string): string {
@@ -629,19 +629,19 @@ export default class extends Vue {
   }
 
   private getVocaDBEntryUrl(id: number): string {
-    return getVocaDBEntryUrl(this.dbAddress, id);
+    return getVocaDBSongUrl(this.clientType, id);
   }
 
-  private getShortenedSongType(songType: string): string {
+  private getShortenedSongType(songType: SongType): string {
     return getShortenedSongType(songType);
   }
 
   private getVocaDBAddSongUrl(contentId: string): string {
-    return getVocaDBAddSongUrl(this.dbAddress, contentId);
+    return getVocaDBAddSongUrl(this.clientType, contentId);
   }
 
   private getVocaDBArtistUrl(artistId: number): string {
-    return getVocaDBArtistUrl(this.dbAddress, artistId);
+    return getVocaDBArtistUrl(this.clientType, artistId);
   }
 
   // interface methods
@@ -654,72 +654,80 @@ export default class extends Vue {
   }
 
   private getHiddenTypes(): number {
-    return this.songTypes.filter(t => !t.show).length;
+    return this.songTypeStats.filter(statsItem => !statsItem.show).length;
   }
 
-  private setSortingCondition(value: string): void {
+  private setSortingCondition(value: NndSortOrder): void {
     this.sortingCondition = value;
+    localStorage.setItem(localStorageKeyNndOrderBy, this.sortingCondition);
   }
 
   private setMaxResults(maxResults: number): void {
     this.maxResults = maxResults;
+    localStorage.setItem(localStorageKeyMaxResults, this.maxResults.toString());
   }
 
   private noVideosWithEntries(): boolean {
-    return this.videos.every(video => video.songEntry == null);
+    return this.videos.every(video => video.entry == null);
   }
 
   private toggleCheckAll(): void {
     for (const item of this.videos.filter(
-      video => video.rowVisible && video.songEntry != null && !video.processed
+      video => video.visible && video.entry != null && !video.processed
     )) {
-      item.toAssign = this.allChecked;
+      item.selected = this.allChecked;
     }
   }
 
   private countChecked(): number {
-    return this.videos.filter(video => video.toAssign).length;
+    return this.videos.filter(video => video.selected).length;
   }
 
   // row filtering
-  private hiddenTypeFlag(video: VideoWithEntryAndVisibility): boolean {
+  private hiddenTypeFlag(
+    video: NndVideoWithAssociatedVocaDbEntryForTag
+  ): boolean {
     return (
       this.getHiddenTypes() == 0 ||
-      (video.songEntry != null &&
-        !this.songTypes
-          .filter(t => !t.show)
-          .map(t => t.name)
-          .includes(video.songEntry.songType))
+      video.entry == null ||
+      !this.songTypeStats
+        .filter(statsItem => !statsItem.show)
+        .map(statsItem => statsItem.type)
+        .includes(video.entry.type)
     );
   }
 
-  private noEntryFlag(video: VideoWithEntryAndVisibility): boolean {
+  private noEntryFlag(video: NndVideoWithAssociatedVocaDbEntryForTag): boolean {
     return (
-      video.songEntry != null ||
       this.noEntry ||
-      (video.publisher != null && this.showVideosWithUploaderEntry)
+      video.entry != null ||
+      (video.publisher?.type == "DATABASE" && this.showVideosWithUploaderEntry)
     );
   }
 
-  private taggedFlag(video: VideoWithEntryAndVisibility): boolean {
-    return video.songEntry == null || this.tagged || !video.processed;
+  private taggedFlag(video: NndVideoWithAssociatedVocaDbEntryForTag): boolean {
+    return video.entry == null || this.tagged || !video.processed;
   }
 
   private filterVideos(): void {
     for (const item of this.videos) {
-      item.rowVisible =
+      item.visible =
         this.hiddenTypeFlag(item) &&
         this.noEntryFlag(item) &&
         this.taggedFlag(item);
-      item.toAssign = item.toAssign && item.rowVisible;
+      item.selected = item.selected && item.visible;
     }
   }
 
   private updateUrl(): void {
-    this.$router.push({
-      name: "tags-full",
-      params: { browseMode: this.thisMode, targName: this.tagName }
-    });
+    this.$router
+      .push({
+        name: "tags-full",
+        params: { browseMode: this.thisMode, targName: this.tagName }
+      })
+      .catch(err => {
+        return false;
+      });
   }
 
   // api methods
@@ -735,40 +743,58 @@ export default class extends Vue {
     this.showCollapse = false;
     this.fetching = true;
     try {
-      let response = await api.fetchVideos({
-        tag: targetTag,
-        scopeTag: scopeString,
+      let response = await api.getVideosByNndTagsForTagging({
+        tags: [targetTag],
+        scope: scopeString,
         startOffset: newStartOffset,
         maxResults: this.maxResults,
-        orderBy: this.sortingCondition
+        orderBy: this.sortingCondition,
+        clientType: this.clientType
       });
-      this.videos = response.items.map(vid => {
+      this.videos = response.items.map(item => {
         return {
-          video: vid.video,
-          songEntry: vid.songEntry,
-          embedVisible: false,
-          rowVisible: true,
-          toAssign: false,
-          publisher: vid.publisher,
-          processed: vid.processed
+          video: {
+            id: item.video.id,
+            title: item.video.title,
+            description: item.video.description,
+            length: item.video.length,
+            tags: item.video.tags,
+            visible: false
+          },
+          entry: item.entry,
+          publisher: item.publisher,
+          selected: false,
+          visible: true,
+          processed:
+            item.entry != null &&
+            !item.entry.mappedTags.some(tag => !tag.selected),
+          errorReport: null
         };
       });
+      this.songTypeStats = mapSongTypeStats(
+        response.songTypeStats,
+        this.songTypeStats
+      );
       this.filterVideos();
       this.tagMappings = response.tagMappings;
-      this.totalVideoCount = response.totalVideoCount;
-      this.scopeTagString = response.safeScope;
-      this.scopeTagStringFrozen = response.safeScope;
-      this.tagInfo = response.tags;
+      this.totalVideoCount = response.totalCount;
+      this.scopeTagString = response.cleanScope;
+      this.scopeTagStringFrozen = response.cleanScope;
+      this.tagMappings = response.tagMappings;
       this.tagName = targetTag;
       this.tagNameFrozen = targetTag;
-      this.numOfPages = this.totalVideoCount / this.maxResults + 1;
       this.startOffset = newStartOffset;
       this.allChecked = false;
-      localStorage.setItem("nicovideo_mapped_tag", targetTag);
-      localStorage.setItem("nicovideo_mapped_tag_scope", scopeString);
     } catch (err) {
       this.processError(err);
     } finally {
+      localStorage.setItem(localStorageKeyNndTag, targetTag);
+      localStorage.setItem(localStorageKeyNndTagScope, scopeString);
+      localStorage.setItem(
+        localStorageKeyMaxResults,
+        this.maxResults.toString()
+      );
+      localStorage.setItem(localStorageKeyNndOrderBy, this.sortingCondition);
       this.maxPage = Math.ceil(this.totalVideoCount / this.maxResults);
       this.fetching = false;
       this.pageToJump = newPage;
@@ -776,14 +802,15 @@ export default class extends Vue {
     }
   }
 
-  private async assign(video: VideoWithEntryAndVisibility): Promise<void> {
-    if (video.songEntry == null) {
+  private async updateSingle(
+    video: NndVideoWithAssociatedVocaDbEntryForTag
+  ): Promise<void> {
+    if (video.entry == null) {
       return;
     }
     this.assigning = true;
     try {
-      await api.assignTag({ tags: this.tagInfo, songId: video.songEntry.id });
-      video.processed = true;
+      await this.update([video]);
     } catch (err) {
       this.processError(err);
     } finally {
@@ -791,17 +818,49 @@ export default class extends Vue {
     }
   }
 
-  private async assignMultiple(): Promise<void> {
+  private async updateMultiple(): Promise<void> {
     this.massAssigning = true;
     try {
-      for (const video of this.videos.filter(vid => vid.toAssign)) {
-        await this.assign(video);
-        video.toAssign = false;
-      }
+      await this.update(this.videos.filter(video => video.selected));
+    } catch (err) {
+      this.processError(err);
     } finally {
       this.massAssigning = false;
       this.allChecked = false;
     }
+  }
+
+  private async update(videos: NndVideoWithAssociatedVocaDbEntryForTag[]) {
+    const errors = await api.updateSongTagsAndPvs(this.createRequest(videos));
+    const entriesWithErrors = errors.map(error => error.entryId);
+    for (const video of videos) {
+      if (!entriesWithErrors.includes(video.entry?.id as number)) {
+        video.selected = false;
+        video.processed = true;
+        video.errorReport = null;
+      } else {
+        video.errorReport = errors.filter(
+          error => error.entryId == video.entry?.id
+        )[0];
+      }
+    }
+  }
+
+  private createRequest(
+    videos: NndVideoWithAssociatedVocaDbEntryForTag[]
+  ): SongTagsAndPvsMassUpdateRequest {
+    return {
+      subRequests: videos.map(video => {
+        return {
+          songId: video.entry?.id as number,
+          tags: video.entry?.mappedTags
+            .filter(tagSelection => !tagSelection.selected)
+            .map(tagSelection => tagSelection.tag.id) as number[],
+          nndPvsToDisable: []
+        };
+      }),
+      clientType: this.clientType
+    };
   }
 
   private loadInitialPage(): void {
@@ -820,42 +879,32 @@ export default class extends Vue {
   }
 
   // error handling
-  private processError(
-    err: { response: AxiosResponse } | { response: undefined; message: string }
-  ): void {
-    this.$bvToast.show(getUniqueElementId("error_", this.thisMode.toString()));
-    if (err.response == undefined) {
-      this.alertCode = 0;
-      this.alertMessage = err.message;
-    } else {
-      this.alertCode = err.response.data.code;
-      this.alertMessage = err.response.data.message;
-    }
+  private processError(err: { response: AxiosResponse }): void {
+    const errorData = getErrorData(err);
+    this.alertMessage = errorData.message;
+    this.alertStatusText = errorData.statusText;
+    this.$bvToast.show(getUniqueElementId("error_", this.mode.toString()));
   }
 
   // session
   created(): void {
-    let max_results = localStorage.getItem("max_results");
+    let max_results = localStorage.getItem(localStorageKeyMaxResults);
     if (max_results != null) {
       this.maxResults = parseInt(max_results);
     }
-    let sort_by = localStorage.getItem("sort_by");
+    let sort_by = localStorage.getItem(localStorageKeyNndOrderBy);
     if (sort_by != null) {
-      this.sortingCondition = sort_by;
+      this.sortingCondition = sort_by as NndSortOrder;
     }
-    let nicovideo_mapped_tag = localStorage.getItem("nicovideo_mapped_tag");
+    let nicovideo_mapped_tag = localStorage.getItem(localStorageKeyNndTag);
     if (nicovideo_mapped_tag != null) {
       this.tagName = nicovideo_mapped_tag;
     }
     let nicovideo_mapped_tag_scope = localStorage.getItem(
-      "nicovideo_mapped_tag_scope"
+      localStorageKeyNndTagScope
     );
     if (nicovideo_mapped_tag_scope != null) {
       this.scopeTagString = nicovideo_mapped_tag_scope;
-    }
-    let dbAddress = localStorage.getItem("dbAddress");
-    if (this.dbAddress == "" && dbAddress != null) {
-      this.dbAddress = dbAddress;
     }
   }
 

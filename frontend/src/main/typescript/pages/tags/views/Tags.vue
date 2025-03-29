@@ -1,21 +1,15 @@
 <template>
   <div>
-    <nav-bar-menu active-mode="tags" :db-address="dbAddress" />
+    <nav-bar-menu
+      active-mode="tags"
+      :client-type="clientType != undefined ? clientType : ClientType.UNKNOWN"
+    />
     <b-row class="col-12 m-0">
       <b-toaster class="b-toaster-top-center" name="toaster-2"></b-toaster>
       <b-col>
         <div style="display: flex; align-items: center">
           <b-container class="col-lg-11">
             <b-nav tabs class="mb-2">
-              <b-nav-item
-                :to="{
-                  name: 'tags-mode',
-                  params: { browseMode: 'activity-entries' }
-                }"
-                :active="browseMode === 'activity-entries'"
-              >
-                By activity entries
-              </b-nav-item>
               <b-nav-item
                 :to="{
                   name: 'tags-mode',
@@ -39,17 +33,6 @@
               </b-nav-item>
             </b-nav>
             <div class="tab-content">
-              <div
-                :class="[
-                  'tab-pane',
-                  { active: browseMode === 'activity-entries' }
-                ]"
-              >
-                <entries-by-activity-entries
-                  :mode="browseMode"
-                  this-mode="activity-entries"
-                />
-              </div>
               <div
                 :class="['tab-pane', { active: browseMode === 'song-entries' }]"
               >
@@ -88,11 +71,12 @@ import { Component, Prop } from "vue-property-decorator";
 
 import NavBarMenu from "@/components/NavBarMenu.vue";
 import EntriesBySongEntries from "@/components/pages/EntriesBySongEntries.vue";
-import EntriesByActivityEntries from "@/components/pages/EntriesByActivityEntries.vue";
 import VideosByVocaDbTagMappings from "@/components/pages/VideosByVocaDbTagMappings.vue";
 import VideosByMappedNicoNicoTag from "@/components/pages/VideosByMappedNicoNicoTag.vue";
 
 import VueClipboard from "vue-clipboard2";
+import { getClientType } from "@/utils";
+import { ClientType } from "@/backend/dto/enumeration";
 
 Vue.use(VueClipboard);
 
@@ -100,29 +84,21 @@ Vue.use(VueClipboard);
   components: {
     NavBarMenu,
     EntriesBySongEntries,
-    EntriesByActivityEntries,
     VideosByVocaDbTagMappings,
     VideosByMappedNicoNicoTag
   }
 })
 export default class extends Vue {
   @Prop()
-  private browseMode!:
-    | "song-entries"
-    | "activity-entries"
-    | "vocadb"
-    | "nicovideo";
+  private browseMode!: "song-entries" | "vocadb" | "nicovideo";
 
   @Prop()
   private targName!: string;
 
-  private dbAddress: string = "";
+  private clientType: ClientType = ClientType.UNKNOWN;
 
-  created(): void {
-    let dbAddress = localStorage.getItem("dbAddress");
-    if (this.dbAddress == "" && dbAddress != null) {
-      this.dbAddress = dbAddress;
-    }
+  mounted(): void {
+    this.clientType = getClientType();
   }
 }
 </script>

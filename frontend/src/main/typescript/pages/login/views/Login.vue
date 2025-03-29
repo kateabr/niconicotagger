@@ -4,10 +4,10 @@
       style="position: fixed; top: 0"
       class="flex-lg-nowrap col-12"
       active-mode="index"
-      :db-address="dbAddress"
+      :client-type="clientTypeLoggedIn"
     />
     <div class="col-lg-3 mx-auto text-center">
-      <h1>NicoNicoTagger</h1>
+      <h1>NicoNicoTagger 2.0</h1>
       <div class="blockquote">for VocaDB</div>
       <div class="container">
         <b-form class="justify-content-center" @submit="login">
@@ -42,7 +42,7 @@
                   id="dbDropdown"
                   :disabled="loggingIn"
                   block
-                  :text="databaseOptions[database]"
+                  :text="databaseOptions[clientType]"
                   class="my-auto"
                   variant="link"
                   menu-class="w-100"
@@ -50,35 +50,20 @@
                   <b-dropdown-item
                     v-for="(key, value) in databaseOptions"
                     :key="key"
-                    @click="database = value"
+                    @click="clientType = value"
                     >{{ key }}
                   </b-dropdown-item>
                 </b-dropdown>
               </b-col>
             </b-row>
           </b-form-group>
-          <b-button :disabled="loggingIn" block variant="primary" @click="login"
+          <b-button
+            :disabled="loggingIn || username.length < 1 || password.length < 1"
+            block
+            variant="primary"
+            @click="login"
             >Log in</b-button
           >
-          <b-toast
-            id="error"
-            title="Error"
-            no-auto-hide
-            variant="danger"
-            class="m-0 rounded-0"
-            toaster="toaster"
-          >
-            {{ alertMessage }}
-          </b-toast>
-          <b-toast
-            id="success"
-            no-auto-hide
-            variant="success"
-            class="m-0 rounded-0"
-            toaster="toaster"
-          >
-            Successfully logged in!
-          </b-toast>
         </b-form>
       </div>
       <b-toaster class="b-toaster-bottom-center" name="toaster"> </b-toaster>
@@ -91,47 +76,64 @@ import Vue from "vue";
 import { Component } from "vue-property-decorator";
 import { api } from "@/backend";
 import NavBarMenu from "@/components/NavBarMenu.vue";
+import { getErrorData, getClientType } from "@/utils";
+import { ClientType } from "@/backend/dto/enumeration";
+import { localStorageKeyClientType } from "@/constants";
 
 @Component({ components: { NavBarMenu } })
 export default class extends Vue {
   private username: string = "";
   private password: string = "";
   private loggingIn: boolean = false;
-  private alertMessage: string = "";
-  private database: string = "VocaDb";
-  private databaseOptions = { VocaDb: "VocaDB", VocaDbBeta: "VocaDB BETA" };
-  private databaseAddressOptions = {
-    VocaDb: "https://vocadb.net",
-    VocaDbBeta: "https://beta.vocadb.net"
+  private clientTypeLoggedIn: ClientType = getClientType();
+  private clientType: ClientType =
+    this.clientTypeLoggedIn != ClientType.UNKNOWN
+      ? this.clientTypeLoggedIn
+      : ClientType.vocadb;
+  private databaseOptions = {
+    [ClientType.vocadb]: "VocaDB",
+    [ClientType.vocadb_beta]: "VocaDB BETA"
   };
-  private dbAddress: string = "";
 
   private async login() {
     this.loggingIn = true;
     try {
-      let response = await api.authenticate({
-        username: this.username,
+      await api.authorize({
+        userName: this.username,
         password: this.password,
-        database: this.database
+        clientType: ClientType[this.clientType]
       });
-      localStorage.setItem("accessToken", response.data.token);
-      this.$bvToast.show("success");
+      this.clientTypeLoggedIn = this.clientType;
+      this.$bvToast.toast(
+        "Logged in to " + this.databaseOptions[this.clientTypeLoggedIn],
+        {
+          title: "Success",
+          toaster: "b-toaster-bottom-center",
+          solid: true,
+          variant: "success",
+          noAutoHide: true
+        }
+      );
     } catch (err) {
-      this.$bvToast.show("error");
-      this.alertMessage = err.response.data.message;
+      this.clientTypeLoggedIn = ClientType.UNKNOWN;
+      const errorData = getErrorData(err);
+      this.$bvToast.toast(errorData.message, {
+        title: errorData.statusText,
+        toaster: "b-toaster-bottom-center",
+        solid: true,
+        variant: "danger",
+        noAutoHide: true
+      });
     } finally {
       this.loggingIn = false;
-      localStorage.setItem(
-        "dbAddress",
-        this.databaseAddressOptions[this.database]
-      );
+      localStorage.setItem(localStorageKeyClientType, this.clientTypeLoggedIn);
     }
   }
 
   created(): void {
-    let dbAddress = localStorage.getItem("dbAddress");
-    if (this.dbAddress == "" && dbAddress != null) {
-      this.dbAddress = dbAddress;
+    let clientType = getClientType();
+    if (clientType != ClientType.UNKNOWN) {
+      this.clientTypeLoggedIn = clientType;
     }
   }
 }

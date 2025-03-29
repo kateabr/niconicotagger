@@ -1,0 +1,32 @@
+{
+  "artistString": "かけP feat. GUMI",
+  "createDate": "2017-12-11T16:23:07",
+  "defaultName": "透明",
+  "defaultNameLanguage": "Japanese",
+  "favoritedTimes": 0,
+  "id": 177295,
+  "lengthSeconds": 378,
+  "name": "透明",
+  "publishDate": "2017-12-09T00:00:00Z",
+  "pvServices": "NicoNicoDouga",
+  "ratingScore": 4,
+  "releaseEvents": [
+    {
+      "category": "Unspecified",
+      "date": "2015-12-01T00:00:00Z",
+      "endDate": "2016-02-29T00:00:00Z",
+      "id": 4687,
+      "name": "冬のシューゲイザー祭 2016",
+      "seriesId": 370,
+      "seriesNumber": 2016,
+      "seriesSuffix": "",
+      "status": "Draft",
+      "urlSlug": "winter-shoegazer-festival-2016",
+      "venueName": "",
+      "version": 3
+    }
+  ],
+  "songType": "Original",
+  "status": "Finished",
+  "version": 2
+}

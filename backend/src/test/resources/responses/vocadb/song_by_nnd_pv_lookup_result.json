@@ -1,0 +1,141 @@
+{
+  "albums": [
+    {
+      "additionalNames": "",
+      "artistString": "デスおはぎ feat. 重音テトSV",
+      "coverPictureMime": "image/jpeg",
+      "createDate": "2024-03-31T23:59:42.797",
+      "deleted": false,
+      "discType": "Single",
+      "id": 40947,
+      "name": "Alive (2024 FULL.ver)",
+      "ratingAverage": 5,
+      "ratingCount": 1,
+      "releaseDate": {
+        "day": 1,
+        "isEmpty": false,
+        "month": 4,
+        "year": 2024
+      },
+      "status": "Finished",
+      "version": 4
+    }
+  ],
+  "artists": [
+    {
+      "artist": {
+        "additionalNames": "Kasane Teto SV, Synthesizer V AI 重音テト, Synthesizer V AI Kasane Teto",
+        "artistType": "SynthesizerV",
+        "deleted": false,
+        "id": 118397,
+        "name": "重音テトSV",
+        "pictureMime": "image/png",
+        "releaseDate": "2023-04-27T00:00:00Z",
+        "status": "Approved",
+        "version": 21
+      },
+      "categories": "Vocalist",
+      "effectiveRoles": "Default",
+      "id": 1355539,
+      "isCustomName": false,
+      "isSupport": false,
+      "name": "重音テトSV",
+      "roles": "Default"
+    },
+    {
+      "artist": {
+        "additionalNames": "Death Ohagi, 松任谷P, Matsutoya, Mattouya-P",
+        "artistType": "Producer",
+        "deleted": false,
+        "id": 1053,
+        "name": "デスおはぎ",
+        "pictureMime": "image/jpeg",
+        "status": "Finished",
+        "version": 14
+      },
+      "categories": "Producer",
+      "effectiveRoles": "Composer, Arranger",
+      "id": 1355540,
+      "isCustomName": false,
+      "isSupport": false,
+      "name": "デスおはぎ",
+      "roles": "Composer, Arranger"
+    },
+    {
+      "artist": {
+        "additionalNames": "Sakauchi Waka",
+        "artistType": "Illustrator",
+        "deleted": false,
+        "id": 118399,
+        "name": "坂内 若",
+        "pictureMime": "image/jpeg",
+        "status": "Finished",
+        "version": 12
+      },
+      "categories": "Illustrator",
+      "effectiveRoles": "Default",
+      "id": 1375642,
+      "isCustomName": false,
+      "isSupport": false,
+      "name": "坂内 若",
+      "roles": "Default"
+    },
+    {
+      "artist": {
+        "additionalNames": "TWINDRILL",
+        "artistType": "Circle",
+        "deleted": false,
+        "id": 119530,
+        "name": "ツインドリル",
+        "pictureMime": "image/jpeg",
+        "status": "Finished",
+        "version": 26
+      },
+      "categories": "Circle",
+      "effectiveRoles": "Default",
+      "id": 1827801,
+      "isCustomName": false,
+      "isSupport": false,
+      "name": "ツインドリル",
+      "roles": "Default"
+    }
+  ],
+  "artistString": "デスおはぎ, ツインドリル feat. 重音テトSV",
+  "createDate": "2023-04-03T06:38:05.947",
+  "defaultName": "Alive",
+  "defaultNameLanguage": "English",
+  "favoritedTimes": 17,
+  "id": 489536,
+  "lengthSeconds": 234,
+  "name": "Alive",
+  "originalVersionId": 26202,
+  "publishDate": "2023-04-03T00:00:00Z",
+  "pvServices": "NicoNicoDouga, Youtube",
+  "ratingScore": 101,
+  "releaseEvents": [],
+  "songType": "Remaster",
+  "status": "Finished",
+  "tags": [
+    {
+      "count": 3,
+      "tag": {
+        "additionalNames": "カバー曲",
+        "categoryName": "Sources",
+        "id": 74,
+        "name": "cover",
+        "urlSlug": "cover"
+      }
+    },
+    {
+      "count": 2,
+      "tag": {
+        "additionalNames": "试听曲, デモ, engine demo, voice synth demo, voice synthesizer demo, vocal synthesizer demo, Vocaloid demo, 音源測試, 音源测试",
+        "categoryName": "Sources",
+        "id": 89,
+        "name": "voicebank demo",
+        "urlSlug": "voicebank-demo"
+      }
+    }
+  ],
+  "version": 5
+}
