@@ -174,6 +174,7 @@ class NndVideoWithAssociatedVocaDbEntryMapperTest {
                     ) to DispositionRelativelyToDate(LATE, days, if (days > 7) DANGER else WARNING)
             }
 
+            @Suppress("CognitiveComplexMethod")
             override fun provideArguments(context: ExtensionContext?): Stream<out Arguments> {
                 val nndTagMappings = Instancio.createMap(String::class.java, VocaDbTag::class.java)
                 val video =

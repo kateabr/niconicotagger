@@ -58,6 +58,7 @@ class AggregatingServiceIntegrationTest : AbstractApplicationContextTest() {
 
     @ParameterizedTest
     @ArgumentsSource(GetPublisherTestData::class)
+    @Suppress("CognitiveComplexMethod")
     fun `get publisher test`(
         video: NndVideoData,
         nndPublisherType: PublisherType,

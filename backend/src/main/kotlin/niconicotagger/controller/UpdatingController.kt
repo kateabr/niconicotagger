@@ -34,8 +34,8 @@ class UpdatingController(private val service: UpdatingService) {
                         try {
                             service.addReleaseEvent(it, request.clientType, cookie)
                             UpdateSuccess()
-                        } catch (e: Exception) {
-                            UpdateError(it.entryId, e.message)
+                        } catch (expected: Exception) {
+                            UpdateError(it.entryId, expected.message)
                         }
                     }
                 }
@@ -54,8 +54,8 @@ class UpdatingController(private val service: UpdatingService) {
                         try {
                             service.deleteTags(it, request.clientType, cookie)
                             UpdateSuccess()
-                        } catch (e: Exception) {
-                            UpdateError(it.entryId, e.message)
+                        } catch (expected: Exception) {
+                            UpdateError(it.entryId, expected.message)
                         }
                     }
                 }
@@ -77,8 +77,8 @@ class UpdatingController(private val service: UpdatingService) {
                             }
                             service.deleteTags(it, request.clientType, cookie)
                             UpdateSuccess()
-                        } catch (e: Exception) {
-                            UpdateError(it.entryId, e.message)
+                        } catch (expected: Exception) {
+                            UpdateError(it.entryId, expected.message)
                         }
                     }
                 }
@@ -101,8 +101,8 @@ class UpdatingController(private val service: UpdatingService) {
                                 service.assignSongTags(it, request.clientType, cookie)
                                 service.disablePvs(it, request.clientType, cookie)
                                 UpdateSuccess()
-                            } catch (e: Exception) {
-                                UpdateError(it.songId, e.message)
+                            } catch (expected: Exception) {
+                                UpdateError(it.songId, expected.message)
                             }
                         }
                     }

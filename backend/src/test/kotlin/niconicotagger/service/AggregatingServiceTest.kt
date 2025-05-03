@@ -146,6 +146,7 @@ class AggregatingServiceTest {
 
         @ParameterizedTest
         @ArgumentsSource(GetVideoByNndTagsFirstWorkTestData::class)
+        @Suppress("CognitiveComplexMethod")
         fun `get videos by NND tags test (tagging, first work)`(
             song: VocaDbSongEntryWithTags?,
             video: NndVideoData,
@@ -214,6 +215,7 @@ class AggregatingServiceTest {
 
         @ParameterizedTest
         @ArgumentsSource(GetVideosByNndTagsTestData::class)
+        @Suppress("CognitiveComplexMethod")
         fun `get videos by NND tags test (tagging)`(
             request: VideosByNndTagsRequest,
             video: NndVideoData,

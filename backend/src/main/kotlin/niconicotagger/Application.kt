@@ -9,7 +9,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 
 @SpringBootApplication(exclude = [ErrorMvcAutoConfiguration::class])
 @EnableConfigurationProperties(value = [AppConfiguration::class, PublisherLinkConfig::class])
-class Application {
+class Application private constructor() {
     companion object {
         @JvmStatic
         fun main(args: Array<String>) {

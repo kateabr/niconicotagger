@@ -206,7 +206,7 @@ class AggregatingControllerTest : AbstractControllerTest() {
         @CsvSource(
             value = ["release event,/release_event", "release event with linked tag,/release_event/with_linked_tags"]
         )
-        fun `get release event test (invalid request)`(testNameIgnored: String, uriPath: String) {
+        fun `get release event test (invalid request)`(ignored: String, uriPath: String) {
             testInvalidRequest(
                 """
                 {

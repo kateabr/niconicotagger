@@ -86,7 +86,7 @@ open class VocaDbClient(private val baseUrl: String, private val jsonMapper: Jso
                     .retryWhen(Retry.fixedDelay(3, Duration.ofSeconds(2)).filter { it is InternalServerError })
             }
             .build()
-    private var maxTagMappingsToLoad = 10000
+    private var maxTagMappingsToLoad = 10_000
     private val tagMappingsCache =
         Caffeine.newBuilder().expireAfterWrite(1, TimeUnit.HOURS).build<String, List<VocaDbTagMapping>>()
 

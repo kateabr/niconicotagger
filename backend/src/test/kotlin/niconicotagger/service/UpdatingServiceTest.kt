@@ -68,16 +68,16 @@ class UpdatingServiceTest {
     @Test
     fun `disable song PVs test`(@Given clientType: ClientType, @Given cookie: String): Unit = runBlocking {
         val updatedSongData = slot<MutableMap<String, Any>>()
-        coEvery { client.getSongForEdit(eq(657775), eq(cookie)) } returns
+        coEvery { client.getSongForEdit(eq(657_775), eq(cookie)) } returns
             jsonMapper.readValue(
                 loadResource("responses/vocadb/song_for_edit.json"),
                 object : TypeReference<MutableMap<String, Any>>() {},
             )
-        coEvery { client.saveSong(eq(657775), capture(updatedSongData), eq(cookie)) } returns Unit
+        coEvery { client.saveSong(eq(657_775), capture(updatedSongData), eq(cookie)) } returns Unit
 
         service.disablePvs(
             SongTagsAndPvsUpdateRequest(
-                657775,
+                657_775,
                 emptyList(),
                 setOf(PvToDisable("sm43909677", "DELETED"), PvToDisable("sm43909678", "DELETED")),
             ),
@@ -97,14 +97,14 @@ class UpdatingServiceTest {
     @Test
     fun `assign tags test`(@Given clientType: ClientType, @Given cookie: String): Unit = runBlocking {
         val tags = slot<List<VocaDbTag>>()
-        coEvery { client.getSongTags(eq(657775), eq(cookie)) } returns
+        coEvery { client.getSongTags(eq(657_775), eq(cookie)) } returns
             jsonMapper.readValue(
                 loadResource("responses/vocadb/song_tags_lookup_result.json"),
                 object : TypeReference<List<VocaDbTagSelectable>>() {},
             )
-        coEvery { client.assignSongTags(eq(657775), capture(tags), eq(cookie)) } returns Unit
+        coEvery { client.assignSongTags(eq(657_775), capture(tags), eq(cookie)) } returns Unit
 
-        service.assignSongTags(SongTagsAndPvsUpdateRequest(657775, listOf(158), emptySet()), clientType, cookie)
+        service.assignSongTags(SongTagsAndPvsUpdateRequest(657_775, listOf(158), emptySet()), clientType, cookie)
 
         assertThat(tags.captured)
             .containsExactlyInAnyOrder(VocaDbTag(158, ""), VocaDbTag(8087, "karaoke available (DAM&JOY)"))
@@ -118,15 +118,15 @@ class UpdatingServiceTest {
     @Test
     fun `add release event test`(@Given clientType: ClientType, @Given cookie: String): Unit = runBlocking {
         val updatedSongData = slot<MutableMap<String, Any>>()
-        coEvery { client.getSongForEdit(eq(657775), eq(cookie)) } returns
+        coEvery { client.getSongForEdit(eq(657_775), eq(cookie)) } returns
             jsonMapper.readValue(
                 loadResource("responses/vocadb/song_for_edit.json"),
                 object : TypeReference<MutableMap<String, Any>>() {},
             )
-        coEvery { client.saveSong(eq(657775), capture(updatedSongData), eq(cookie)) } returns Unit
+        coEvery { client.saveSong(eq(657_775), capture(updatedSongData), eq(cookie)) } returns Unit
 
         service.addReleaseEvent(
-            AddReleaseEventRequest(657775, ReleaseEvent(6645, "0Mix vol.10", null)),
+            AddReleaseEventRequest(657_775, ReleaseEvent(6645, "0Mix vol.10", null)),
             clientType,
             cookie,
         )

@@ -194,7 +194,7 @@ class NndClientTest {
                             "sm44015940",
                             "【詩岸カバー曲】火̸̘̍曜̴̗́日̷̮͠,̶̟͝幽̵̞̏霊̸̭̿,̶̩̎機̴̲͆械̸̳̎ ̸͖͗",
                             listOf("synthesizervカバー曲", "詩岸", "Indie", "NNI", "海外組vocaloid", "shoegaze"),
-                            78431138,
+                            78_431_138,
                             null,
                             Duration.ofSeconds(204),
                             "<strong>火曜日,幽霊,機械（ft.诗岸） <br><br><br>Music & Lyrics & Art works by Rockflos </strong><br>lyrics： <br>到不了的Utopia <br>入口是废弃教室六零八 <br>周二现身幽灵小姐 <br>从老电视机爬出来的吗 <br>头穿过显像管 相互作用力 <br>发生弹性形变 正交分解题 <br>就关掉大脑 学会服从吧 <br>可今天失去的 明天怎么拿 <br>周二会现身幽灵 <br>我们只听见机器轰鸣 <br>忘记歌词唱啦啦啦啦 <br>你脑子都装了什么呀 <br>在六零八找她问话 <br>她又会说什么作为回答 <br>在六零八找她问话 <br>我也不知道有意义吗 <br>生产噪音波的机器 <br>一切就如同空集没意义 <br>砸坏玻璃的安那其 <br>其实我也想偷偷地逃离 <br>坐对面的少女 不该帮助她 <br>怎么也变成了 爱听悄悄话 <br>昨天看的书 不是好结局 <br>我的心被撕碎 杂乱的思绪 <br>周二会现身幽灵 <br>我们只听见机器轰鸣 <br>忘记歌词唱啦啦啦啦 <br>你脑子都装了什么呀 <br>在六零八找她问话 <br>她又会说什么作为回答 <br>在六零八找她问话 <br>我也不知道有意义吗",
@@ -207,11 +207,11 @@ class NndClientTest {
                             "【犯罪者茶番劇】赤堀と碇が無色透名祭に参加するそうです　字幕のみ版 / aq_rm＆ar_f4",
                             listOf("犯罪者茶番劇", "音楽", "VOCALOID", "無色透名祭Ⅱ", "無色透名祭Ⅱ参加曲", "無色透名祭Ⅱ作者不明曲リンク"),
                             null,
-                            2648319,
+                            2_648_319,
                             Duration.ofSeconds(47),
                             "【無色透名祭Ⅱ】参加作品です。<br><a href=\"https://site.nicovideo.jp/mushokutomeisai/\" target=\"_blank\">https://site.nicovideo.jp/mushokutomeisai/</a><br>応募番号: M2_1306",
                             OffsetDateTime.parse("2023-11-02T22:00:00+09:00").toInstant(),
-                            1690,
+                            1_690,
                             1,
                         ),
                     ),
@@ -277,7 +277,7 @@ class NndClientTest {
                             "sm44015940",
                             "【詩岸カバー曲】火̸̘̍曜̴̗́日̷̮͠,̶̟͝幽̵̞̏霊̸̭̿,̶̩̎機̴̲͆械̸̳̎ ̸͖͗",
                             listOf("synthesizervカバー曲", "詩岸", "Indie", "NNI", "海外組vocaloid", "shoegaze"),
-                            78431138,
+                            78_431_138,
                             null,
                             Duration.ofSeconds(204),
                             "<strong>火曜日,幽霊,機械（ft.诗岸） <br><br><br>Music & Lyrics & Art works by Rockflos </strong><br>lyrics： <br>到不了的Utopia <br>入口是废弃教室六零八 <br>周二现身幽灵小姐 <br>从老电视机爬出来的吗 <br>头穿过显像管 相互作用力 <br>发生弹性形变 正交分解题 <br>就关掉大脑 学会服从吧 <br>可今天失去的 明天怎么拿 <br>周二会现身幽灵 <br>我们只听见机器轰鸣 <br>忘记歌词唱啦啦啦啦 <br>你脑子都装了什么呀 <br>在六零八找她问话 <br>她又会说什么作为回答 <br>在六零八找她问话 <br>我也不知道有意义吗 <br>生产噪音波的机器 <br>一切就如同空集没意义 <br>砸坏玻璃的安那其 <br>其实我也想偷偷地逃离 <br>坐对面的少女 不该帮助她 <br>怎么也变成了 爱听悄悄话 <br>昨天看的书 不是好结局 <br>我的心被撕碎 杂乱的思绪 <br>周二会现身幽灵 <br>我们只听见机器轰鸣 <br>忘记歌词唱啦啦啦啦 <br>你脑子都装了什么呀 <br>在六零八找她问话 <br>她又会说什么作为回答 <br>在六零八找她问话 <br>我也不知道有意义吗",
@@ -290,11 +290,11 @@ class NndClientTest {
                             "【犯罪者茶番劇】赤堀と碇が無色透名祭に参加するそうです　字幕のみ版 / aq_rm＆ar_f4",
                             listOf("犯罪者茶番劇", "音楽", "VOCALOID", "無色透名祭Ⅱ", "無色透名祭Ⅱ参加曲", "無色透名祭Ⅱ作者不明曲リンク"),
                             null,
-                            2648319,
+                            2_648_319,
                             Duration.ofSeconds(47),
                             "【無色透名祭Ⅱ】参加作品です。<br><a href=\"https://site.nicovideo.jp/mushokutomeisai/\" target=\"_blank\">https://site.nicovideo.jp/mushokutomeisai/</a><br>応募番号: M2_1306",
                             OffsetDateTime.parse("2023-11-02T22:00:00+09:00").toInstant(),
-                            1690,
+                            1_690,
                             1,
                         ),
                     ),
@@ -333,7 +333,7 @@ class NndClientTest {
                                 NndTag("花隈千冬オリジナル曲", false),
                                 NndTag("VOCALOID", false),
                             ),
-                            5360605,
+                            5_360_605,
                             null,
                             "春乃ねむり",
                         )
@@ -359,7 +359,7 @@ class NndClientTest {
                                 NndTag("無色透名祭Ⅱ作者不明曲リンク", false),
                             ),
                             null,
-                            2648319,
+                            2_648_319,
                             "ボカロ曲匿名投稿イベント 無色透名祭",
                         )
                     ),
@@ -382,7 +382,7 @@ class NndClientTest {
             )
 
         val sampleEmbed = loadResource("responses/nnd/sample_embed.html")
-        val expectedDescription =
+        const val expectedDescription =
             "賑やかしに短い動画を上げました。<br />三人に歌ってもらったよ（輪唱っていいよね）<br><br>作曲：春乃ねむり<br>歌唱：小春六花・夏色花梨・花隈千冬（SynthesizerV）<br>マイリスト：https://www.nicovideo.jp/mylist/18804133<br>　"
     }
 }

@@ -242,7 +242,7 @@ class VocaDbClientTest {
             assertThat(VocaDbClient(wm.httpBaseUrl, jsonMapper).getSongForEdit(songId, cookie))
                 .asInstanceOf(map(String::class.java, Any::class.java))
                 .extractingByKey("id")
-                .isEqualTo(657775)
+                .isEqualTo(657_775)
         }
 
     @ParameterizedTest
@@ -368,26 +368,26 @@ class VocaDbClientTest {
             .usingRecursiveComparison()
             .isEqualTo(
                 VocaDbSongEntryWithTags(
-                    489536,
+                    489_536,
                     "Alive",
                     Remaster,
                     listOf(
                         VocaDbEntryArtist(
                             false,
-                            VocaDbArtistEntryData(118397, "重音テトSV", SynthesizerV),
+                            VocaDbArtistEntryData(118_397, "重音テトSV", SynthesizerV),
                             listOf(Default),
                         ),
                         VocaDbEntryArtist(
                             false,
-                            VocaDbArtistEntryData(1053, "デスおはぎ", Producer),
+                            VocaDbArtistEntryData(1_053, "デスおはぎ", Producer),
                             listOf(Composer, Arranger),
                         ),
                         VocaDbEntryArtist(
                             false,
-                            VocaDbArtistEntryData(118399, "坂内 若", ArtistType.Illustrator),
+                            VocaDbArtistEntryData(118_399, "坂内 若", ArtistType.Illustrator),
                             listOf(Default),
                         ),
-                        VocaDbEntryArtist(false, VocaDbArtistEntryData(119530, "ツインドリル", Circle), listOf(Default)),
+                        VocaDbEntryArtist(false, VocaDbArtistEntryData(119_530, "ツインドリル", Circle), listOf(Default)),
                     ),
                     "デスおはぎ, ツインドリル feat. 重音テトSV",
                     OffsetDateTime.parse("2023-04-03T00:00:00Z").toInstant(),
@@ -411,7 +411,7 @@ class VocaDbClientTest {
 
         assertThat(VocaDbClient(wm.httpBaseUrl, jsonMapper).getArtistByQuery("user/34514369"))
             .usingRecursiveComparison()
-            .isEqualTo(VocaDbArtist(21260, "おゆう"))
+            .isEqualTo(VocaDbArtist(21_260, "おゆう"))
     }
 
     @Test
@@ -435,7 +435,7 @@ class VocaDbClientTest {
                     .findArtistDuplicate("https://ch.nicovideo.jp/channel/ch2648319")
             )
             .usingRecursiveComparison()
-            .isEqualTo(VocaDbArtist(106476, "無色透名祭"))
+            .isEqualTo(VocaDbArtist(106_476, "無色透名祭"))
     }
 
     @ParameterizedTest
@@ -485,7 +485,7 @@ class VocaDbClientTest {
                 )
         )
 
-        assertThat(VocaDbClient(wm.httpBaseUrl, jsonMapper).getSongTags(63276, cookie))
+        assertThat(VocaDbClient(wm.httpBaseUrl, jsonMapper).getSongTags(63_276, cookie))
             .containsExactlyInAnyOrder(
                 VocaDbTagSelectable(VocaDbTag(8087, "karaoke available (DAM&JOY)"), true),
                 VocaDbTagSelectable(VocaDbTag(8909, "blue"), false),
@@ -506,15 +506,15 @@ class VocaDbClientTest {
                 )
         )
 
-        assertThat(VocaDbClient(wm.httpBaseUrl, jsonMapper).getTagUsages(SONGS, 657775, cookie))
+        assertThat(VocaDbClient(wm.httpBaseUrl, jsonMapper).getTagUsages(SONGS, 657_775, cookie))
             .usingRecursiveComparison()
             .isEqualTo(
                 VocaDbTagUsages(
                     true,
                     listOf(
-                        VocaDbTagUsage(1746998, VocaDbTag(158, "first work")),
-                        VocaDbTagUsage(1746996, VocaDbTag(7323, "プロセカ")),
-                        VocaDbTagUsage(1572957, VocaDbTag(10162, "小樽組")),
+                        VocaDbTagUsage(1_746_998, VocaDbTag(158, "first work")),
+                        VocaDbTagUsage(1_746_996, VocaDbTag(7323, "プロセカ")),
+                        VocaDbTagUsage(1_572_957, VocaDbTag(10_162, "小樽組")),
                     ),
                 )
             )
@@ -614,7 +614,7 @@ class VocaDbClientTest {
                 VocaDbSongEntryWithNndPvsAndTagsSearchResult(
                     listOf(
                         VocaDbSongEntryWithNndPvsAndTags(
-                            743185,
+                            743_185,
                             "オッドライアー",
                             Original,
                             emptyList(),
@@ -624,7 +624,7 @@ class VocaDbClientTest {
                             emptyList(),
                         )
                     ),
-                    373865,
+                    373_865,
                 )
             )
     }
@@ -639,13 +639,13 @@ class VocaDbClientTest {
                             VocaDbCustomQuerySearchResult(
                                 listOf(
                                     VocaDbCustomQueryArtistData(
-                                        85276,
+                                        85_276,
                                         "Anji-Melody",
                                         listOf(VocaDbTag(204, "illustrator")),
                                         Producer,
                                     )
                                 ),
-                                121082,
+                                121_082,
                             ),
                         )
 
@@ -655,14 +655,14 @@ class VocaDbClientTest {
                             VocaDbCustomQuerySearchResult(
                                 listOf(
                                     VocaDbCustomQuerySongData(
-                                        717140,
+                                        717_140,
                                         "『わっれっちゃう。』",
                                         listOf(VocaDbTag(4582, "good tuning")),
                                         Cover,
                                         "Soto feat. 留音ロッカ",
                                     )
                                 ),
-                                707091,
+                                707_091,
                             ),
                         )
 
