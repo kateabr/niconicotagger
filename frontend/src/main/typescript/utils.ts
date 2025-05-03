@@ -1,19 +1,24 @@
-import { DateTime } from "luxon";
+import { AxiosResponse } from "axios";
+import { ArtistType, ClientType, SongType } from "@/backend/dto/enumeration";
+import { SongTypeStats, SongTypeStatsRecord } from "@/backend/dto/songTypeStats";
+import { ErrorData, ReleaseEvent, VocaDbTagSelectable } from "@/backend/dto/lowerLevelStruct";
 import {
-  MappedTag,
-  MinimalTag,
-  NicoPublisherWithoutEntry,
-  NicoVideoWithError,
-  NicoVideoWithMappedTags,
-  NicoVideoWithTidyTags,
-  Publisher,
-  ReleaseEventForApiContractSimplified,
-  ReleaseEventForDisplay,
-  SongForApiContractSimplified,
-  SongForApiContractSimplifiedWithReleaseEvent
-} from "@/backend/dto";
+  UnavailableNndVideo,
+  VocaDbSongEntryWithPvs
+} from "@/backend/dto/response/songsWithPvsResponse";
+import {
+  dbBaseUrl,
+  localStorageKeyClientType,
+  nndOrderOptions,
+  videoStatusesToDisable,
+  vocaDbOrderOptions
+} from "@/constants";
 
 // url generators
+export function getBaseUrl(clientType: ClientType): string {
+  return dbBaseUrl[clientType];
+}
+
 export function getNicoTagUrl(tag: string, scope: string): string {
   if (scope.length > 0) {
     return "https://www.nicovideo.jp/tag/" + tag + " " + scope;
@@ -29,44 +34,28 @@ export function getNicoEmbedUrl(videoId: string): string {
   return "https://embed.nicovideo.jp/watch/" + videoId + "?noRelatedVideo=1&enablejsapi=0";
 }
 
-export function getVocaDBEventUrl(dbAddress: string, id: number, urlSlug: string): string {
-  return dbAddress + "/E/" + id + "/" + urlSlug;
+export function getVocaDBEventUrl(database: ClientType, id: number): string {
+  return dbBaseUrl[database] + "/E/" + id;
 }
 
-export function getVocaDBEntryUrl(dbAddress: string, id: number): string {
-  return dbAddress + "/S/" + id;
+export function getVocaDBSongUrl(database: ClientType, id: number): string {
+  return dbBaseUrl[database] + "/S/" + id;
 }
 
-export function getVocaDBTagUrl(dbAddress: string, id: number, urlSlug: string): string {
-  return dbAddress + "/T/" + id + "/" + urlSlug;
+export function getVocaDBTagUrl(database: ClientType, id: number): string {
+  return dbBaseUrl[database] + "/T/" + id;
 }
 
-export function getVocaDBAddSongUrl(dbAddress: string, pvLink: string): string {
-  return dbAddress + "/Song/Create?pvUrl=https://www.nicovideo.jp/watch/" + pvLink;
+export function getVocaDBAddSongUrl(database: ClientType, pvLink: string): string {
+  return dbBaseUrl[database] + "/Song/Create?pvUrl=https://www.nicovideo.jp/watch/" + pvLink;
 }
 
-export function getVocaDBArtistUrl(dbAddress: string, artistId: number): string {
-  return dbAddress + "/Ar/" + artistId;
+export function getVocaDBArtistUrl(database: ClientType, artistId: number): string {
+  return dbBaseUrl[database] + "/Ar/" + artistId;
 }
 
 export function getDeletedVideoUrl(videoId: string): string {
-  return "https://nicolog.jp/watch/" + videoId;
-}
-
-export function getNicovideoPublisherUrl(publisher: NicoPublisherWithoutEntry): string {
-  if (publisher.publisherType == "USER") {
-    return "https://www.nicovideo.jp/user/" + publisher.publisherId;
-  } else {
-    return "https://ch.nicovideo.jp/channel/ch" + publisher.publisherId;
-  }
-}
-
-export function getNicovideoPublisherLinkText(publisher: NicoPublisherWithoutEntry): string {
-  if (publisher.publisherType == "USER") {
-    return "user/" + publisher.publisherId;
-  } else {
-    return "channel/ch" + publisher.publisherId;
-  }
+  return "https://www.nicolog.jp/watch/" + videoId;
 }
 
 // common predicates
@@ -78,57 +67,94 @@ export function infoLoaded(listOfMediaLength: number, frozenTextValue: string): 
   return listOfMediaLength > 0 && frozenTextValue != "";
 }
 
-export function allVideosInvisible(list: { rowVisible: boolean }[]): boolean {
-  return list.every(item => !item.rowVisible);
+export function allVideosInvisible(list: { visible: boolean }[]): boolean {
+  return list.every(item => !item.visible);
+}
+
+export function shouldDisableByStatus(pv: UnavailableNndVideo): boolean {
+  return videoStatusesToDisable.includes(pv.error);
 }
 
 // common getters
+export function getClientType(): ClientType {
+  const clientType = localStorage.getItem(localStorageKeyClientType);
+  if (clientType == null || ClientType[clientType as keyof typeof ClientType] == undefined) {
+    return ClientType.UNKNOWN;
+  }
+  return ClientType[clientType as keyof typeof ClientType];
+}
+
+export function getErrorData(err: { response: AxiosResponse }): ErrorData {
+  if (typeof err.response.data == "object") {
+    if ("violations" in err.response.data) {
+      return {
+        message: (Object.entries(err.response.data).filter(
+          entry => entry[0] == "violations"
+        )[0][1] as Array<any>)
+          .map(violationTuple => `${violationTuple["field"]} ${violationTuple["message"]}`)
+          .join("<br>"),
+        statusText: "Constraint violation in request"
+      };
+    } else {
+      let alertMessage: string;
+      if ("detail" in err.response.data) {
+        alertMessage = Object.entries(err.response.data).filter(
+          entry => entry[0] == "detail"
+        )[0][1] as string;
+      } else {
+        alertMessage = err.response.data;
+      }
+      return {
+        statusText: err.response.statusText,
+        message: alertMessage
+      };
+    }
+  } else {
+    return {
+      statusText: err.response.statusText,
+      message: err.response.data
+    };
+  }
+}
+
 export function getMaxResultsForDisplay(maxResults: number): string {
   return "Results per page: " + maxResults;
 }
 
 export function getOrderingConditionForDisplay(orderingCondition: string): string {
-  return "Arrange by: " + orderOptions[orderingCondition];
+  return "Arrange by: " + vocaDbOrderOptions[orderingCondition];
 }
 
 export function getSortingConditionForDisplayNico(orderingCondition: string): string {
-  return "Arrange by: " + orderOptionsNico[orderingCondition];
-}
-
-export function getSortingConditionForDisplay(sortingCondidion: string): string {
-  return "Sorting: " + sortOptions[sortingCondidion];
-}
-
-export function getAdditionModeForDisplay(additionMode: string): string {
-  return "Addition mode: " + additionOptions[additionMode];
+  return "Arrange by: " + nndOrderOptions[orderingCondition];
 }
 
 export function getUniqueElementId(prefix: string, key: string): string {
   return prefix + key;
 }
 
-export function getTagVariant(tag: MappedTag, tagsToAssign: MinimalTag[]): string {
-  if (tag.assigned) {
+export function getTagVariant(tag: VocaDbTagSelectable, tagsIdsToAssign: number[]): string {
+  if (tag.selected) {
     return "success";
-  } else if (tagsToAssign.find(t => t.id == tag.tag.id) != undefined) {
+  } else if (tagsIdsToAssign.find(tagId => tagId == tag.tag.id) != undefined) {
     return "warning";
   } else {
     return "outline-success";
   }
 }
 
-export function getShortenedSongType(typeString: string): string {
-  if (typeString == "Unspecified") {
+export function getShortenedSongType(typeString: SongType): string {
+  if (SongType[typeString] == SongType.Unspecified) {
     return "?";
-  } else if (typeString == "MusicPV") {
+  } else if (SongType[typeString] == SongType.MusicPV) {
     return "PV";
   } else {
     return typeString[0];
   }
 }
 
-export function getShortenedArtistType(typeString: string): string {
-  if (typeString == "Unspecified") {
+export function getShortenedArtistType(typeString: ArtistType): string {
+  if (typeString == "Unknown") {
     return "?";
   } else if (typeString == "SynthesizerV") {
     return "SV";
@@ -145,217 +171,73 @@ export function getShortenedArtistType(typeString: string): string {
   }
 }
 
-export function getDateDisposition(
-  date: DateTime | null,
-  dateStart: DateTime,
-  dateEnd: DateTime | null,
-  timeDeltaMax: number
-): DateComparisonResult {
-  if (date == null) {
-    return {
-      disposition: "unknown",
-      dayDiff: 0,
-      eligible: false
-    };
-  }
-
-  const dayDiff = subDates(date, dateStart);
-  if (dateEnd === null) {
-    if (dayDiff === 0) {
+export function mapSongTypeStats(
+  songTypeStats: SongTypeStats,
+  existingStats: SongTypeStatsRecord[]
+): SongTypeStatsRecord[] {
+  return Object.entries(songTypeStats)
+    .map(key => {
       return {
-        dayDiff: 0,
-        disposition: "perfect",
-        eligible: true
+        type: key[0],
+        count: key[1] as number,
+        show:
+          existingStats.length > 0
+            ? existingStats.filter(statsItem => statsItem.type == key[0])[0].show
+            : true
       };
-    } else {
-      const disposition = dayDiff > 0 ? "late" : dayDiff < 0 ? "early" : "perfect";
-      return {
-        dayDiff: Math.abs(dayDiff),
-        disposition: disposition,
-        eligible: disposition === "late" ? Math.abs(dayDiff) <= timeDeltaMax : true
-      };
-    }
-  }
-
-  if (dateStart <= date) {
-    if (dateEnd >= date) {
-      return {
-        dayDiff: 0,
-        disposition: "perfect",
-        eligible: true
-      };
-    } else {
-      const dayDiff1 = Math.abs(subDates(date, dateEnd));
-      if (dayDiff1 > 0) {
-        return {
-          dayDiff: dayDiff1,
-          disposition: "late",
-          eligible: dayDiff1 <= timeDeltaMax
-        };
-      } else {
-        return {
-          dayDiff: 0,
-          disposition: "perfect",
-          eligible: true
-        };
-      }
-    }
-  } else {
-    const dayDiff2 = Math.abs(subDates(dateStart, date));
-    if (dayDiff2 > 0) {
-      return {
-        dayDiff: dayDiff2,
-        disposition: "early",
-        eligible: true
-      };
-    } else {
-      return {
-        dayDiff: 0,
-        disposition: "perfect",
-        eligible: true
-      };
-    }
-  }
+    })
+    .sort((statsItem1, statsItem2) => {
+      return SongType[statsItem1.type].valueOf() - SongType[statsItem2.type].valueOf();
+    });
 }
 
-export function fillReleaseEventForDisplay(
-  src: ReleaseEventForApiContractSimplified,
-  trg: ReleaseEventForDisplay
-): void {
-  trg.id = src.id;
-  trg.name = src.name;
-  trg.urlSlug = src.urlSlug;
-  trg.category = src.category;
-  trg.date = src.date == null ? null : DateTime.fromISO(src.date, { zone: "utc" });
-  trg.endDate = src.endDate == null ? null : DateTime.fromISO(src.endDate, { zone: "utc" });
+export function formatDateString(
+  date: string | null,
+  endDate: string | null,
+  locale: string
+): string | null {
+  const formatter = new Intl.DateTimeFormat(locale);
+  let result = "";
+  if (date != null) {
+    result += formatter.format(new Date(date));
+  }
+  if (endDate != null) {
+    result += " - " + formatter.format(new Date(endDate));
+  }
+  if (result.length > 0) return result;
+  return null;
 }
 
-export const defaultScopeTagString: string =
-  "-歌ってみた VOCALOID OR UTAU OR CEVIO OR CeVIO_AI OR SYNTHV OR SYNTHESIZERV OR neutrino(歌声合成エンジン) OR DeepVocal OR Alter/Ego OR AlterEgo OR AquesTalk OR AquesTone OR AquesTone2 OR ボカロ OR ボーカロイド OR 合成音声 OR 歌唱合成 OR coefont OR coefont_studio OR VOICELOID OR VOICEROID OR ENUNU OR ソフトウェアシンガー OR VOICEVOX OR VoiSona OR COEROINK OR NNSVS OR ボイパロイド OR Voicing OR AmadeuSY";
-
-// common interface methods & constants
-export const orderOptions = {
-  PublishDate: "upload time",
-  AdditionDate: "addition time",
-  RatingScore: "user rating"
-};
-
-export const orderOptionsNico = {
-  startTime: "upload time",
-  viewCounter: "views",
-  lengthSeconds: "length"
-};
-
-export const sortOptions = {
-  CreateDate: "old→new",
-  CreateDateDescending: "new→old"
-};
-
-export const additionOptions = {
-  before: "before",
-  since: "since"
-};
-export const directionMap = {
-  before: "Older",
-  since: "Newer"
-};
-
-export const reverseEachMap = {
-  before: {
-    CreateDateDescending: {
-      Older: false,
-      Newer: false
-    },
-    CreateDate: {
-      Older: false,
-      Newer: false
-    }
-  },
-  since: {
-    CreateDateDescending: {
-      Older: true
-    },
-    CreateDate: {
-      Older: true
-    }
+export function formatDate(date: string | null, locale: string): string | null {
+  if (date != null) {
+    const formatter = new Intl.DateTimeFormat(locale);
+    return formatter.format(new Date(date));
   }
-};
+  return null;
+}
 
-export const reverseAllMap = {
-  before: {
-    CreateDateDescending: {
-      Older: false,
-      Newer: true
-    },
-    CreateDate: {
-      Older: false,
-      Newer: false
-    }
-  },
-  since: {
-    CreateDateDescending: {
-      Older: true
-    },
-    CreateDate: {
-      Older: false
-    }
-  }
-};
-
-export const songTypeToTag = {
-  Unspecified: [],
-  Original: [6479, 22, 74],
-  Remaster: [1519, 391, 371, 392, 74],
-  Remix: [371, 74, 391, 4709],
-  Cover: [74, 371, 392],
-  Instrumental: [208],
-  MusicPV: [7378, 74, 4582],
-  Mashup: [3392],
-  DramaPV: [
-    104,
-    1736,
-    7276,
-    3180,
-    7728,
-    8509,
-    7748,
-    7275,
-    6701,
-    3186,
-    8130,
-    6700,
-    7615,
-    6703,
-    6702,
-    7988,
-    6650,
-    8043,
-    8409,
-    423
-  ],
-  Other: []
-};
-
-export function getSongTypeColorForDisplay(typeString: string): string {
-  if (typeString == "Original" || typeString == "Remaster") {
+// common interface methods
+export function getSongTypeColorForDisplay(songType: SongType): string {
+  const castType = SongType[songType];
+  if (castType == SongType.Original || castType == SongType.Remaster) {
     return "primary";
   } else if (
-    typeString == "Remix" ||
-    typeString == "Cover" ||
-    typeString == "Mashup" ||
-    typeString == "Other"
+    castType == SongType.Remix ||
+    castType == SongType.Cover ||
+    castType == SongType.Mashup ||
+    castType == SongType.Other
   ) {
     return "secondary";
-  } else if (typeString == "Instrumental") {
+  } else if (castType == SongType.Instrumental) {
     return "dark";
-  } else if (typeString == "MusicPV" || typeString == "DramaPV") {
+  } else if (castType == SongType.MusicPV || castType == SongType.DramaPV) {
     return "success";
   } else {
     return "warning";
   }
 }
 
-export function getArtistTypeColorForDisplay(typeString: string): string {
+export function getArtistTypeColorForDisplay(typeString: ArtistType): string {
   if (typeString == "Vocaloid") {
     return "primary";
   } else if (typeString == "UTAU") {
@@ -373,25 +255,7 @@ export function getArtistTypeColorForDisplay(typeString: string): string {
   }
 }
 
-export function compareWithDelta(dayDiff: number, delta: number): string {
-  return dayDiff <= delta ? "warning" : "danger";
-}
-
-export function getDispositionBadgeColorVariant(
-  eventDateComparison: DateComparisonResult,
-  delta: number
-): string {
-  return eventDateComparison.disposition === "perfect"
-    ? "success"
-    : eventDateComparison.disposition === "unknown"
-    ? "secondary"
-    : compareWithDelta(eventDateComparison.dayDiff, delta);
-}
-
-export function getEventColorVariant(
-  event: ReleaseEventForApiContractSimplified,
-  eventId: number
-): string {
+export function getEventColorVariant(event: ReleaseEvent, eventId: number): string {
   if (event.id == eventId) {
     return "success";
   } else {
@@ -399,312 +263,27 @@ export function getEventColorVariant(
   }
 }
 
-export function getSongTypeStatsForDisplay(type: string, number: number): string {
-  return type + " (" + number + ")";
-}
-
-export function validateTimestamp(timestamp: string): boolean | null {
-  if (timestamp === "") {
-    return null;
-  }
-  return DateTime.fromISO(timestamp).isValid;
-}
-
 // other util methods
-function subDates(date1: DateTime, date2: DateTime): number {
-  return Math.floor(date1.diff(date2).as("day"));
-}
 
-export function toggleTagAssignation(tag: MappedTag, video: EntryWithVideosAndVisibility): void {
-  const assign = video.tagsToAssign.filter((t: MinimalTag) => t.id == tag.tag.id).length > 0;
+export function toggleTagAssignment(tag: VocaDbTagSelectable, entry: VocaDbSongEntryWithPvs): void {
+  const assign = entry.tagIdsToAssign.filter(tagId => tagId == tag.tag.id).length > 0;
   if (assign) {
-    video.tagsToAssign = video.tagsToAssign.filter((t: MinimalTag) => t.id != tag.tag.id);
+    entry.tagIdsToAssign = entry.tagIdsToAssign.filter(tagId => tagId != tag.tag.id);
   } else {
-    video.tagsToAssign.push(tag.tag);
+    entry.tagIdsToAssign.push(tag.tag.id);
   }
-  for (const thumbnailOk of video.thumbnailsOk) {
-    for (const mappedTag of thumbnailOk.mappedTags) {
-      if (mappedTag.tag.id == tag.tag.id) {
-        mappedTag.toAssign = !assign;
-      }
-    }
-    video.toAssign = video.tagsToAssign.length > 0;
-  }
+  entry.toUpdate = entry.tagIdsToAssign.length > 0;
 }
 
-export function getTagIconForTagAssignationButton(
-  tag: MappedTag,
-  tagsToAssign: MinimalTag[]
+export function getTagIconForTagAssignmentButton(
+  tag: VocaDbTagSelectable,
+  tagIdsToAssign: number[]
 ): string[] {
-  if (tag.assigned) {
+  if (tag.selected) {
     return ["fas", "fa-check"];
-  } else if (tagsToAssign.find(t => t.id == tag.tag.id) != undefined) {
+  } else if (tagIdsToAssign.find(tagId => tagId == tag.tag.id) != undefined) {
     return ["fas", "fa-minus"];
   } else {
     return ["fas", "fa-plus"];
   }
-}
-
-export function getButtonPayload(
-  videos: EntryWithVideosAndVisibility[],
-  additionMode: string,
-  sortingCondition: string,
-  direction: string
-): Fetch1Payload {
-  if (direction == "Older") {
-    if (additionMode == "before") {
-      if (sortingCondition == "CreateDateDescending") {
-        const song = videos[videos.length - 1].song;
-        return {
-          id: song.id,
-          createDate: song.createDate,
-          sortRule: "CreateDateDescending",
-          mode: "before"
-        };
-      } else if (sortingCondition == "CreateDate") {
-        const song = videos[0].song;
-        return {
-          id: song.id,
-          createDate: song.createDate,
-          sortRule: "CreateDateDescending",
-          mode: "before"
-        };
-      }
-    } else if (additionMode == "since") {
-      if (sortingCondition == "CreateDateDescending") {
-        const song = videos[videos.length - 1].song;
-        return {
-          id: song.id,
-          createDate: song.createDate,
-          sortRule: "CreateDateDescending",
-          mode: "before"
-        };
-      } else if (sortingCondition == "CreateDate") {
-        const song = videos[0].song;
-        return {
-          id: song.id,
-          createDate: song.createDate,
-          sortRule: "CreateDateDescending",
-          mode: "before"
-        };
-      }
-    }
-  } else if (direction == "Newer") {
-    if (additionMode == "before") {
-      if (sortingCondition == "CreateDateDescending") {
-        const song = videos[0].song;
-        return {
-          id: song.id,
-          createDate: song.createDate,
-          sortRule: "CreateDate",
-          mode: "since"
-        };
-      } else if (sortingCondition == "CreateDate") {
-        const song = videos[videos.length - 1].song;
-        return {
-          id: song.id,
-          createDate: song.createDate,
-          sortRule: "CreateDate",
-          mode: "since"
-        };
-      }
-    }
-  }
-  throw {
-    response: undefined,
-    message:
-      "[getButtonPayload] Unexpected arguments: (" +
-      additionMode +
-      ", " +
-      sortingCondition +
-      ", " +
-      direction +
-      ")"
-  };
-}
-
-export function updateFetch1Payload(
-  responseItems: EntryWithVideosAndVisibility[],
-  additionMode: string,
-  sortingCondition: string,
-  timestampNewest: string,
-  timestampOldest: string,
-  direction: string
-): Fetch1Payload {
-  if (direction == "Older") {
-    if (additionMode == "before") {
-      if (sortingCondition == "CreateDateDescending") {
-        const song = responseItems[responseItems.length - 1].song;
-        return {
-          mode: "before",
-          createDate: song.createDate,
-          sortRule: "CreateDateDescending",
-          id: song.id
-        };
-      } else if (sortingCondition == "CreateDate") {
-        const song = responseItems[responseItems.length - 1].song;
-        return {
-          mode: "since",
-          createDate: song.createDate,
-          sortRule: "CreateDate",
-          id: song.id
-        };
-      }
-    } else if (additionMode == "since") {
-      if (sortingCondition == "CreateDate") {
-        const song = responseItems[responseItems.length - 1].song;
-        return {
-          mode: "since",
-          createDate: song.createDate,
-          sortRule: "CreateDate",
-          id: song.id
-        };
-      } else if (sortingCondition == "CreateDateDescending") {
-        const song = responseItems[responseItems.length - 1].song;
-        return {
-          mode: "before",
-          createDate: song.createDate,
-          sortRule: "CreateDateDescending",
-          id: song.id
-        };
-      }
-    }
-  } else if (direction == "Newer") {
-    if (additionMode == "since") {
-      if (sortingCondition == "CreateDate") {
-        const song = responseItems[responseItems.length - 1].song;
-        return {
-          id: song.id,
-          createDate: song.createDate,
-          sortRule: "CreateDate",
-          mode: "since"
-        };
-      } else if (sortingCondition == "CreateDateDescending") {
-        const song = responseItems[0].song;
-        return {
-          id: song.id,
-          createDate: song.createDate,
-          sortRule: "CreateDate",
-          mode: "since"
-        };
-      }
-    }
-  }
-  throw {
-    response: undefined,
-    message:
-      "[getButtonPayload] Unexpected arguments: (" +
-      additionMode +
-      ", " +
-      sortingCondition +
-      ", " +
-      direction +
-      ")"
-  };
-}
-
-export function dateIsWithinTimeDelta(
-  timeDelta: number,
-  restrictionBefore: boolean,
-  restrictionAfter: boolean,
-  dateComparisonResult: DateComparisonResult
-): boolean {
-  if (dateComparisonResult.disposition == "perfect") {
-    return true;
-  }
-
-  if (restrictionBefore && restrictionAfter) {
-    return dateComparisonResult.dayDiff <= timeDelta;
-  } else if (restrictionBefore) {
-    return dateComparisonResult.disposition == "late" || dateComparisonResult.dayDiff <= timeDelta;
-  } else {
-    return dateComparisonResult.disposition == "early" || dateComparisonResult.dayDiff <= timeDelta;
-  }
-}
-
-export function getTimeDeltaState(
-  isEnabled: boolean,
-  before: boolean,
-  after: boolean,
-  delta: number
-): boolean {
-  if (!isEnabled) {
-    return true;
-  }
-  if (delta < 0) {
-    return false;
-  }
-  return before || after;
-}
-
-export function isEligible(
-  songEntry: SongForApiContractSimplifiedWithReleaseEvent | null,
-  videoUploadDateComparison: DateComparisonResult | null
-): boolean {
-  return (
-    (videoUploadDateComparison != null && videoUploadDateComparison.eligible) ||
-    (songEntry != null &&
-      songEntry.eventDateComparison != null &&
-      songEntry.eventDateComparison.eligible)
-  );
-}
-
-export function isEarly(
-  songEntry: SongForApiContractSimplifiedWithReleaseEvent | null,
-  videoUploadDateComparison: DateComparisonResult | null
-): boolean {
-  if (isEligible(songEntry, videoUploadDateComparison)) {
-    return false;
-  }
-  return (
-    (songEntry != null && songEntry.eventDateComparison.disposition == "early") ||
-    (videoUploadDateComparison != null && videoUploadDateComparison.disposition == "early")
-  );
-}
-
-// data structures
-export interface EntryWithReleaseEventAndVisibility {
-  songEntry: SongForApiContractSimplifiedWithReleaseEvent;
-  publishDate: DateTime | null;
-  rowVisible: boolean;
-  toAssign: boolean;
-  processed: boolean;
-}
-
-export interface VideoWithEntryAndVisibility {
-  video: NicoVideoWithTidyTags;
-  songEntry: SongForApiContractSimplifiedWithReleaseEvent | null;
-  embedVisible: boolean;
-  rowVisible: boolean;
-  toAssign: boolean;
-  publisher: Publisher | null;
-  processed: boolean;
-}
-
-export interface SongType {
-  name: string;
-  show: boolean;
-}
-
-export interface Fetch1Payload {
-  mode: string;
-  createDate: string;
-  id: number;
-  sortRule: string;
-}
-
-export interface EntryWithVideosAndVisibility {
-  thumbnailsOk: NicoVideoWithMappedTags[];
-  thumbnailsErr: NicoVideoWithError[];
-  song: SongForApiContractSimplified;
-  visible: boolean;
-  toAssign: boolean;
-  tagsToAssign: MinimalTag[];
-  disable: string[];
-}
-
-export interface DateComparisonResult {
-  dayDiff: number;
-  disposition: "perfect" | "late" | "early" | "unknown";
-  eligible: boolean;
 }

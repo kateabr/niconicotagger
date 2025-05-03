@@ -1,46 +1,42 @@
 <template>
   <div>
-    <ol v-if="processItem">
-      <li>
-        Add "<b-link :href="link" target="_blank">{{ name }}</b-link
+    <ol>
+      <li v-if="event != null">
+        Add "<b-link
+          :href="getVocaDBEventUrl(clientType, event.id)"
+          target="_blank"
+          >{{ event.name }}</b-link
         >" to release events
       </li>
-      <li v-if="tagToRemove !== undefined">
-        Remove tag "<b-link :href="tagToRemoveLink" target="_blank">{{
-          tagToRemove
-        }}</b-link
+      <li v-if="tagToRemove != null">
+        Remove tag "<b-link
+          :href="getVocaDBTagUrl(clientType, tagToRemove.id)"
+          target="_blank"
+          >{{ tagToRemove.name }}</b-link
         >"
       </li>
     </ol>
-    <div v-if="!eligible" class="text-muted">
-      <font-awesome-icon icon="fa-solid fa-circle-exclamation" class="mr-1" />
-      Entry may be ineligible for participation
-    </div>
   </div>
 </template>
 
 <script lang="ts">
 import { Component, Prop } from "vue-property-decorator";
 import Vue from "vue";
+import { getVocaDBEventUrl, getVocaDBTagUrl } from "@/utils";
+import { ClientType } from "@/backend/dto/enumeration";
+import { ReleaseEvent, VocaDbTag } from "@/backend/dto/lowerLevelStruct";
 
-@Component({ components: {} })
+@Component({
+  methods: { getVocaDBTagUrl, getVocaDBEventUrl }
+})
 export default class extends Vue {
   @Prop()
-  private readonly eligible!: boolean;
+  private readonly event!: ReleaseEvent | null;
 
   @Prop()
-  private readonly processItem!: boolean;
+  private readonly tagToRemove!: VocaDbTag | null;
 
   @Prop()
-  private readonly tagToRemove: string | undefined;
-
-  @Prop()
-  private readonly tagToRemoveLink: string | undefined;
-
-  @Prop()
-  private readonly name!: string;
-
-  @Prop()
-  private readonly link!: string;
+  private readonly clientType!: ClientType;
 }
 </script>

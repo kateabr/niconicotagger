@@ -1,0 +1,35 @@
+{
+  "items": [
+    {
+      "artistString": "Soto feat. 留音ロッカ",
+      "createDate": "2024-12-21T23:05:16.343",
+      "defaultName": "『わっれっちゃう。』",
+      "defaultNameLanguage": "Japanese",
+      "favoritedTimes": 1,
+      "id": 717140,
+      "lengthSeconds": 184,
+      "name": "『わっれっちゃう。』",
+      "originalVersionId": 440738,
+      "publishDate": "2024-12-21T00:00:00Z",
+      "pvServices": "Youtube",
+      "ratingScore": 5,
+      "songType": "Cover",
+      "status": "Finished",
+      "tags": [
+        {
+          "count": 1,
+          "tag": {
+            "additionalNames": "良調声, 良調教, good training, good voice training",
+            "categoryName": "Subjective",
+            "id": 4582,
+            "name": "good tuning",
+            "urlSlug": "good-tuning"
+          }
+        }
+      ],
+      "version": 2
+    }
+  ],
+  "term": "",
+  "totalCount": 707091
+}

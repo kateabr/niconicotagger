@@ -8,46 +8,77 @@ on:
       - backend/**
 
 env:
-  RUSTFLAGS: "-Dwarnings -Adead_code"
   REMOTE: handystuff.net
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
-    name: Build
+    name: Test
+
     defaults:
       run:
         working-directory: backend
-
+    permissions:
+      contents: read
+      packages: write
+      pull-requests: write
     steps:
-      - uses: actions/checkout@v3
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
-          toolchain: stable
+          java-version: '24'
+          distribution: 'temurin'
+          cache: maven
 
-      - run: cargo build --release --all-features
+      - name: maven verify
+        run: mvn verify
 
-      - uses: redhat-actions/podman-login@v1
-        if: github.ref_name == 'master'
+  build-image:
+    runs-on: ubuntu-latest
+    name: Build image
+    if: github.ref_name == 'master'
+    needs: [ test ]
+
+    defaults:
+      run:
+        working-directory: backend
+    permissions:
+      contents: read
+      packages: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
-          registry: ghcr.io/${{ github.actor }}
-          username: ${{ github.actor }}
+          java-version: '24'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - run: >
-          podman build
-          --file Dockerfile
-          --tag ghcr.io/${{ github.repository }}:latest
-          --tag ghcr.io/${{ github.repository }}:${{ github.sha }}
-          .
-        if: github.ref_name == 'master'
-      - run: |
-          podman push ghcr.io/${{ github.repository }}:latest
-          podman push ghcr.io/${{ github.repository }}:${{ github.sha }}
-        if: github.ref_name == 'master'
+      - name: calculate version
+        run: echo "VERSION=$(date +'%Y-%m-%d-%H%M')-${GITHUB_SHA::8}" >> "$GITHUB_ENV"
+      - name: set version
+        run: mvn versions:set -DnewVersion="$VERSION"
+
+      - name: build image
+        run: mvn package spring-boot:build-image-no-fork -DskipTests=true -Dspring-boot.build-image.createdDate=now
+
+      - name: push images
+        run: |
+          docker push ghcr.io/niconicotagger:$VERSION
+          docker push ghcr.io/niconicotagger:latest
 
       - uses: actions/delete-package-versions@v3
-        if: github.ref_name == 'master'
         with:
           package-name: ${{ github.event.repository.name }}
           min-versions-to-keep: 3
@@ -55,8 +86,8 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     name: Deploy
-    needs: [ build ]
     if: github.ref_name == 'master'
+    needs: [ build-image ]
 
     steps:
       - name: Configure SSH
@@ -71,58 +102,22 @@ jobs:
           ssh $REMOTE "docker pull ghcr.io/${{ github.repository }}:latest"
           ssh $REMOTE "docker restart niconicotagger"
 
-#  test:
-#    name: Test Suite
-#    runs-on: ubuntu-latest
-#    defaults:
-#      run:
-#        working-directory: backend
-#
-#    steps:
-#      - uses: actions/checkout@v3
-#      - uses: dtolnay/rust-toolchain@stable
-#        with:
-#          toolchain: stable
-#      - run: cargo test
-
-  check:
-    name: Check
+  linter:
+    name: linter
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: backend
-
+    permissions:
+      contents: read
+      packages: write
+      pull-requests: write
     steps:
-      - uses: actions/checkout@v3
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
-          toolchain: stable
-      - run: cargo check
+          java-version: '24'
+          distribution: 'temurin'
+          cache: maven
 
-  fmt:
-    name: Rustfmt
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
-
-    steps:
-      - uses: actions/checkout@v3
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: stable
-      - run: cargo fmt --all -- --check
-
-  clippy:
-    name: Clippy
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
-
-    steps:
-      - uses: actions/checkout@v3
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: stable
-      - run: cargo clippy --all-targets --all-features
+      - run: mvn compile -am detekt:check spotless:check modernizer:modernizer pmd:check pmd:cpd-check

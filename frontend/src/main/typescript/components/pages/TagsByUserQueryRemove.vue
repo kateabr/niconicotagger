@@ -1,9 +1,9 @@
 <template>
   <b-row>
     <error-message
-      :alert-code="alertCode"
+      :alert-status-text="alertStatusText"
       :alert-message="alertMessage"
-      :this-mode="thisMode"
+      :this-mode="apiType"
     />
     <div
       class="py-lg-3 px-lg-4 col-lg-12 text-center m-auto alert-primary rounded p-sm-2 bg-light progress-bar-striped"
@@ -12,13 +12,11 @@
         <b-col class="my-auto">
           <b-input-group>
             <template #prepend>
-              <b-input-group-text>{{ queryBase }} </b-input-group-text>
+              <b-input-group-text>{{ queryBase }}</b-input-group-text>
             </template>
-            <b-input
-              v-model="userQuery"
-              placeholder="Other query params"
-            /> </b-input-group
-        ></b-col>
+            <b-input v-model="userQuery" placeholder="Other query params" />
+          </b-input-group>
+        </b-col>
       </b-row>
       <b-row>
         <b-col class="my-auto">
@@ -29,8 +27,9 @@
             :href="queryBase + userQuery"
             target="_blank"
             :disabled="defaultDisableCondition()"
-            >Preview<font-awesome-icon class="ml-1" icon="fas fa-external-link"
-          /></b-button>
+            >Preview
+            <font-awesome-icon class="ml-1" icon="fas fa-external-link" />
+          </b-button>
         </b-col>
         <b-col class="my-auto">
           <b-button
@@ -39,10 +38,9 @@
             variant="primary"
             :disabled="defaultDisableCondition()"
             @click="fetch()"
-            ><span v-if="!songsInfoLoaded() && !fetching">Load</span
-            ><b-spinner v-else-if="fetching" small /><span v-else
-              >Reload</span
-            ></b-button
+            ><span v-if="!songsInfoLoaded() && !fetching">Load</span>
+            <b-spinner v-else-if="fetching" small />
+            <span v-else>Reload</span></b-button
           >
         </b-col>
         <b-col class="my-auto">
@@ -52,11 +50,10 @@
             block
             variant="primary"
             :disabled="defaultDisableCondition()"
-            ><font-awesome-icon
-              class="mr-sm-1"
-              icon="fas fa-angle-down"
-            />About</b-button
           >
+            <font-awesome-icon class="mr-sm-1" icon="fas fa-angle-down" />
+            About
+          </b-button>
         </b-col>
       </b-row>
       <b-row>
@@ -67,13 +64,13 @@
               <b-card-text style="color: black"
                 >This mode allows browsing and filtering songs in the same
                 flexible way as the
-                <b-link :href="dbAddress + '/Search?searchType=Song'"
-                  >songs</b-link
-                >
+                <b-link :href="clientType + '/Search?searchType=Song'"
+                  >songs
+                </b-link>
                 and
-                <b-link :href="dbAddress + '/Search?searchType=Artist'"
-                  >artists</b-link
-                >
+                <b-link :href="clientType + '/Search?searchType=Artist'"
+                  >artists
+                </b-link>
                 pages do, except that the search query needs to be written
                 manually.<br />
                 Most common query segments are listed below, everything else can
@@ -85,23 +82,14 @@
                 <div class="alert-info rounded p-2 mt-2">
                   <b-icon-exclamation-circle class="mr-1" />Remember that tag
                   removal can't be undone, please be cautious & conscious :)
-                </div></b-card-text
-              >
+                </div>
+              </b-card-text>
               <b-card-title>Basic query cheatsheet</b-card-title>
               <b-table-simple small>
                 <tbody>
                   <tr>
-                    <td class="text-monospace">getTotalCount</td>
-                    <td class="text-monospace">true / false</td>
-                    <td>
-                      Whether to get the number of results. It is convenient, so
-                      it is set to <span class="text-monospace">true</span> by
-                      default.
-                    </td>
-                  </tr>
-                  <tr>
                     <td class="text-monospace">start</td>
-                    <td class="">number</td>
+                    <td class=""><span class="text-monospace">number</span></td>
                     <td>
                       How many results to skip in the beginning. Defaults to
                       <span class="text-monospace">0</span>.
@@ -109,11 +97,17 @@
                   </tr>
                   <tr>
                     <td class="text-monospace">maxResults</td>
-                    <td class="text-monospace">number</td>
+                    <td class="text-monospace">
+                      <span class="text-monospace">number</span>
+                    </td>
                     <td>
                       How many results you want in your batch, defaults to
-                      <span class="text-monospace">10</span>. No need to make it
-                      too big: it will slow everything down.
+                      <span class="text-monospace">10</span>.
+                      <div class="alert-dark rounded p-2 my-1">
+                        <b-icon-arrow-right-circle class="mr-1" />Don't make it
+                        too big: it will slow everything down and can even cause
+                        timeouts.
+                      </div>
                     </td>
                   </tr>
                   <tr>
@@ -138,8 +132,19 @@
                     <td class="text-monospace">tagId[]</td>
                     <td class="text-monospace">number</td>
                     <td>
-                      Load only entries tagged with a specific tag. If you need
-                      several tags, use several of these.
+                      Load only entries tagged with a specific tag.
+                      <div class="alert-dark rounded p-2 my-1">
+                        <b-icon-arrow-right-circle class="mr-1" />
+                        Having several of these creates an intersection, not a
+                        union.
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="text-monospace">excludedTags[]</td>
+                    <td class="text-monospace">number</td>
+                    <td>
+                      Filter out entries tagged with one or more specific tags.
                     </td>
                   </tr>
                   <tr>
@@ -161,9 +166,8 @@
                   </tr>
                   <tr>
                     <td class="text-monospace">
-                      songTypes<b-badge class="ml-1" variant="primary"
-                        >songs</b-badge
-                      >
+                      songTypes
+                      <b-badge class="ml-1" variant="primary">songs </b-badge>
                     </td>
                     <td class="text-monospace">
                       Original, Remaster, Remix, Cover, Instrumental, Mashup,
@@ -177,21 +181,39 @@
                   </tr>
                   <tr>
                     <td class="text-monospace">
-                      artistId[]<b-badge class="ml-1" variant="primary"
-                        >songs</b-badge
-                      >
+                      artistId[]
+                      <b-badge class="ml-1" variant="primary">songs </b-badge>
                     </td>
                     <td class="text-monospace">number</td>
                     <td>
-                      Load only songs by a select artist. Use several of these
-                      for several artists.
+                      Load only songs by a select artist.
+                      <div class="alert-dark rounded p-2 my-1">
+                        <b-icon-arrow-right-circle class="mr-1" />
+                        Having several of these creates an intersection, not a
+                        union.
+                      </div>
                     </td>
                   </tr>
                   <tr>
                     <td class="text-monospace">
-                      minScore<b-badge class="ml-1" variant="primary"
-                        >songs</b-badge
-                      >
+                      childVoicebanks
+                      <b-badge class="ml-1" variant="primary">songs</b-badge>
+                    </td>
+                    <td class="text-monospace">true / false</td>
+                    <td>
+                      Include songs that feature derived voicebanks (appends and
+                      equivalents). Defaults to
+                      <span class="text-monospace">false</span>.
+                      <div class="alert-dark rounded p-2 my-1">
+                        <b-icon-arrow-right-circle class="mr-1" />
+                        Will only work for derivatives that have an artist entry.
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="text-monospace">
+                      minScore
+                      <b-badge class="ml-1" variant="primary">songs </b-badge>
                     </td>
                     <td class="text-monospace">number</td>
                     <td>
@@ -201,11 +223,8 @@
                   </tr>
                   <tr>
                     <td class="text-monospace">
-                      dateYear, dateMonth, dateDay<b-badge
-                        class="ml-1"
-                        variant="primary"
-                        >songs</b-badge
-                      >
+                      dateYear, dateMonth, dateDay
+                      <b-badge class="ml-1" variant="primary">songs </b-badge>
                     </td>
                     <td class="text-monospace">numbers</td>
                     <td>
@@ -215,49 +234,47 @@
                   </tr>
                   <tr>
                     <td class="text-monospace">
-                      parentVersionId<b-badge class="ml-1" variant="primary"
-                        >songs</b-badge
-                      >
+                      parentVersionId
+                      <b-badge class="ml-1" variant="primary">songs </b-badge>
                     </td>
                     <td class="text-monospace">number</td>
                     <td>Id of the songs' original version.</td>
                   </tr>
                   <tr>
                     <td class="text-monospace">
-                      minLength, maxLength<b-badge
-                        class="ml-1"
-                        variant="primary"
-                        >songs</b-badge
-                      >
+                      minLength, maxLength
+                      <b-badge class="ml-1" variant="primary">songs </b-badge>
                     </td>
                     <td class="text-monospace">number</td>
                     <td>Length restriction (in seconds).</td>
                   </tr>
                   <tr>
                     <td class="text-monospace">
-                      eventId<b-badge class="ml-1" variant="primary"
-                        >songs</b-badge
-                      >
+                      eventId
+                      <b-badge class="ml-1" variant="primary">songs </b-badge>
                     </td>
                     <td class="text-monospace">number</td>
                     <td>Id of the songs' release event.</td>
                   </tr>
                   <tr>
                     <td class="text-monospace">
-                      onlyWithPVs<b-badge class="ml-1" variant="primary"
-                        >songs</b-badge
-                      >
+                      onlyWithPVs
+                      <b-badge class="ml-1" variant="primary">songs </b-badge>
                     </td>
                     <td class="text-monospace">true / false</td>
                     <td>
                       Defaults to <span class="text-monospace">false.</span>
+                      <div class="alert-dark rounded p-2 my-1">
+                        <b-icon-arrow-right-circle class="mr-1" />Does not apply
+                        to disabled PVs. Songs that have all qualifying PVs
+                        disabled will be filtered out.
+                      </div>
                     </td>
                   </tr>
                   <tr>
                     <td class="text-monospace">
-                      artistTypes<b-badge class="ml-1" variant="success"
-                        >artists</b-badge
-                      >
+                      artistTypes
+                      <b-badge class="ml-1" variant="success">artists </b-badge>
                     </td>
                     <td class="text-monospace">
                       Circle, Label, Producer, Animator, Illustrator, Lyricist,
@@ -272,18 +289,28 @@
                   </tr>
                   <tr>
                     <td class="text-monospace">
-                      followedByUserId<b-badge class="ml-1" variant="success"
-                        >artists</b-badge
-                      >
+                      followedByUserId
+                      <b-badge class="ml-1" variant="success">artists </b-badge>
                     </td>
                     <td class="text-monospace">number</td>
                     <td>Only load artists followed by a specific user.</td>
                   </tr>
                   <tr>
                     <td class="text-monospace">
-                      fields<b-badge class="ml-1" variant="dark"
-                        >not used</b-badge
-                      >
+                      getTotalCount
+                      <b-badge class="ml-1" variant="dark">not used </b-badge>
+                    </td>
+                    <td class="text-monospace">-</td>
+                    <td>
+                      Boolean value that indicates whether to return the total
+                      number of matches. Hardcoded to
+                      <span class="text-monospace">true</span>.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="text-monospace">
+                      fields
+                      <b-badge class="ml-1" variant="dark">not used </b-badge>
                     </td>
                     <td class="text-monospace">-</td>
                     <td>
@@ -315,67 +342,56 @@
                 >Here are some filter types:
                 <ul>
                   <li>
-                    ArtistType<b-badge class="ml-1" variant="primary"
-                      >songs</b-badge
-                    >
+                    ArtistType
+                    <b-badge class="ml-1" variant="primary">songs </b-badge>
                   </li>
                   <li>
-                    HasAlbum<b-badge class="ml-1" variant="primary"
-                      >songs</b-badge
-                    >
+                    HasAlbum
+                    <b-badge class="ml-1" variant="primary">songs </b-badge>
                   </li>
                   <li>
-                    HasMedia<b-badge class="ml-1" variant="primary"
-                      >songs</b-badge
-                    >
+                    HasMedia
+                    <b-badge class="ml-1" variant="primary">songs </b-badge>
                   </li>
                   <li>
-                    HasOriginalMedia<b-badge class="ml-1" variant="primary"
-                      >songs</b-badge
-                    >
+                    HasOriginalMedia
+                    <b-badge class="ml-1" variant="primary">songs </b-badge>
                   </li>
                   <li>
-                    HasPublishDate<b-badge class="ml-1" variant="primary"
-                      >songs</b-badge
-                    >
+                    HasPublishDate
+                    <b-badge class="ml-1" variant="primary">songs </b-badge>
                   </li>
                   <li>
-                    Lyrics<b-badge class="ml-1" variant="primary"
-                      >songs</b-badge
-                    >
+                    Lyrics
+                    <b-badge class="ml-1" variant="primary">songs </b-badge>
                   </li>
                   <li>
-                    LyricsContent<b-badge class="ml-1" variant="primary"
-                      >songs</b-badge
-                    >
+                    LyricsContent
+                    <b-badge class="ml-1" variant="primary">songs </b-badge>
                   </li>
                   <li>
-                    WebLink<b-badge class="ml-1" variant="primary"
-                      >songs</b-badge
-                    >
+                    WebLink
+                    <b-badge class="ml-1" variant="primary">songs </b-badge>
                   </li>
                   <li>
-                    VoiceProvider<b-badge class="ml-1" variant="success"
-                      >artists</b-badge
-                    >
+                    VoiceProvider
+                    <b-badge class="ml-1" variant="success">artists </b-badge>
                   </li>
                   <li>
-                    RootVoicebank<b-badge class="ml-1" variant="success"
-                      >artists</b-badge
-                    >
+                    RootVoicebank
+                    <b-badge class="ml-1" variant="success">artists </b-badge>
                   </li>
                   <li>
-                    HasUserAccount<b-badge class="ml-1" variant="success"
-                      >artists</b-badge
-                    >
+                    HasUserAccount
+                    <b-badge class="ml-1" variant="success">artists </b-badge>
                   </li>
                 </ul>
                 <span class="text-monospace">Filter param</span> is the value
                 you need: you can specify one or several exact values or use a
                 wildcard (<span class="text-monospace">*</span>) to select all
                 possible values. <span class="text-monospace">Negate</span> is
-                used to invert the condition.</b-card-text
-              >
+                used to invert the condition.
+              </b-card-text>
               <b-card-text style="color: black"
                 ><p>
                   <strong>Example:</strong> Filter for all songs that do not
@@ -383,28 +399,27 @@
                 </p>
                 <blockquote style="color: black" class="ml-3 text-monospace">
                   advancedFilters[0][filterType]=ArtistType&advancedFilters[0][negate]=true&advancedFilters[0][param]=UTAU&advancedFilters[1][filterType]=Lyrics&advancedFilters[1][param]=*
-                </blockquote></b-card-text
-              >
+                </blockquote>
+              </b-card-text>
             </b-card>
           </b-collapse>
         </b-col>
       </b-row>
-      <b-row v-if="tagPool.length > 0" cols="12" class="mt-2">
+      <b-row v-if="songsInfoLoaded()" cols="12" class="mt-2">
         <b-col cols="12" class="my-auto mx-auto">
           <b-card class="text-left" title="Tags to remove from all entries">
-            <b-card-text v-if="tagsToRemove.length > 0">
+            <b-card-text v-if="tagsToMassRemove.length > 0">
               <b-button
-                v-for="tag in tagsToRemove"
-                :key="tag.id"
+                v-for="(tag, tagKey) in tagsToMassRemove"
+                :key="tagKey"
                 class="m-1"
                 :disabled="defaultDisableCondition()"
                 size="sm"
                 variant="danger"
-                @click="removeTagIdFromAllTaggedSongs(tag.id)"
+                @click="unstageMassRemoval(tag)"
               >
-                <font-awesome-icon icon="fa-solid fa-xmark" class="mr-1" />{{
-                  tag.name
-                }}
+                <font-awesome-icon icon="fa-solid fa-xmark" class="mr-1" />
+                {{ tag.name }}
               </b-button>
             </b-card-text>
             <b-card-text v-else class="text-muted">None selected</b-card-text>
@@ -412,9 +427,9 @@
               v-model="tempTagName"
               size="sm"
               prepend="Add a tag"
-              :serializer="t => t.name"
+              :serializer="tag => tag.name"
               :data="tagPool"
-              @hit="addCommonTagToRemove($event)"
+              @hit="stageMassRemoval($event)"
             />
           </b-card>
         </b-col>
@@ -427,12 +442,12 @@
       >
         <b-col
           >Query yielded {{ totalVideoCount }} results (displaying
-          {{ entries.length }}):</b-col
-        >
+          {{ entries.length }}):
+        </b-col>
       </b-row>
       <b-row v-else-if="songsInfoLoaded() && entries.length === 0"
-        >Query yielded no results.</b-row
-      >
+        >Query yielded no results.
+      </b-row>
     </div>
     <b-table-simple
       v-if="songsInfoLoaded() && isActiveMode()"
@@ -440,50 +455,37 @@
       class="mt-1 col-lg-12"
     >
       <b-thead>
-        <b-th>
-          <b-form-checkbox class="invisible" size="lg"></b-form-checkbox>
-        </b-th>
         <b-th class="col-3 align-middle">Entry</b-th>
         <b-th class="col-9 align-middle">Tags</b-th>
       </b-thead>
       <b-tbody v-if="entries.length > 0">
-        <tr v-for="entry in entries" :key="entry.item.id">
-          <td>
-            <b-form-checkbox
-              v-if="entry.toRemove"
-              :checked="entry.toRemove"
-              size="lg"
-              :disabled="defaultDisableCondition()"
-              @change="checkboxClicked(entry)"
-            />
-          </td>
+        <tr v-for="entry in entries" :key="entry.id">
           <td>
             <title-displayer
-              :elem-type="removalMode"
-              :elem-name="entry.item.name"
-              :elem-link="getEntryUrl(entry.item.id)"
+              :elem-type="apiType"
+              :elem-name="entry.name"
+              :elem-link="getEntryUrl(entry.id)"
               :elem-type-abbr="getShortenedType(entry)"
               :elem-type-color="getTypeColorForDisplay(entry)"
-              :artist-string="
-                removalMode === 'songs' ? entry.item.artistString : ''
-              "
+              :artist-string="apiType === 'songs' ? entry.artistString : ''"
             />
           </td>
           <td>
-            <span v-for="tag in entry.item.tags" :key="tag.id">
+            <span v-for="(tag, tagKey) in entry.tags" :key="tagKey">
               <b-button
                 size="sm"
-                :variant="getTagVariant(tag.id, entry.tagIdsForRemoval)"
+                :variant="getTagVariant(entry, tag.id)"
                 class="m-1"
                 :disabled="defaultDisableCondition()"
-                @click="toggleTagRemoval(tag.id, entry)"
+                @click="toggleIndividualTagRemoval(entry, tag)"
               >
                 <font-awesome-icon
-                  :icon="getTagIcon(tag.id, entry.tagIdsForRemoval)"
+                  :icon="getTagIcon(tag.id)"
                   class="sm mr-sm-1"
                 />{{ tag.name }}</b-button
               >
             </span>
+            <entry-error-report :error-report="entry.errorReport" />
           </td>
         </tr>
       </b-tbody>
@@ -495,7 +497,6 @@
         </b-tr>
       </b-tbody>
       <b-tfoot>
-        <b-th></b-th>
         <b-th class="col-3 align-middle">Entry</b-th>
         <b-th class="col-9 align-middle">Tags</b-th>
       </b-tfoot>
@@ -528,52 +529,61 @@
 import { Component, Prop } from "vue-property-decorator";
 import Vue from "vue";
 import {
-  getSongTypeColorForDisplay,
-  getVocaDBEntryUrl,
-  getShortenedSongType,
-  getVocaDBArtistUrl,
+  getErrorData,
+  getArtistTypeColorForDisplay,
+  getBaseUrl,
+  getClientType,
   getShortenedArtistType,
-  getArtistTypeColorForDisplay
+  getShortenedSongType,
+  getSongTypeColorForDisplay,
+  getUniqueElementId,
+  getVocaDBArtistUrl,
+  getVocaDBSongUrl
 } from "@/utils";
 import { api } from "@/backend";
-import {
-  MinimalTag,
-  EntryForTagRemoval,
-  SongForApiContractSimplified,
-  ArtistForApiContractSimplified
-} from "@/backend/dto";
 import NicoEmbed from "@/components/NicoEmbed.vue";
-import ProgressBar from "@/components/ProgressBar.vue";
 import ErrorMessage from "@/components/ErrorMessage.vue";
 import TitleDisplayer from "@/components/TitleDisplayer.vue";
 import { AxiosResponse } from "axios";
+import {
+  QueryConsoleArtistItem,
+  QueryConsoleItem,
+  QueryConsoleSongItem
+} from "@/backend/dto/response/queryConsoleResponse";
+import EntryErrorReport from "@/components/EntryErrorReport.vue";
+import { ClientType, QueryConsoleApiType } from "@/backend/dto/enumeration";
+import { VocaDbTag } from "@/backend/dto/lowerLevelStruct";
 
 @Component({
-  components: { TitleDisplayer, NicoEmbed, ProgressBar, ErrorMessage }
+  components: {
+    EntryErrorReport,
+    TitleDisplayer,
+    NicoEmbed,
+    ErrorMessage
+  }
 })
 export default class extends Vue {
   @Prop()
-  private readonly mode!: string;
-
-  @Prop()
-  private readonly thisMode!: string;
+  private readonly currentMode!: string;
 
   @Prop()
   private readonly userQueryProp!: string;
 
   @Prop()
-  private readonly removalMode!: "songs" | "artists";
+  private readonly apiType!: QueryConsoleApiType;
 
   // main variables
-  private entries: EntryForTagRemoval[] = [];
-  private tagPool: MinimalTag[] = [];
-  private tagsToRemove: MinimalTag[] = [];
+  private entries: QueryConsoleArtistItem[] | QueryConsoleSongItem[] = [];
+  private tagPool: VocaDbTag[] = [];
+  private tagIdsForRemoval: number[] = [];
+  private tagsToMassRemove: VocaDbTag[] = [];
   private tempTagName: string = "";
 
   // api variables
-  private dbAddress: string = "";
-  private queryBase: string = "/api/" + this.removalMode + "?fields=Tags&";
-  private userQuery: string = "getTotalCount=true";
+  private clientType: ClientType = getClientType();
+  private queryBase: string =
+    "/api/" + this.apiType + "?fields=Tags&getTotalCount=true&";
+  private userQuery: string = "maxResults=10";
 
   // interface variables
   private executing: boolean = false;
@@ -583,66 +593,66 @@ export default class extends Vue {
   private showCheatsheet: boolean = false;
 
   // error handling
-  private alertCode: number = 0;
+  private alertStatusText = "";
   private alertMessage: string = "";
 
   //proxy methods
-  private getTagVariant(tagId: number, tagIdsForRemoval: number[]): string {
-    if (tagIdsForRemoval.find(t => t == tagId) != undefined) {
+  private getTagVariant(
+    entry: QueryConsoleArtistItem | QueryConsoleSongItem,
+    tagId: number
+  ): string {
+    if (entry.tagsToRemove.map(entryTag => entryTag.id).includes(tagId)) {
       return "danger";
     } else {
       return "outline-success";
     }
   }
 
-  private getTagIcon(tagId: number, tagsIdsForRemoval: number[]): string[] {
-    if (tagsIdsForRemoval.find(t => t == tagId) != undefined) {
+  private getTagIcon(tagUsageId: number): string[] {
+    if (this.tagIdsForRemoval.find(t => t == tagUsageId) != undefined) {
       return ["fas", "fa-xmark"];
     } else {
       return ["fas", "fa-check"];
     }
   }
 
-  private getShortenedType(entry: EntryForTagRemoval): string {
-    if (this.removalMode == "songs") {
-      let typeString = (entry.item as SongForApiContractSimplified).songType;
+  private getShortenedType(entry: QueryConsoleItem): string {
+    if (this.apiType == "songs") {
+      let typeString = (entry as QueryConsoleSongItem).type;
       return getShortenedSongType(typeString);
-    } else if (this.removalMode == "artists") {
-      let typeString = (entry.item as ArtistForApiContractSimplified)
-        .artistType;
+    } else if (this.apiType == "artists") {
+      let typeString = (entry as QueryConsoleArtistItem).type;
       return getShortenedArtistType(typeString);
     } else {
-      return "Invalid removal mode: " + this.removalMode;
+      return "Invalid removal currentMode: " + this.apiType;
     }
   }
 
   private getEntryUrl(id: number): string {
-    if (this.removalMode == "songs") {
-      return getVocaDBEntryUrl(this.dbAddress, id);
-    } else if (this.removalMode == "artists") {
-      return getVocaDBArtistUrl(this.dbAddress, id);
+    if (this.apiType == "songs") {
+      return getVocaDBSongUrl(this.clientType, id);
+    } else if (this.apiType == "artists") {
+      return getVocaDBArtistUrl(this.clientType, id);
     } else {
-      return "Invalid removal mode: " + this.removalMode;
+      return "Invalid api type: " + this.apiType;
     }
   }
 
-  private getTypeColorForDisplay(entry: EntryForTagRemoval): string {
-    if (this.removalMode == "songs") {
-      return getSongTypeColorForDisplay(
-        (entry.item as SongForApiContractSimplified).songType
-      );
-    } else if (this.removalMode == "artists") {
+  private getTypeColorForDisplay(entry: QueryConsoleItem): string {
+    if (this.apiType == "songs") {
+      return getSongTypeColorForDisplay((entry as QueryConsoleSongItem).type);
+    } else if (this.apiType == "artists") {
       return getArtistTypeColorForDisplay(
-        (entry.item as ArtistForApiContractSimplified).artistType
+        (entry as QueryConsoleArtistItem).type
       );
     } else {
-      return "Invalid removal mode: " + this.removalMode;
+      return "Invalid api type: " + this.apiType;
     }
   }
 
   // interface methods
   private isActiveMode(): boolean {
-    return this.mode == this.thisMode;
+    return this.currentMode == this.apiType;
   }
 
   private defaultDisableCondition(): boolean {
@@ -654,54 +664,48 @@ export default class extends Vue {
   }
 
   private countChecked(): number {
-    return this.entries.filter(video => video.toRemove).length;
+    return this.entries.filter(entry => entry.tagsToRemove.length > 0).length;
   }
 
-  private toggleTagRemoval(tagId: number, video: EntryForTagRemoval): void {
-    if (video.tagIdsForRemoval.find(t => t == tagId) != undefined) {
-      video.tagIdsForRemoval = video.tagIdsForRemoval.filter(t => t != tagId);
+  private toggleIndividualTagRemoval(
+    entry: QueryConsoleArtistItem | QueryConsoleSongItem,
+    tag: VocaDbTag
+  ): void {
+    if (entry.tagsToRemove.map(entryTag => entryTag.id).includes(tag.id)) {
+      entry.tagsToRemove = entry.tagsToRemove.filter(
+        stagedTag => stagedTag.id != tag.id
+      );
     } else {
-      video.tagIdsForRemoval.push(tagId);
+      entry.tagsToRemove.push(tag);
     }
-    video.toRemove = video.tagIdsForRemoval.length > 0;
   }
 
-  private addTagIdToAllTaggedSongs(tagId: number): void {
-    for (const video of this.entries) {
-      if (video.item.tags.map(t => t.id).find(t => t == tagId) != undefined) {
-        video.tagIdsForRemoval.push(tagId);
-        video.toRemove = true;
+  // for tag autocomplete
+  private stageMassRemoval(tag: VocaDbTag): void {
+    this.tagsToMassRemove.push(tag);
+    for (const entry of this.entries) {
+      if (entry.tags.some(entryTag => entryTag.id == tag.id)) {
+        entry.tagsToRemove.push(tag);
       }
     }
   }
 
-  private removeTagIdFromAllTaggedSongs(tagId: number): void {
-    for (const video of this.entries) {
-      video.tagIdsForRemoval = video.tagIdsForRemoval.filter(t => t != tagId);
-      video.toRemove = video.tagIdsForRemoval.length > 0;
+  private unstageMassRemoval(tag: VocaDbTag): void {
+    for (const entry of this.entries) {
+      entry.tagsToRemove = entry.tagsToRemove.filter(
+        entryTag => entryTag.id != tag.id
+      );
     }
-    this.tagsToRemove = this.tagsToRemove.filter(tag => tag.id != tagId);
-  }
-
-  private checkboxClicked(video: EntryForTagRemoval): void {
-    video.toRemove = false;
-    video.tagIdsForRemoval = [];
-  }
-
-  // for tag autocomplete
-  private addCommonTagToRemove(tag: MinimalTag): void {
-    this.addTagIdToAllTaggedSongs(tag.id);
-    if (this.tagsToRemove.find(t => t.id == tag.id) == undefined) {
-      this.tagsToRemove.push(tag);
-    }
-    return;
+    this.tagsToMassRemove = this.tagsToMassRemove.filter(
+      stagedTag => stagedTag.id != tag.id
+    );
   }
 
   private updateUrl(): void {
     this.$router
       .push({
         name: "console-full",
-        params: { browseMode: this.thisMode, userQuery: this.userQuery }
+        params: { browseMode: this.apiType, userQuery: this.userQuery }
       })
       .catch(err => {
         return false;
@@ -711,33 +715,36 @@ export default class extends Vue {
   // api methods
   async fetch(): Promise<void> {
     this.updateUrl();
-    this.tagsToRemove = [];
+    this.tagsToMassRemove = [];
     this.fetching = true;
     this.showCheatsheet = false;
     try {
-      let response;
-      if (this.removalMode == "songs") {
-        response = await api.fetchSongsForTagRemoval({
-          query: this.userQuery,
-          dbAddress: this.dbAddress
-        });
-      } else if (this.removalMode == "artists") {
-        response = await api.fetchArtistsForTagRemoval({
-          query: this.userQuery,
-          dbAddress: this.dbAddress
-        });
-      } else {
-        throw {
-          response: undefined,
-          message: "Unknown removal mode: " + this.removalMode
-        };
-      }
+      let response = await api.getDataByCustomQuery({
+        apiType: this.apiType,
+        query: this.userQuery,
+        clientType: this.clientType
+      });
       this.entries = response.items.map(item => {
-        return {
-          item: item.item,
-          toRemove: item.toRemove,
-          tagIdsForRemoval: []
-        };
+        if (this.apiType == "songs") {
+          return {
+            id: item.id,
+            name: item.name,
+            tags: item.tags,
+            type: (item as QueryConsoleSongItem).type,
+            artistString: (item as QueryConsoleSongItem).artistString,
+            tagsToRemove: [],
+            errorReport: null
+          };
+        } else if (this.apiType == "artists") {
+          return {
+            id: item.id,
+            name: item.name,
+            tags: item.tags,
+            type: (item as QueryConsoleArtistItem).type,
+            tagsToRemove: [],
+            errorReport: null
+          };
+        }
       });
       this.tagPool = response.tagPool;
       this.totalVideoCount = response.totalCount;
@@ -751,82 +758,62 @@ export default class extends Vue {
 
   private async removeTags(): Promise<void> {
     this.executing = true;
-    let entriesToRemove = this.entries.filter(s => s.toRemove);
     this.showCheatsheet = false;
     try {
-      for (const entry of entriesToRemove) {
-        await api.removeTags({
-          id: entry.item.id,
-          mode: this.removalMode,
-          tagIds: entry.tagIdsForRemoval
-        });
-        entry.item.tags = entry.item.tags.filter(
-          t => entry.tagIdsForRemoval.find(tagId => tagId == t.id) == undefined
-        );
-        for (const tagId of entry.tagIdsForRemoval) {
-          if (this.tagsToRemove.find(t => t.id == tagId) == undefined) {
-            let removeFromPool = true;
-            for (const video of this.entries) {
-              if (
-                video.item.id != entry.item.id &&
-                video.item.tags.find(t => t.id == tagId) != undefined
-              ) {
-                removeFromPool = false;
-                break;
-              }
-            }
-            if (removeFromPool) {
-              this.tagPool = this.tagPool.filter(t => t.id != tagId);
-            }
-          }
+      const entriesToUpdate = this.entries.filter(
+        entry => entry.tagsToRemove.length > 0
+      );
+      const errors = await api.removeTagUsages({
+        subRequests: entriesToUpdate.map(entry => {
+          return {
+            apiType: this.apiType,
+            entryId: entry.id,
+            tags: entry.tagsToRemove
+          };
+        }),
+        clientType: this.clientType
+      });
+      const entriesWithErrors = errors.map(error => error.entryId);
+      for (const entry of entriesToUpdate) {
+        if (!entriesWithErrors.includes(entry.id)) {
+          entry.tags = entry.tags.filter(
+            tag =>
+              !entry.tagsToRemove.map(entryTag => entryTag.id).includes(tag.id)
+          );
+          entry.tagsToRemove = [];
+          entry.errorReport = null;
+        } else {
+          entry.errorReport = errors.filter(
+            error => error.entryId == entry.id
+          )[0];
         }
-        entry.tagIdsForRemoval = [];
-        entry.toRemove = false;
       }
+      const newTagPool = this.entries
+        .map(entry => entry.tags)
+        .flat() as VocaDbTag[];
+      this.tagPool = this.tagPool.filter(poolTag =>
+        newTagPool.some(newPoolTag => poolTag.id == newPoolTag.id)
+      );
+      this.tagsToMassRemove = [];
     } catch (err) {
       this.processError(err);
     } finally {
-      for (const tag of this.tagsToRemove) {
-        let removeFromPool = true;
-        for (const video of this.entries) {
-          if (video.item.tags.filter(t => t.id == tag.id).length != 0) {
-            removeFromPool = false;
-            break;
-          }
-        }
-        if (removeFromPool) {
-          this.tagPool = this.tagPool.filter(t => t.id != tag.id);
-        }
-      }
-      this.tagsToRemove = [];
       this.executing = false;
     }
   }
 
   // error handling
-  private processError(
-    err: { response: AxiosResponse } | { response: undefined; message: string }
-  ): void {
-    this.$bvToast.show("error_" + this.thisMode);
-    if (err.response == undefined) {
-      this.alertCode = 0;
-      this.alertMessage = err.message;
-    } else {
-      this.alertCode = err.response.data.code;
-      let stacktrace = err?.response?.data?.stacktrace ?? "";
-      this.alertMessage =
-        err.response.data.message + stacktrace != undefined
-          ? " (" + stacktrace[0] + ")"
-          : "";
-    }
+  private processError(err: { response: AxiosResponse }): void {
+    const errorData = getErrorData(err);
+    this.alertMessage = errorData.message;
+    this.alertStatusText = errorData.statusText;
+    this.$bvToast.show(getUniqueElementId("error_", this.apiType.toString()));
   }
 
   // session
   created(): void {
-    let dbAddress = localStorage.getItem("dbAddress");
-    if (this.dbAddress == "" && dbAddress != null) {
-      this.dbAddress = dbAddress;
-      this.queryBase = dbAddress + this.queryBase;
+    if (this.clientType != ClientType.UNKNOWN) {
+      this.queryBase = getBaseUrl(this.clientType) + this.queryBase;
     }
   }
 

@@ -1,0 +1,30 @@
+{
+  "category": "Anniversary",
+  "id": 176,
+  "name": "11月1日はネル誕生祭",
+  "status": "Finished",
+  "urlSlug": "111-is-nerus-birthday",
+  "version": 7,
+  "tags": [
+    {
+      "count": 2,
+      "tag": {
+        "additionalNames": "ProSeka, プロジェクトセカイ カラフルステージ！ feat. 初音ミク, Project SEKAI COLORFUL STAGE! feat. Hatsune Miku, HATSUNE MIKU: COLORFUL STAGE!, 世界計畫 繽紛舞台！feat. 初音未來, Colorful Stage, 프로젝트 세카이 컬러풀 스테이지! feat.하츠네 미쿠, 프로세카",
+        "categoryName": "Games",
+        "id": 7323,
+        "name": "プロセカ",
+        "urlSlug": "proseka"
+      }
+    },
+    {
+      "count": 2,
+      "tag": {
+        "additionalNames": "",
+        "categoryName": "Unspecified",
+        "id": 7324,
+        "name": "series-specific tag",
+        "urlSlug": ""
+      }
+    }
+  ]
+}

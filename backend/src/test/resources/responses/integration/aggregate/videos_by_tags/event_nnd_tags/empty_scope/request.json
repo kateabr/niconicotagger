@@ -1,0 +1,15 @@
+{
+  "tags": [
+    "冬のシューゲイザー祭2017"
+  ],
+  "scope": "",
+  "startOffset": 0,
+  "maxResults": 10,
+  "orderBy": "viewCounter",
+  "dates": {
+    "from": "2017-12-10",
+    "to": null,
+    "applyToSearch": "false"
+  },
+  "clientType": "vocadb_beta"
+}

@@ -1,0 +1,99 @@
+{
+  "artists": [
+    {
+      "artist": {
+        "additionalNames": "グミ, Megpoid, メグッポイド",
+        "artistType": "Vocaloid",
+        "deleted": false,
+        "id": 3,
+        "name": "GUMI",
+        "pictureMime": "image/png",
+        "releaseDate": "2009-06-26T00:00:00Z",
+        "status": "Locked",
+        "version": 41
+      },
+      "categories": "Vocalist",
+      "effectiveRoles": "Default",
+      "id": 443930,
+      "isCustomName": false,
+      "isSupport": false,
+      "name": "GUMI",
+      "roles": "Default"
+    },
+    {
+      "artist": {
+        "additionalNames": "KakeP",
+        "artistType": "Producer",
+        "deleted": false,
+        "id": 61216,
+        "name": "かけP",
+        "pictureMime": "image/jpeg",
+        "status": "Finished",
+        "version": 3
+      },
+      "categories": "Producer",
+      "effectiveRoles": "Default",
+      "id": 443931,
+      "isCustomName": false,
+      "isSupport": false,
+      "name": "かけP",
+      "roles": "Default"
+    }
+  ],
+  "artistString": "かけP feat. GUMI",
+  "createDate": "2017-12-11T16:23:07",
+  "defaultName": "透明",
+  "defaultNameLanguage": "Japanese",
+  "favoritedTimes": 0,
+  "id": 177295,
+  "lengthSeconds": 378,
+  "name": "透明",
+  "publishDate": "2017-12-10T00:00:00Z",
+  "pvServices": "NicoNicoDouga",
+  "ratingScore": 4,
+  "songType": "Original",
+  "status": "Finished",
+  "tags": [
+    {
+      "count": 1,
+      "tag": {
+        "additionalNames": "シューゲイザー, shoegazer, shoegazing",
+        "categoryName": "Genres",
+        "id": 395,
+        "name": "shoegaze",
+        "urlSlug": "shoegaze"
+      }
+    },
+    {
+      "count": 1,
+      "tag": {
+        "additionalNames": "ロック, vocarock, utaurock, 摇滚",
+        "categoryName": "Genres",
+        "id": 481,
+        "name": "rock",
+        "urlSlug": "rock"
+      }
+    },
+    {
+      "count": 1,
+      "tag": {
+        "additionalNames": "ポストロック",
+        "categoryName": "Genres",
+        "id": 1578,
+        "name": "post-rock",
+        "urlSlug": "post-rock"
+      }
+    },
+    {
+      "count": 1,
+      "tag": {
+        "additionalNames": "naive, naïve, innocence",
+        "categoryName": "Subjective",
+        "id": 9086,
+        "name": "イノセンス",
+        "urlSlug": "naive"
+      }
+    }
+  ],
+  "version": 2
+}

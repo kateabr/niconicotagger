@@ -1,14 +1,9 @@
 <template>
   <b-row>
-    <progress-bar
-      :distinct-song-count="distinctSongCount"
-      :fetching="fetching"
-      :max-results="maxResults"
-    />
     <error-message
-      :alert-code="alertCode"
       :alert-message="alertMessage"
       :this-mode="thisMode"
+      :alert-status-text="alertStatusText"
     />
     <b-row
       class="pt-lg-3 pb-lg-3 col-lg-12 text-center m-auto alert-primary rounded p-sm-2 bg-light progress-bar-striped"
@@ -22,26 +17,16 @@
           variant="primary"
           menu-class="w-100"
         >
-          <b-dropdown-item
-            :disabled="maxResults === 10"
-            @click="setMaxResults(10)"
-            >10
-          </b-dropdown-item>
-          <b-dropdown-item
-            :disabled="maxResults === 25"
-            @click="setMaxResults(25)"
-            >25
-          </b-dropdown-item>
-          <b-dropdown-item
-            :disabled="maxResults === 50"
-            @click="setMaxResults(50)"
-            >50
-          </b-dropdown-item>
-          <b-dropdown-item
-            :disabled="maxResults === 100"
-            @click="setMaxResults(100)"
-            >100
-          </b-dropdown-item>
+          <span
+            v-for="maxResultOption in maxResultsOptions"
+            :key="maxResultOption"
+          >
+            <b-dropdown-item
+              :disabled="maxResults === maxResultOption"
+              @click="setMaxResults(maxResultOption)"
+              >{{ maxResultOption }}
+            </b-dropdown-item>
+          </span>
         </b-dropdown>
       </b-col>
       <b-col class="my-auto">
@@ -109,7 +94,7 @@
       </b-col>
       <b-col v-else class="m-auto">
         <b-button
-          v-if="!sessionLocked && videos.length === 0"
+          v-if="!sessionLocked && songs.length === 0"
           variant="primary"
           block
           :disabled="defaultDisableCondition()"
@@ -142,7 +127,7 @@
           block
           :pressed.sync="showEntriesWithErrors"
           :disabled="defaultDisableCondition()"
-          @click="filterVideos()"
+          @click="filterSongs()"
           >Entries with errors
         </b-button>
       </b-col>
@@ -152,7 +137,7 @@
           block
           :pressed.sync="showEntriesWithNoTags"
           :disabled="defaultDisableCondition()"
-          @click="filterVideos()"
+          @click="filterSongs()"
           >Entries with no tags to add
         </b-button>
       </b-col>
@@ -162,19 +147,19 @@
         <div class="text-center pt-sm-3">
           <b-button-group>
             <b-button
-              v-for="(type, key) in songTypes"
-              :key="key"
+              v-for="(songType, songTypeKey) in songTypeStats"
+              :key="songTypeKey"
               class="pl-4 pr-4"
               :disabled="defaultDisableCondition()"
               :variant="
-                (type.show ? '' : 'outline-') +
-                getSongTypeColorForDisplay(type.name)
+                (songType.show ? '' : 'outline-') +
+                getSongTypeColorForDisplay(songType.type)
               "
               @click="
-                type.show = !type.show;
-                filterVideos();
+                songType.show = !songType.show;
+                filterSongs();
               "
-              >{{ getSongTypeStatsForDisplay(type.name) }}
+              >{{ songType.type }} ({{ songType.count }})
             </b-button>
           </b-button-group>
         </div>
@@ -186,7 +171,7 @@
           <b-pagination
             v-model="page"
             align="center"
-            :total-rows="totalVideoCount"
+            :total-rows="totalSongCount"
             :per-page="maxResults"
             use-router
             first-number
@@ -210,181 +195,135 @@
         <b-th class="col-3 align-middle">Entry</b-th>
         <b-th class="col-9 align-middle">Videos</b-th>
       </b-thead>
-      <b-tbody v-if="videos.filter(video => video.visible).length > 0">
-        <tr
-          v-for="video in videos.filter(vid => vid.visible)"
-          :key="video.song.id"
-        >
+      <b-tbody v-if="songs.filter(s => s.visible).length > 0">
+        <tr v-for="song in songs.filter(s => s.visible)" :key="song.entry.id">
           <td>
-            <div v-if="video.thumbnailsOk.length > 0">
+            <div v-if="song.availablePvs.length > 0">
               <b-form-checkbox
-                v-if="video.tagsToAssign.length > 0"
-                v-model="video.toAssign"
+                v-if="song.tagIdsToAssign.length > 0"
+                v-model="song.toUpdate"
                 size="lg"
                 :disabled="defaultDisableCondition()"
               ></b-form-checkbox>
             </div>
           </td>
           <td>
-            <b-link target="_blank" :href="getVocaDBEntryUrl(video.song.id)"
-              >{{ video.song.name }}
+            <b-link target="_blank" :href="getVocaDBEntryUrl(song.entry.id)"
+              >{{ song.entry.name }}
               <b-badge
-                class="badge text-center ml-2"
-                :variant="getSongTypeColorForDisplay(video.song.songType)"
+                class="badge text-center ml-1"
+                :variant="getSongTypeColorForDisplay(song.entry.type)"
               >
-                {{ getShortenedSongType(video.song.songType) }}
+                {{ getShortenedSongType(song.entry.type) }}
               </b-badge>
             </b-link>
+            <b-badge
+              v-if="song.entry.publishedOn == null"
+              variant="danger"
+              class="ml-2"
+            >
+              <font-awesome-icon class="mr-sm-1" icon="fas fa-calendar" />NO
+              PUBLISH DATE</b-badge
+            >
             <div class="text-muted">
-              {{ video.song.artistString }}
+              {{ song.entry.artistString }}
             </div>
           </td>
           <td>
-            <b-row
-              v-for="(thumbnail, thumbnail_key) in video.thumbnailsOk"
-              :key="thumbnail_key"
-            >
+            <b-row v-for="pv in song.availablePvs" :key="pv.video.id">
               <b-col class="col-8">
                 <b-button
                   :disabled="defaultDisableCondition()"
                   size="sm"
                   variant="primary-outline"
                   class="mr-2"
-                  @click="thumbnail.expanded = !thumbnail.expanded"
+                  @click="pv.visible = !pv.visible"
                 >
                   <font-awesome-icon icon="fas fa-play" />
                 </b-button>
-                <b-link
-                  target="_blank"
-                  :href="getNicoVideoUrl(thumbnail.thumbnail.id)"
-                  >{{ thumbnail.thumbnail.title }}</b-link
-                >
+                <b-link target="_blank" :href="getNicoVideoUrl(pv.video.id)">{{
+                  pv.video.title
+                }}</b-link>
                 <div>
                   <b-badge
-                    v-for="(nico_tag, key) in thumbnail.nicoTags"
+                    v-for="(nicoTag, key) in pv.video.tags"
                     :key="key"
-                    v-clipboard:copy="nico_tag.name"
+                    v-clipboard:copy="nicoTag.name"
                     class="m-sm-1"
                     href="#"
-                    :variant="nico_tag.variant"
-                    >{{ nico_tag.name }}
+                    :variant="nicoTag.type"
+                    >{{ nicoTag.name }}
                     <font-awesome-icon
-                      v-if="nico_tag.locked"
+                      v-if="nicoTag.locked"
                       icon="fas fa-lock"
                       class="ml-1"
                     />
                   </b-badge>
                 </div>
                 <b-collapse
-                  :visible="thumbnail.expanded && !fetching"
+                  :visible="pv.visible && !fetching"
                   class="mt-2 collapsed"
                 >
-                  <nico-embed :content-id="thumbnail.thumbnail.id" />
+                  <nico-embed
+                    v-if="pv.visible && !fetching"
+                    :content-id="pv.video.id"
+                  />
                 </b-collapse>
                 <nico-description
-                  :content-id="thumbnail.thumbnail.id"
-                  :description="thumbnail.thumbnail.description"
+                  :content-id="pv.video.id"
+                  :description="pv.video.description"
                   :publisher="null"
                 />
               </b-col>
               <b-col>
-                <span
-                  v-for="(tag, tag_key) in thumbnail.mappedTags"
-                  :key="tag_key"
-                >
+                <span v-for="tag in pv.suggestedTags" :key="tag.tag.id">
                   <b-button
                     size="sm"
                     class="m-1"
-                    :disabled="tag.assigned || defaultDisableCondition()"
-                    :variant="getTagVariant(tag, video.tagsToAssign)"
-                    @click="toggleTagAssignation(tag, video)"
+                    :disabled="tag.selected || defaultDisableCondition()"
+                    :variant="getTagVariant(tag, song.tagIdsToAssign)"
+                    @click="toggleTagAssignment(tag, song)"
                   >
                     <font-awesome-icon
-                      :icon="getTagIcon(tag, video.tagsToAssign)"
+                      :icon="getTagIcon(tag, song.tagIdsToAssign)"
                       class="sm mr-sm-1"
                     />
                     {{ tag.tag.name }}
                   </b-button>
                 </span>
-                <div
-                  v-if="thumbnail.mappedTags.length === 0"
-                  class="text-muted"
-                >
+                <div v-if="pv.suggestedTags.length === 0" class="text-muted">
                   No mapped tags available for this video
                 </div>
               </b-col>
             </b-row>
-            <b-row
-              v-for="(thumbnail, thumbnail_err_key) in video.thumbnailsErr"
-              :key="thumbnail_err_key"
-            >
+            <b-row v-for="pv in song.unavailablePvs" :key="pv.id">
               <b-col>
-                <b-link :href="getDeletedVideoUrl(thumbnail.id)" target="_blank"
-                  >{{ thumbnail.title }}
-                </b-link>
-                <span
-                  ><b-badge variant="danger" size="sm" class="ml-1">{{
-                    thumbnail.code
-                  }}</b-badge></span
+                <b-link :href="getDeletedVideoUrl(pv.id)" target="_blank"
+                  >{{ pv.title }}
+                  <span
+                    ><b-badge variant="danger" size="sm" class="ml-1">{{
+                      pv.error
+                    }}</b-badge></span
+                  ></b-link
                 >
                 <div>
                   <span
                     ><b-badge
-                      v-if="thumbnail.code === 'DELETED' && !thumbnail.disabled"
+                      v-if="disableByStatus(pv) && pv.toDisable"
                       variant="warning"
                       class="m-1"
                     >
                       Needs to be disabled</b-badge
                     >
                     <b-badge
-                      v-else-if="
-                        thumbnail.code === 'DELETED' && thumbnail.disabled
-                      "
+                      v-else-if="disableByStatus(pv) && !pv.toDisable"
                       variant="success"
                       class="m-1"
                     >
                       Disabled</b-badge
                     >
                     <b-badge
-                      v-else-if="
-                        thumbnail.code === 'COMMUNITY' && !thumbnail.community
-                      "
-                      variant="warning"
-                      class="m-1"
-                    >
-                      Needs to be tagged with
-                      <b-link
-                        target="_blank"
-                        :href="
-                          getVocaDBTagUrl(
-                            niconicoCommunityExclusive.id,
-                            niconicoCommunityExclusive.urlSlug
-                          )
-                        "
-                        >{{ niconicoCommunityExclusive.name }}</b-link
-                      ></b-badge
-                    >
-                    <b-badge
-                      v-else-if="
-                        thumbnail.code === 'COMMUNITY' && thumbnail.community
-                      "
-                      variant="success"
-                      class="m-1"
-                    >
-                      Tagged with
-                      <b-link
-                        target="_blank"
-                        :href="
-                          getVocaDBTagUrl(
-                            niconicoCommunityExclusive.id,
-                            niconicoCommunityExclusive.urlSlug
-                          )
-                        "
-                        >{{ niconicoCommunityExclusive.name }}</b-link
-                      ></b-badge
-                    >
-                    <b-badge
-                      v-else-if="thumbnail.code === 'NO DATA'"
+                      v-else-if="pv.error === 'NO DATA'"
                       variant="warning"
                       class="m-1"
                     >
@@ -396,31 +335,17 @@
                   </span>
                 </div>
               </b-col>
-              <b-col
-                v-if="thumbnail.code === 'COMMUNITY' && !thumbnail.community"
-                class="col-4"
-              >
-                <b-button size="sm" class="m-1" disabled variant="warning">
-                  <font-awesome-icon
-                    :icon="['fas', 'fa-minus']"
-                    class="sm mr-sm-1"
-                  />
-                  {{ niconicoCommunityExclusive.name }}
-                </b-button>
-              </b-col>
-              <b-col
-                v-if="thumbnail.code === 'DELETED' && !thumbnail.disabled"
-                cols="4"
-              >
+              <b-col v-if="disableByStatus(pv) && pv.toDisable" cols="4">
                 <b-button size="sm" class="m-1" disabled variant="secondary">
                   <font-awesome-icon
                     icon="fa-solid fa-eye-slash"
                     class="sm mr-sm-1"
                   />
-                  Disable video
+                  Disable
                 </b-button>
               </b-col>
             </b-row>
+            <entry-error-report :error-report="song.errorReport" />
           </td>
         </tr>
       </b-tbody>
@@ -445,10 +370,10 @@
         <b-button
           block
           variant="primary"
-          :disabled="countChecked() === 0 || massAssigning || fetching"
-          @click="assignMultiple"
+          :disabled="countChecked() === 0 || assigning || fetching"
+          @click="assign"
         >
-          <div v-if="massAssigning">
+          <div v-if="assigning">
             <b-spinner small class="mr-1"></b-spinner>
             Assigning...
           </div>
@@ -463,7 +388,7 @@
           <b-pagination
             v-model="page"
             align="center"
-            :total-rows="totalVideoCount"
+            :total-rows="totalSongCount"
             :per-page="maxResults"
             use-router
             first-number
@@ -482,34 +407,49 @@
 import { Component, Prop } from "vue-property-decorator";
 import Vue from "vue";
 import {
-  getMaxResultsForDisplay,
-  getOrderingConditionForDisplay,
-  pageStateIsValid,
-  getSongTypeColorForDisplay,
-  getSongTypeStatsForDisplay,
-  getVocaDBEntryUrl,
-  getUniqueElementId,
-  getTagVariant,
-  getShortenedSongType,
-  toggleTagAssignation,
-  getTagIconForTagAssignationButton,
+  shouldDisableByStatus,
+  getErrorData,
+  getClientType,
   getDeletedVideoUrl,
-  getVocaDBTagUrl,
-  EntryWithVideosAndVisibility,
-  SongType,
+  getMaxResultsForDisplay,
   getNicoVideoUrl,
-  songTypeToTag
+  getOrderingConditionForDisplay,
+  getShortenedSongType,
+  getSongTypeColorForDisplay,
+  getTagIconForTagAssignmentButton,
+  getTagVariant,
+  getUniqueElementId,
+  getVocaDBSongUrl,
+  mapSongTypeStats,
+  pageStateIsValid,
+  toggleTagAssignment
 } from "@/utils";
 import { api } from "@/backend";
-import { MappedTag, MinimalTag } from "@/backend/dto";
 import NicoEmbed from "@/components/NicoEmbed.vue";
-import ProgressBar from "@/components/ProgressBar.vue";
 import ErrorMessage from "@/components/ErrorMessage.vue";
 import { AxiosResponse } from "axios";
 import NicoDescription from "@/components/NicoDescription.vue";
+import EntryErrorReport from "@/components/EntryErrorReport.vue";
+import { ClientType, SongType, DbSortOrder } from "@/backend/dto/enumeration";
+import { SongTypeStatsRecord } from "@/backend/dto/songTypeStats";
+import { VocaDbTagSelectable } from "@/backend/dto/lowerLevelStruct";
+import { VocaDbSongEntryWithPvs } from "@/backend/dto/response/songsWithPvsResponse";
+import {
+  localStorageKeyMaxResults,
+  localStorageKeyStartOffset,
+  localStorageKeyDbOrderBy,
+  maxResultsOptions,
+  vocaDbOrderOptions
+} from "@/constants";
 
 @Component({
-  components: { NicoDescription, ProgressBar, NicoEmbed, ErrorMessage }
+  methods: { disableByStatus: shouldDisableByStatus },
+  components: {
+    EntryErrorReport,
+    NicoDescription,
+    NicoEmbed,
+    ErrorMessage
+  }
 })
 export default class extends Vue {
   @Prop()
@@ -518,57 +458,34 @@ export default class extends Vue {
   @Prop()
   private readonly thisMode!: string;
 
+  private readonly maxResultsOptions: number[] = maxResultsOptions;
+  private readonly orderOptions = vocaDbOrderOptions;
+
   // main variables
-  private videos: EntryWithVideosAndVisibility[] = [];
+  private songs: VocaDbSongEntryWithPvs[] = [];
+  private songTypeStats: SongTypeStatsRecord[] = [];
 
   // api variables
   private maxResults: number = 10;
-  private orderingCondition: string = "AdditionDate";
+  private orderingCondition: DbSortOrder = "AdditionDate";
   private pageToJump: number = 0;
   private startOffset: number = 0;
-  private dbAddress: string = "";
+  private clientType: ClientType = getClientType();
 
   // interface variables
   private fetching: boolean = false;
-  private massAssigning: boolean = false;
-  private totalVideoCount: number = 0;
+  private assigning: boolean = false;
+  private totalSongCount: number = 0;
   private maxPage: number = 0;
   private numOfPages: number = 1;
   private page: number = 1;
-  private distinctSongCount: number = 0;
   private showEntriesWithNoTags: boolean = false;
   private showEntriesWithErrors: boolean = true;
   private sessionLocked: boolean = false;
 
-  // interface constants
-  private orderOptions = {
-    PublishDate: "upload time",
-    AdditionDate: "addition time",
-    RatingScore: "user rating"
-  };
-
-  private songTypes: SongType[] = [
-    { name: "Unspecified", show: true },
-    { name: "Original", show: true },
-    { name: "Remaster", show: true },
-    { name: "Remix", show: true },
-    { name: "Cover", show: true },
-    { name: "Instrumental", show: true },
-    { name: "Mashup", show: true },
-    { name: "MusicPV", show: true },
-    { name: "DramaPV", show: true },
-    { name: "Other", show: true }
-  ];
-
-  private niconicoCommunityExclusive: MinimalTag = {
-    id: 7446,
-    name: "niconico community exclusive",
-    urlSlug: "niconico-community-exclusive"
-  };
-
   // error handling
-  private alertCode: number = 0;
   private alertMessage: string = "";
+  private alertStatusText = "";
 
   // interface methods
   private isActiveMode(): boolean {
@@ -577,73 +494,65 @@ export default class extends Vue {
 
   private setMaxResults(maxResults: number): void {
     this.maxResults = maxResults;
+    localStorage.setItem(localStorageKeyMaxResults, this.maxResults.toString());
   }
 
-  private setOrderingCondition(value: string): void {
+  private setOrderingCondition(value: DbSortOrder): void {
     this.orderingCondition = value;
+    localStorage.setItem(
+      localStorageKeyDbOrderBy,
+      this.orderingCondition.toString()
+    );
   }
 
   private getHiddenTypes(): number {
-    return this.songTypes.filter(t => !t.show).length;
+    return this.songTypeStats.filter(statsItem => !statsItem.show).length;
   }
 
   private countChecked(): number {
-    return this.videos.filter(video => video.toAssign).length;
-  }
-
-  private filterTagsBySongType(
-    video: EntryWithVideosAndVisibility,
-    tag: MappedTag
-  ): boolean {
-    return (
-      songTypeToTag[video.song.songType].find(
-        (id: number) => id == tag.tag.id
-      ) == undefined
-    );
+    return this.songs.filter(video => video.toUpdate).length;
   }
 
   // row filtering
-  private hiddenTypeFlag(entry: EntryWithVideosAndVisibility): boolean {
+  private hiddenTypeFlag(entry: VocaDbSongEntryWithPvs): boolean {
     return (
       this.getHiddenTypes() == 0 ||
-      !this.songTypes
-        .filter(t => !t.show)
-        .map(t => t.name)
-        .includes(entry.song.songType)
+      !this.songTypeStats
+        .filter(statsItem => !statsItem.show)
+        .map(statsItem => statsItem.type)
+        .includes(entry.entry.type)
     );
   }
 
-  private hasTagsToAssign(entry: EntryWithVideosAndVisibility): boolean {
+  private hasTagsToAssign(entry: VocaDbSongEntryWithPvs): boolean {
     let assignable_mapped_tags_cnt = 0;
-    for (const thumbnailOk of entry.thumbnailsOk) {
-      assignable_mapped_tags_cnt += thumbnailOk.mappedTags.filter(
-        tag => !tag.assigned
+    for (const pv of entry.availablePvs) {
+      assignable_mapped_tags_cnt += pv.suggestedTags.filter(
+        tag => !tag.selected
       ).length;
     }
     return assignable_mapped_tags_cnt > 0;
   }
 
-  private hideEntriesWithNoTagsFlag(
-    entry: EntryWithVideosAndVisibility
-  ): boolean {
+  private hideEntriesWithNoTagsFlag(entry: VocaDbSongEntryWithPvs): boolean {
     return this.showEntriesWithNoTags || this.hasTagsToAssign(entry);
   }
 
-  private showEntriesWithErrorsFlag(
-    entry: EntryWithVideosAndVisibility
-  ): boolean {
+  private showEntriesWithErrorsFlag(entry: VocaDbSongEntryWithPvs): boolean {
     return (
       this.showEntriesWithErrors &&
-      entry.thumbnailsErr.filter(thumb => !thumb.community && !thumb.disabled)
-        .length > 0
+      (entry.unavailablePvs.length > 0 ||
+        entry.entry.publishedOn == null ||
+        entry.errorReport != null)
     );
   }
 
-  private filterVideos(): void {
-    for (const video of this.videos) {
-      video.visible =
-        (this.hiddenTypeFlag(video) && this.hideEntriesWithNoTagsFlag(video)) ||
-        this.showEntriesWithErrorsFlag(video);
+  private filterSongs(): void {
+    for (const song of this.songs) {
+      song.visible =
+        song.errorReport != null ||
+        (this.hiddenTypeFlag(song) && this.hideEntriesWithNoTagsFlag(song)) ||
+        this.showEntriesWithErrorsFlag(song);
     }
   }
 
@@ -656,27 +565,23 @@ export default class extends Vue {
   }
 
   private defaultDisableCondition(): boolean {
-    return this.fetching || this.massAssigning;
+    return this.fetching || this.assigning;
   }
 
   private songsInfoLoaded(): boolean {
-    return this.videos.length > 0 && this.totalVideoCount > 0;
+    return this.songs.length > 0 && this.totalSongCount > 0;
   }
 
   private pageStateIsValid(): boolean {
     return pageStateIsValid(this.pageToJump, this.maxPage);
   }
 
-  private getSongTypeColorForDisplay(typeString: string): string {
+  private getSongTypeColorForDisplay(typeString: SongType): string {
     return getSongTypeColorForDisplay(typeString);
   }
 
   private getVocaDBEntryUrl(id: number): string {
-    return getVocaDBEntryUrl(this.dbAddress, id);
-  }
-
-  private getVocaDBTagUrl(id: number, urlSlug: string): string {
-    return getVocaDBTagUrl(this.dbAddress, id, urlSlug);
+    return getVocaDBSongUrl(this.clientType, id);
   }
 
   private getDeletedVideoUrl(videoId: string): string {
@@ -687,30 +592,29 @@ export default class extends Vue {
     return getNicoVideoUrl(contentId);
   }
 
-  private getSongTypeStatsForDisplay(type: string): string {
-    return getSongTypeStatsForDisplay(
-      type,
-      this.videos.filter(item => item.song.songType == type).length
-    );
-  }
-
-  private getShortenedSongType(songType: string): string {
+  private getShortenedSongType(songType: SongType): string {
     return getShortenedSongType(songType);
   }
 
-  private getTagVariant(tag: MappedTag, tagsToAssign: MinimalTag[]): string {
-    return getTagVariant(tag, tagsToAssign);
+  private getTagVariant(
+    tag: VocaDbTagSelectable,
+    tagIdsToAssign: number[]
+  ): string {
+    return getTagVariant(tag, tagIdsToAssign);
   }
 
-  private getTagIcon(tag: MappedTag, tagsToAssign: MinimalTag[]): string[] {
-    return getTagIconForTagAssignationButton(tag, tagsToAssign);
+  private getTagIcon(
+    tag: VocaDbTagSelectable,
+    tagIdsToAssign: number[]
+  ): string[] {
+    return getTagIconForTagAssignmentButton(tag, tagIdsToAssign);
   }
 
-  private toggleTagAssignation(
-    tag: MappedTag,
-    video: EntryWithVideosAndVisibility
+  private toggleTagAssignment(
+    tag: VocaDbTagSelectable,
+    video: VocaDbSongEntryWithPvs
   ): void {
-    toggleTagAssignation(tag, video);
+    toggleTagAssignment(tag, video);
   }
 
   private updateUrl(): void {
@@ -728,145 +632,112 @@ export default class extends Vue {
   async fetch(newStartOffset: number, newPage: number): Promise<void> {
     this.updateUrl();
     this.fetching = true;
-    localStorage.setItem("max_results", this.maxResults.toString());
-    localStorage.setItem("start_offset", newStartOffset.toString());
-    localStorage.setItem("order_by", this.orderingCondition);
     try {
-      let videos: EntryWithVideosAndVisibility[] = [];
-      this.distinctSongCount = 0;
-      let end = false;
-      let response;
-      this.pageToJump = newPage;
-      while (this.distinctSongCount < this.maxResults && !end) {
-        response = await api.fetchVideosFromDb({
-          startOffset: newStartOffset + this.distinctSongCount,
-          maxResults: 10,
-          orderBy: this.orderingCondition
-        });
-        end = response.items.length < 10;
-        let videos_temp = response.items.map(entry => {
-          let commEx: boolean =
-            entry.thumbnailsErr.filter(
-              thumb => thumb.code == "COMMUNITY" && !thumb.community
-            ).length > 0;
-          let deletedVideoIds = entry.thumbnailsErr
-            .filter(thumb => thumb.code == "DELETED")
-            .map(thumb => thumb.id);
-          return {
-            song: entry.song,
-            toAssign: commEx || deletedVideoIds.length > 0,
-            visible: true,
-            thumbnailsOk: entry.thumbnailsOk.map(t => {
-              return {
-                thumbnail: t.thumbnail,
-                mappedTags: t.mappedTags.map(tag => {
-                  return {
-                    tag: tag.tag,
-                    assigned: tag.assigned,
-                    toAssign: false
-                  };
-                }),
-                expanded: false,
-                nicoTags: t.nicoTags
-              };
-            }),
-            thumbnailsErr: entry.thumbnailsErr,
-            tagsToAssign: commEx ? [this.niconicoCommunityExclusive] : [],
-            disable: deletedVideoIds
-          };
-        });
-
-        if (this.distinctSongCount > 0) {
-          const overlap = videos_temp.find(
-            video => video.song.id == videos[videos.length - 1].song.id
-          );
-          if (overlap != undefined) {
-            videos_temp.splice(0, videos_temp.indexOf(overlap) + 1);
-          }
-        }
-        this.distinctSongCount += videos_temp.length;
-        videos = videos.concat(videos_temp);
-
-        this.totalVideoCount = response.totalCount;
-      }
-      videos.splice(this.maxResults);
-      this.videos = videos;
-      this.postProcessVideos();
-      this.filterVideos();
-      this.distinctSongCount = this.maxResults;
-      this.numOfPages = this.totalVideoCount / this.maxResults + 1;
+      let response = await api.getVocaDbSongEntriesForTagging({
+        startOffset: newStartOffset,
+        maxResults: this.maxResults,
+        orderBy: this.orderingCondition,
+        clientType: this.clientType
+      });
+      this.totalSongCount = response.totalCount;
+      this.songs = response.items.map(entry => {
+        let deletedVideoIds = entry.unavailablePvs.map(pv => pv.id);
+        return {
+          entry: entry.entry,
+          availablePvs: entry.availablePvs.map(pv => {
+            return {
+              video: pv.video,
+              suggestedTags: pv.suggestedTags,
+              visible: false
+            };
+          }),
+          unavailablePvs: entry.unavailablePvs.map(unavailablePv => {
+            return {
+              id: unavailablePv.id,
+              title: unavailablePv.title,
+              error: unavailablePv.error,
+              toDisable: shouldDisableByStatus(unavailablePv),
+              disabled: false
+            };
+          }),
+          toUpdate: deletedVideoIds.length > 0,
+          visible: true,
+          tagIdsToAssign: [],
+          errorReport: null
+        };
+      });
+      this.filterSongs();
+      this.numOfPages = this.totalSongCount / this.maxResults + 1;
       this.startOffset = newStartOffset;
+      this.songTypeStats = mapSongTypeStats(
+        response.songTypeStats,
+        this.songTypeStats
+      );
     } catch (err) {
       this.processError(err);
     } finally {
-      this.maxPage = Math.ceil(this.totalVideoCount / this.maxResults);
+      localStorage.setItem(
+        localStorageKeyMaxResults,
+        this.maxResults.toString()
+      );
+      localStorage.setItem(
+        localStorageKeyStartOffset,
+        newStartOffset.toString()
+      );
+      localStorage.setItem(localStorageKeyDbOrderBy, this.orderingCondition);
+      this.pageToJump = newPage;
+      this.maxPage = Math.ceil(this.totalSongCount / this.maxResults);
       this.fetching = false;
       this.page = newPage;
     }
   }
 
-  private async assignMultiple(): Promise<void> {
-    this.massAssigning = true;
+  private async assign(): Promise<void> {
+    this.assigning = true;
     try {
-      for (const song of this.videos.filter(s => s.toAssign)) {
-        await api.lookUpAndAssignTag({
-          tags: song.tagsToAssign,
-          songId: song.song.id,
-          disable: song.disable
-        });
-        song.toAssign = false;
-        const assigned_ids = song.tagsToAssign.map(tta => tta.id);
-        for (const thumbnailOk of song.thumbnailsOk) {
-          thumbnailOk.mappedTags.forEach(t => {
-            if (assigned_ids.find(id => id == t.tag.id) != undefined) {
-              t.toAssign = false;
-              t.assigned = true;
-            }
-          });
-        }
-        if (
-          assigned_ids.find(id => id == this.niconicoCommunityExclusive.id) !=
-          undefined
-        ) {
-          song.thumbnailsErr.forEach(thumbnailErr => {
-            if (thumbnailErr.code == "COMMUNITY") {
-              thumbnailErr.community = true;
-            }
-          });
-        }
-        if (song.disable.length > 0) {
-          for (let thumb of song.thumbnailsErr) {
-            if (song.disable.find(pvId => pvId == thumb.id) != undefined) {
-              thumb.disabled = true;
+      const songsToUpdate = this.songs.filter(song => song.toUpdate);
+      const errors = await api.updateSongTagsAndPvs({
+        subRequests: songsToUpdate.map(song => {
+          return {
+            songId: song.entry.id,
+            tags: song.tagIdsToAssign,
+            nndPvsToDisable: song.unavailablePvs
+              .filter(unavailablePv => unavailablePv.toDisable)
+              .map(unavailablePv => {
+                return {
+                  id: unavailablePv.id,
+                  reason: unavailablePv.error
+                };
+              })
+          };
+        }),
+        clientType: this.clientType
+      });
+      const entriesWithErrors = errors.map(error => error.entryId);
+      for (const song of songsToUpdate) {
+        if (entriesWithErrors.includes(song.entry.id)) {
+          song.errorReport = errors.filter(
+            error => error.entryId == song.entry.id
+          )[0];
+        } else {
+          song.toUpdate = false;
+          song.unavailablePvs.forEach(
+            unavailablePv => (unavailablePv.toDisable = false)
+          );
+          for (const pv of song.availablePvs) {
+            for (const tag of pv.suggestedTags) {
+              tag.selected =
+                tag.selected || song.tagIdsToAssign.includes(tag.tag.id);
             }
           }
+          song.tagIdsToAssign.splice(0, song.tagIdsToAssign.length);
+          song.errorReport = null;
         }
-        song.tagsToAssign.splice(0, song.tagsToAssign.length);
       }
     } catch (err) {
       this.processError(err);
     } finally {
-      this.massAssigning = false;
-    }
-  }
-
-  private postProcessVideos() {
-    for (const video of this.videos) {
-      for (const thumbnailOk of video.thumbnailsOk) {
-        thumbnailOk.mappedTags = thumbnailOk.mappedTags.filter(t =>
-          this.filterTagsBySongType(video, t)
-        );
-        thumbnailOk.mappedTags = thumbnailOk.mappedTags.filter(function (
-          elem,
-          index,
-          self
-        ) {
-          return (
-            index ===
-            self.indexOf(self.find(el => el.tag.name == elem.tag.name)!)
-          );
-        });
-      }
+      this.assigning = false;
     }
   }
 
@@ -875,39 +746,29 @@ export default class extends Vue {
   }
 
   // error handling
-  private processError(
-    err: { response: AxiosResponse } | { response: undefined; message: string }
-  ): void {
+  private processError(err: { response: AxiosResponse }): void {
+    const errorData = getErrorData(err);
+    this.alertMessage = errorData.message;
+    this.alertStatusText = errorData.statusText;
     this.$bvToast.show(getUniqueElementId("error_", this.thisMode.toString()));
-    if (err.response == undefined) {
-      this.alertCode = 0;
-      this.alertMessage = err.message;
-    } else {
-      this.alertCode = err.response.data.code;
-      this.alertMessage = err.response.data.message;
-    }
   }
 
   // session
   created(): void {
-    let max_results = localStorage.getItem("max_results");
+    let max_results = localStorage.getItem(localStorageKeyMaxResults);
     if (max_results != null) {
       this.maxResults = parseInt(max_results);
     }
-    let start_offset = localStorage.getItem("start_offset");
+    let start_offset = localStorage.getItem(localStorageKeyStartOffset);
     if (start_offset != null) {
       this.startOffset = parseInt(start_offset);
     }
-    let order_by = localStorage.getItem("order_by");
+    let order_by = localStorage.getItem(localStorageKeyDbOrderBy);
     if (order_by != null) {
-      this.orderingCondition = order_by;
+      this.orderingCondition = order_by as DbSortOrder;
     }
     if (max_results != null && start_offset != null && order_by != null) {
       this.sessionLocked = true;
-    }
-    let dbAddress = localStorage.getItem("dbAddress");
-    if (this.dbAddress == "" && dbAddress != null) {
-      this.dbAddress = dbAddress;
     }
   }
 

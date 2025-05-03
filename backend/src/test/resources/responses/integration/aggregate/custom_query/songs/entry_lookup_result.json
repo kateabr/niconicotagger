@@ -1,0 +1,103 @@
+{
+  "items": [
+    {
+      "artistString": "U 0 feat. Bones",
+      "createDate": "2022-06-20T14:26:20.017",
+      "defaultName": "‌　‌‌",
+      "defaultNameLanguage": "Japanese",
+      "favoritedTimes": 1,
+      "id": 415274,
+      "lengthSeconds": 156,
+      "name": "‌　‌‌",
+      "publishDate": "2021-09-25T00:00:00Z",
+      "pvServices": "Youtube",
+      "ratingScore": 3,
+      "songType": "Original",
+      "status": "Finished",
+      "tags": [
+        {
+          "count": 2,
+          "tag": {
+            "additionalNames": "ドット絵",
+            "categoryName": "Animation",
+            "id": 338,
+            "name": "pixel art",
+            "urlSlug": "pixel-art"
+          }
+        },
+        {
+          "count": 2,
+          "tag": {
+            "additionalNames": "無題, no title, titleless, タイトル無し, blank title",
+            "categoryName": "Editor notes",
+            "id": 6335,
+            "name": "untitled",
+            "urlSlug": "untitled"
+          }
+        },
+        {
+          "count": 2,
+          "tag": {
+            "additionalNames": "uncertain vocalists, vocalists assumed, unspecified vocalists",
+            "categoryName": "Editor notes",
+            "id": 6416,
+            "name": "unconfirmed vocalists",
+            "urlSlug": "unconfirmed-vocalists"
+          }
+        },
+        {
+          "count": 2,
+          "tag": {
+            "additionalNames": "Koronba-style, XX-style, xx兄貴リスペクト, Koronba-fuu, pseudo-koronba, 界隈曲, 海鲜曲",
+            "categoryName": "Genres",
+            "id": 7250,
+            "name": "ころんば風",
+            "urlSlug": "koronba-style"
+          }
+        },
+        {
+          "count": 2,
+          "tag": {
+            "additionalNames": "バタフライ, 蝶々, 蝶, チョウ, chou, chouchou",
+            "categoryName": "Themes",
+            "id": 7266,
+            "name": "butterfly",
+            "urlSlug": "butterfly"
+          }
+        }
+      ],
+      "version": 6
+    },
+    {
+      "artistString": "Exorcism feat. 知声",
+      "createDate": "2022-06-03T18:14:32.123",
+      "defaultName": "‌.",
+      "defaultNameLanguage": "Japanese",
+      "favoritedTimes": 3,
+      "id": 411366,
+      "lengthSeconds": 188,
+      "name": "‌.",
+      "originalVersionId": 86781,
+      "publishDate": "2022-06-03T00:00:00Z",
+      "pvServices": "Nothing",
+      "ratingScore": 9,
+      "songType": "Cover",
+      "status": "Finished",
+      "tags": [
+        {
+          "count": 1,
+          "tag": {
+            "additionalNames": "symbol title, code title, emoji title, cryptic title, cryptic name, unusual name, atypical title, uncommon title",
+            "categoryName": "Editor notes",
+            "id": 9148,
+            "name": "unusual title",
+            "urlSlug": "unusual-title"
+          }
+        }
+      ],
+      "version": 3
+    }
+  ],
+  "term": "",
+  "totalCount": 678625
+}

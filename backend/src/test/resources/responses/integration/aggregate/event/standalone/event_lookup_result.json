@@ -1,0 +1,34 @@
+{
+  "items": [
+    {
+      "category": "Festival",
+      "date": "2024-01-20T00:00:00Z",
+      "endDate": "2024-01-26T00:00:00Z",
+      "id": 6997,
+      "name": "『在りし日の歌』祭り",
+      "seriesNumber": 0,
+      "seriesSuffix": "",
+      "status": "Draft",
+      "urlSlug": "",
+      "venueName": "",
+      "version": 3,
+      "webLinks": [
+        {
+          "category": "Official",
+          "description": "Nicommons (logo)",
+          "disabled": false,
+          "id": 8560,
+          "url": "https://commons.nicovideo.jp/works/nc316551"
+        },
+        {
+          "category": "Reference",
+          "description": "NND Tag",
+          "disabled": false,
+          "id": 8561,
+          "url": "https://www.nicovideo.jp/tag/%E3%80%8E%E5%9C%A8%E3%82%8A%E3%81%97%E6%97%A5%E3%81%AE%E6%AD%8C%E3%80%8F%E7%A5%AD%E3%82%8A"
+        }
+      ]
+    }
+  ],
+  "totalCount": 1
+}

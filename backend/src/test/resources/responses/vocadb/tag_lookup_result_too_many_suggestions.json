@@ -1,0 +1,21 @@
+{
+  "items": [
+    {
+      "categoryName": "Genres",
+      "createDate": "2016-03-04T20:49:57",
+      "defaultNameLanguage": "English",
+      "id": 395,
+      "name": "shoegaze",
+      "status": "Finished",
+      "targets": 1073741823,
+      "newTargets": [
+        "all"
+      ],
+      "urlSlug": "shoegaze",
+      "usageCount": 0,
+      "version": 19
+    }
+  ],
+  "term": "shoegaze",
+  "totalCount": 2
+}

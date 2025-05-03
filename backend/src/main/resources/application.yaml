@@ -1,0 +1,27 @@
+app:
+  vocadb-client-base-address:
+    regular: "https://vocadb.net"
+    beta: "https://beta.vocadb.net"
+  nnd-client-properties:
+    thumbnail: "https://ext.nicovideo.jp"
+    embed: "https://embed.nicovideo.jp"
+    api-base-address: "https://snapshot.search.nicovideo.jp"
+
+publisher-link-config:
+  nnd-user:
+    host: "https://www.nicovideo.jp/"
+    path: "user/"
+  nnd-channel:
+    host: "https://ch.nicovideo.jp/"
+    path: "channel/ch"
+  vocadb-beta:
+    host: "https://beta.vocadb.net/"
+    path: "Ar/"
+  vocadb:
+    host: "https://vocadb.net/"
+    path: "Ar/"
+
+spring:
+  web:
+    resources:
+      add-mappings: false

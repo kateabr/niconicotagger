@@ -1,0 +1,161 @@
+{
+  "items": [
+    {
+      "artists": [
+        {
+          "artist": {
+            "additionalNames": "Megurine Luka, 巡音流歌, 메구리네 루카",
+            "artistType": "Vocaloid",
+            "deleted": false,
+            "id": 2,
+            "name": "巡音ルカ",
+            "pictureMime": "image/png",
+            "releaseDate": "2009-01-30T00:00:00Z",
+            "status": "Locked",
+            "version": 24
+          },
+          "categories": "Vocalist",
+          "effectiveRoles": "Default",
+          "id": 2102440,
+          "isCustomName": false,
+          "isSupport": false,
+          "name": "巡音ルカ",
+          "roles": "Default"
+        },
+        {
+          "artist": {
+            "additionalNames": "Yuurei Ichimonji, yu-go, タロスP",
+            "artistType": "Producer",
+            "deleted": false,
+            "id": 907,
+            "name": "幽霊一文字",
+            "pictureMime": "image/jpeg",
+            "status": "Finished",
+            "version": 21
+          },
+          "categories": "Producer",
+          "effectiveRoles": "Default",
+          "id": 2102441,
+          "isCustomName": false,
+          "isSupport": false,
+          "name": "幽霊一文字",
+          "roles": "Default"
+        },
+        {
+          "artist": {
+            "additionalNames": "",
+            "artistType": "Illustrator",
+            "deleted": false,
+            "id": 154119,
+            "name": "えふすけ",
+            "pictureMime": "image/jpeg",
+            "status": "Finished",
+            "version": 2
+          },
+          "categories": "Illustrator",
+          "effectiveRoles": "Illustrator",
+          "id": 2106181,
+          "isCustomName": false,
+          "isSupport": false,
+          "name": "えふすけ",
+          "roles": "Default"
+        }
+      ],
+      "artistString": "幽霊一文字 feat. 巡音ルカ",
+      "createDate": "2025-01-28T03:04:50.267",
+      "defaultName": "バア",
+      "defaultNameLanguage": "Japanese",
+      "favoritedTimes": 2,
+      "id": 741501,
+      "lengthSeconds": 150,
+      "name": "バア",
+      "publishDate": "2025-01-28T00:00:00Z",
+      "pvs": [
+        {
+          "author": "幽霊一文字",
+          "disabled": false,
+          "id": 1121448,
+          "length": 149,
+          "name": "バア / 幽霊一文字 feat.巡音ルカ",
+          "publishDate": "2025-01-30T00:00:00",
+          "pvId": "sm44594436",
+          "service": "NicoNicoDouga",
+          "pvType": "Original",
+          "thumbUrl": "https://nicovideo.cdn.nimg.jp/thumbnails/44594436/44594436.4194300",
+          "url": "http://www.nicovideo.jp/watch/sm44594436"
+        },
+        {
+          "author": "幽霊一文字",
+          "disabled": false,
+          "id": 1121448,
+          "length": 149,
+          "name": "バア / 幽霊一文字 feat.巡音ルカ",
+          "publishDate": "2025-01-30T00:00:00",
+          "pvId": "sm44594435",
+          "service": "NicoNicoDouga",
+          "pvType": "Original",
+          "thumbUrl": "https://nicovideo.cdn.nimg.jp/thumbnails/44594436/44594436.4194300",
+          "url": "http://www.nicovideo.jp/watch/sm44594436"
+        },
+        {
+          "author": "幽霊一文字",
+          "disabled": false,
+          "id": 1121448,
+          "length": 149,
+          "name": "バア / 幽霊一文字 feat.巡音ルカ",
+          "publishDate": "2025-01-30T00:00:00",
+          "pvId": "sm44594434",
+          "service": "NicoNicoDouga",
+          "pvType": "Original",
+          "thumbUrl": "https://nicovideo.cdn.nimg.jp/thumbnails/44594436/44594436.4194300",
+          "url": "http://www.nicovideo.jp/watch/sm44594436"
+        },
+        {
+          "author": "幽霊一文字 -Yurei Ichimonji-",
+          "disabled": false,
+          "id": 1121449,
+          "length": 150,
+          "name": "バア / 幽霊一文字 feat.巡音ルカ",
+          "publishDate": "2025-01-30T00:00:00",
+          "pvId": "JyxBb4J3F28",
+          "service": "Youtube",
+          "pvType": "Original",
+          "thumbUrl": "https://i.ytimg.com/vi/JyxBb4J3F28/default.jpg",
+          "url": "https://youtu.be/JyxBb4J3F28"
+        },
+        {
+          "author": "Yurei Ichimonji - Topic",
+          "disabled": false,
+          "id": 1121450,
+          "length": 150,
+          "name": "バア (feat. 巡音ルカ)",
+          "publishDate": "2025-01-27T00:00:00",
+          "pvId": "hUV6jlU64SQ",
+          "service": "Youtube",
+          "pvType": "Original",
+          "thumbUrl": "https://i.ytimg.com/vi/hUV6jlU64SQ/default.jpg",
+          "url": "https://youtu.be/hUV6jlU64SQ"
+        }
+      ],
+      "pvServices": "NicoNicoDouga, Youtube",
+      "ratingScore": 8,
+      "songType": "Original",
+      "status": "Finished",
+      "tags": [
+        {
+          "count": 1,
+          "tag": {
+            "additionalNames": "良調声, 良調教, good training, good voice training",
+            "categoryName": "Subjective",
+            "id": 4582,
+            "name": "good tuning",
+            "urlSlug": "good-tuning"
+          }
+        }
+      ],
+      "version": 4
+    }
+  ],
+  "term": "",
+  "totalCount": 373865
+}

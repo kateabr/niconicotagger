@@ -1,6 +1,6 @@
 <template>
   <div>
-    <nav-bar-menu active-mode="console" :db-address="dbAddress" />
+    <nav-bar-menu active-mode="console" :client-type="clientType" />
     <b-row class="col-12 m-0">
       <b-toaster class="b-toaster-top-center" name="toaster-2"></b-toaster>
       <b-col>
@@ -10,44 +10,33 @@
               <b-nav-item
                 :to="{
                   name: 'console-mode',
-                  params: { browseMode: 'remove-songs' }
+                  params: { browseMode: 'songs' }
                 }"
-                :active="browseMode === 'remove-songs' || browseMode === ''"
+                :active="browseMode === 'songs' || browseMode === ''"
               >
                 Remove tags (songs)
               </b-nav-item>
               <b-nav-item
                 :to="{
                   name: 'console-mode',
-                  params: { browseMode: 'remove-artists' }
+                  params: { browseMode: 'artists' }
                 }"
-                :active="browseMode === 'remove-artists'"
+                :active="browseMode === 'artists'"
               >
                 Remove tags (artists)
               </b-nav-item>
             </b-nav>
             <div class="tab-content">
-              <div
-                :class="['tab-pane', { active: browseMode === 'remove-songs' }]"
-              >
+              <div :class="['tab-pane', { active: browseMode === 'songs' }]">
                 <tags-by-user-query-remove
-                  :mode="browseMode"
-                  this-mode="remove-songs"
-                  :targ-name="targName"
-                  removal-mode="songs"
+                  :current-mode="browseMode"
+                  api-type="songs"
                 />
               </div>
-              <div
-                :class="[
-                  'tab-pane',
-                  { active: browseMode === 'remove-artists' }
-                ]"
-              >
+              <div :class="['tab-pane', { active: browseMode === 'artists' }]">
                 <tags-by-user-query-remove
-                  :mode="browseMode"
-                  this-mode="remove-artists"
-                  :targ-name="targName"
-                  removal-mode="artists"
+                  :current-mode="browseMode"
+                  api-type="artists"
                 />
               </div>
             </div>
@@ -63,32 +52,24 @@ import Vue from "vue";
 import { Component, Prop } from "vue-property-decorator";
 
 import NavBarMenu from "@/components/NavBarMenu.vue";
-import TagsByUserQueryRemove from "@/components/pages/TagsByUserQueryRemove.vue";
 
 import VueClipboard from "vue-clipboard2";
+import { getClientType } from "@/utils";
+import TagsByUserQueryRemove from "@/components/pages/TagsByUserQueryRemove.vue";
+import { ClientType } from "@/backend/dto/enumeration";
 
 Vue.use(VueClipboard);
 
 @Component({
   components: {
-    NavBarMenu,
-    TagsByUserQueryRemove
+    TagsByUserQueryRemove,
+    NavBarMenu
   }
 })
 export default class extends Vue {
   @Prop()
-  private browseMode!: "remove-songs";
+  private browseMode!: "songs";
 
-  @Prop()
-  private targName!: string;
-
-  private dbAddress: string = "";
-
-  created(): void {
-    let dbAddress = localStorage.getItem("dbAddress");
-    if (this.dbAddress == "" && dbAddress != null) {
-      this.dbAddress = dbAddress;
-    }
-  }
+  private clientType: ClientType = getClientType();
 }
 </script>

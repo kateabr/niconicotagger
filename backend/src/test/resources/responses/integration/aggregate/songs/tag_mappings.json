@@ -1,0 +1,29 @@
+{
+  "items": [
+    {
+      "sourceTag": "VOCAROCK",
+      "tag": {
+        "id": 481,
+        "name": "rock",
+        "urlSlug": "rock"
+      }
+    },
+    {
+      "sourceTag": "rock",
+      "tag": {
+        "id": 481,
+        "name": "rock",
+        "urlSlug": "rock"
+      }
+    },
+    {
+      "sourceTag": "良調声",
+      "tag": {
+        "id": 4582,
+        "name": "good tuning",
+        "urlSlug": "good-tuning"
+      }
+    }
+  ],
+  "totalCount": 2
+}

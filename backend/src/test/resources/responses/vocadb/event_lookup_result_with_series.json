@@ -1,0 +1,56 @@
+{
+  "items": [
+    {
+      "category": "Unspecified",
+      "date": "2023-04-01T00:00:00Z",
+      "id": 3508,
+      "name": "重音テト誕生祭 2023",
+      "seriesId": 63,
+      "seriesNumber": 2023,
+      "seriesSuffix": "",
+      "status": "Finished",
+      "urlSlug": "tetos-birthday-2023",
+      "venueName": "",
+      "version": 5,
+      "webLinks": [
+        {
+          "category": "Reference",
+          "description": "NND Tag",
+          "disabled": false,
+          "id": 3765,
+          "url": "http://www.nicovideo.jp/tag/%E9%87%8D%E9%9F%B3%E3%83%86%E3%83%88%E8%AA%95%E7%94%9F%E7%A5%AD2023"
+        },
+        {
+          "category": "Other",
+          "description": "Niconews",
+          "disabled": false,
+          "id": 7263,
+          "url": "https://blog.nicovideo.jp/niconews/190156.html"
+        }
+      ],
+      "tags": [
+        {
+          "count": 1,
+          "tag": {
+            "additionalNames": "誕生日, anniversary",
+            "categoryName": "Themes",
+            "id": 2987,
+            "name": "birthday",
+            "urlSlug": "birthday"
+          }
+        },
+        {
+          "count": 1,
+          "tag": {
+            "additionalNames": "fifteenth birthday, 15th anniversary, fifteenth anniversary",
+            "categoryName": "Event",
+            "id": 9325,
+            "name": "15th birthday",
+            "urlSlug": "15th-birthday"
+          }
+        }
+      ]
+    }
+  ],
+  "totalCount": 1
+}

@@ -1,0 +1,29 @@
+{
+  "items": [
+    {
+      "artistType": "Producer",
+      "createDate": "2020-12-06T21:53:40.43",
+      "defaultName": "Anji-Melody",
+      "defaultNameLanguage": "English",
+      "id": 85276,
+      "name": "Anji-Melody",
+      "pictureMime": "image/png",
+      "status": "Finished",
+      "tags": [
+        {
+          "count": 1,
+          "tag": {
+            "additionalNames": "イラストレーター",
+            "categoryName": "Jobs",
+            "id": 204,
+            "name": "illustrator",
+            "urlSlug": "illustrator"
+          }
+        }
+      ],
+      "version": 8
+    }
+  ],
+  "term": "",
+  "totalCount": 121082
+}

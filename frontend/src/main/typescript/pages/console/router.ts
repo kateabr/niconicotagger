@@ -20,7 +20,7 @@ const routes: RouteConfig[] = [
     path: "/",
     name: "console",
     props: {
-      browseMode: "remove-songs"
+      browseMode: "songs"
     },
     component: () => import("@/pages/console/views/QueryConsole.vue")
   }

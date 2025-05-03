@@ -1,0 +1,119 @@
+{
+  "artists": [
+    {
+      "artist": {
+        "additionalNames": "そりすも, solid smoke",
+        "artistType": "Producer",
+        "deleted": false,
+        "id": 56253,
+        "name": "solidsmoke",
+        "pictureMime": "image/jpeg",
+        "status": "Finished",
+        "version": 5
+      },
+      "categories": "Producer",
+      "effectiveRoles": "Default",
+      "id": 487772,
+      "isCustomName": false,
+      "isSupport": false,
+      "name": "solidsmoke",
+      "roles": "Default"
+    },
+    {
+      "artist": {
+        "additionalNames": "Aoki Lapis, VOCALOID™3 Library 蒼姫ラピス, VOCALOID3 Library AOKI LAPIS",
+        "artistType": "Vocaloid",
+        "deleted": false,
+        "id": 156,
+        "name": "蒼姫ラピス",
+        "pictureMime": "image/png",
+        "releaseDate": "2012-04-06T00:00:00Z",
+        "status": "Locked",
+        "version": 45
+      },
+      "categories": "Vocalist",
+      "effectiveRoles": "Default",
+      "id": 487773,
+      "isCustomName": false,
+      "isSupport": false,
+      "name": "蒼姫ラピス",
+      "roles": "Default"
+    },
+    {
+      "artist": {
+        "additionalNames": "ゆいみ",
+        "artistType": "OtherIndividual",
+        "deleted": false,
+        "id": 81824,
+        "name": "遺水",
+        "pictureMime": "image/jpeg",
+        "status": "Finished",
+        "version": 5
+      },
+      "categories": "Other",
+      "effectiveRoles": "Default",
+      "id": 764774,
+      "isCustomName": false,
+      "isSupport": false,
+      "name": "遺水",
+      "roles": "Default"
+    }
+  ],
+  "artistString": "solidsmoke feat. 蒼姫ラピス",
+  "createDate": "2018-04-29T17:46:26",
+  "defaultName": "水辺の蜘蛛 〜殺人の追憶another〜",
+  "defaultNameLanguage": "English",
+  "favoritedTimes": 0,
+  "id": 191962,
+  "lengthSeconds": 183,
+  "name": "水辺の蜘蛛 〜殺人の追憶another〜",
+  "originalVersionId": 175399,
+  "publishDate": "2018-04-28T00:00:00Z",
+  "pvServices": "NicoNicoDouga",
+  "ratingScore": 0,
+  "songType": "Remix",
+  "status": "Finished",
+  "tags": [
+    {
+      "count": 1,
+      "tag": {
+        "additionalNames": "実写, filmed PV, real world footage, photographic PV, real life video, real world video",
+        "categoryName": "Animation",
+        "id": 241,
+        "name": "live action",
+        "urlSlug": "live-action"
+      }
+    },
+    {
+      "count": 1,
+      "tag": {
+        "additionalNames": "ノイズ, noize",
+        "categoryName": "Genres",
+        "id": 314,
+        "name": "noise",
+        "urlSlug": "noise"
+      }
+    },
+    {
+      "count": 1,
+      "tag": {
+        "additionalNames": "シューゲイザー, shoegazer, shoegazing",
+        "categoryName": "Genres",
+        "id": 395,
+        "name": "shoegaze",
+        "urlSlug": "shoegaze"
+      }
+    },
+    {
+      "count": 1,
+      "tag": {
+        "additionalNames": "アンダーグラウンド",
+        "categoryName": "Genres",
+        "id": 3018,
+        "name": "underground",
+        "urlSlug": "underground"
+      }
+    }
+  ],
+  "version": 3
+}

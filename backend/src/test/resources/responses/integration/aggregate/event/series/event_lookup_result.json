@@ -1,0 +1,27 @@
+{
+  "items": [
+    {
+      "category": "Unspecified",
+      "date": "2008-11-01T00:00:00Z",
+      "id": 2105,
+      "name": "11月1日はネル誕生祭 2008",
+      "seriesId": 176,
+      "seriesNumber": 2008,
+      "seriesSuffix": "",
+      "status": "Finished",
+      "urlSlug": "111-is-nerus-birthday-2008",
+      "venueName": "",
+      "version": 3,
+      "webLinks": [
+        {
+          "category": "Reference",
+          "description": "NND Tag",
+          "disabled": false,
+          "id": 5012,
+          "url": "https://www.nicovideo.jp/tag/ネル誕生祭2008"
+        }
+      ]
+    }
+  ],
+  "totalCount": 1
+}

@@ -1,0 +1,88 @@
+{
+  "id": 657775,
+  "defaultName": "星たちは歌う",
+  "canRemoveTagUsages": true,
+  "tagUsages": [
+    {
+      "date": "2025-04-03T13:50:28.443",
+      "count": 1,
+      "id": 1746998,
+      "tag": {
+        "id": 158,
+        "name": "first work",
+        "urlSlug": "first-work"
+      },
+      "votes": [
+        {
+          "active": true,
+          "groupId": "Moderator",
+          "mainPicture": {
+            "mime": "image/png",
+            "urlOriginal": "https://beta.vocadb.net/static/img/user/mainOrig/149.png",
+            "urlSmallThumb": "https://beta.vocadb.net/static/img/user/mainSmall/149.png",
+            "urlThumb": "https://beta.vocadb.net/static/img/user/mainThumb/149.png",
+            "urlTinyThumb": "https://beta.vocadb.net/static/img/user/mainTiny/149.png"
+          },
+          "memberSince": "2011-11-13T14:46:56",
+          "verifiedArtist": true,
+          "id": 149,
+          "name": "mi.chan"
+        }
+      ]
+    },
+    {
+      "date": "2025-04-03T13:14:56.663",
+      "count": 1,
+      "id": 1746996,
+      "tag": {
+        "id": 7323,
+        "name": "プロセカ",
+        "urlSlug": "proseka"
+      },
+      "votes": [
+        {
+          "active": true,
+          "groupId": "Moderator",
+          "mainPicture": {
+            "mime": "image/png",
+            "urlOriginal": "https://beta.vocadb.net/static/img/user/mainOrig/149.png",
+            "urlSmallThumb": "https://beta.vocadb.net/static/img/user/mainSmall/149.png",
+            "urlThumb": "https://beta.vocadb.net/static/img/user/mainThumb/149.png",
+            "urlTinyThumb": "https://beta.vocadb.net/static/img/user/mainTiny/149.png"
+          },
+          "memberSince": "2011-11-13T14:46:56",
+          "verifiedArtist": true,
+          "id": 149,
+          "name": "mi.chan"
+        }
+      ]
+    },
+    {
+      "date": "2024-08-07T01:19:31.52",
+      "count": 1,
+      "id": 1572957,
+      "tag": {
+        "id": 10162,
+        "name": "小樽組",
+        "urlSlug": "otarugumi"
+      },
+      "votes": [
+        {
+          "active": true,
+          "groupId": "Trusted",
+          "mainPicture": {
+            "mime": "image/png",
+            "urlOriginal": "https://beta.vocadb.net/static/img/user/mainOrig/23146.png",
+            "urlSmallThumb": "https://beta.vocadb.net/static/img/user/mainSmall/23146.png",
+            "urlThumb": "https://beta.vocadb.net/static/img/user/mainThumb/23146.png",
+            "urlTinyThumb": "https://beta.vocadb.net/static/img/user/mainTiny/23146.png"
+          },
+          "memberSince": "2022-11-02T22:52:20.08",
+          "verifiedArtist": true,
+          "id": 23146,
+          "name": "MadamePhoton"
+        }
+      ]
+    }
+  ]
+}
