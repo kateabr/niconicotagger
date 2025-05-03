@@ -75,7 +75,7 @@ jobs:
 
       - name: push images
         run: |
-          docker push ghcr.io/${{ github.repository }}:latest"
+          docker push ghcr.io/${{ github.repository }}:latest
 
       - uses: actions/delete-package-versions@v3
         with:
