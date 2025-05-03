@@ -13,8 +13,7 @@ class VocaDbTagDeserializer : JsonDeserializer<VocaDbTag>() {
     override fun deserialize(p: JsonParser, ctxt: DeserializationContext?): VocaDbTag {
         var id = 0L
         var name = ""
-        while (!p.nextFieldName(tagFieldName)) {
-        }
+        while (!p.nextFieldName(tagFieldName)) {}
         p.nextToken()
         do {
             p.nextToken()

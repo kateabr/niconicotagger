@@ -33,30 +33,26 @@ abstract class SongWithPvsMapper {
         searchResult: SearchResult<VocaDbSongEntryWithNndPvsAndTags>,
         nonDisabledPvs: Map<String, NndThumbnail>,
         tagMappings: Map<String, List<VocaDbTagMapping>>,
-        likelyFirstWorks: List<Long>
+        likelyFirstWorks: List<Long>,
     ): SongsWithPvsResponse {
         val items = mapItems(searchResult.items, nonDisabledPvs, tagMappings, likelyFirstWorks)
-        return SongsWithPvsResponse(
-            items,
-            calculateSongStats(items.map { it.entry }),
-            searchResult.totalCount
-        )
+        return SongsWithPvsResponse(items, calculateSongStats(items.map { it.entry }), searchResult.totalCount)
     }
 
     @Mapping(
         target = "disposition",
-        expression = "java(Utils.calculateDisposition(entry.getPublishedAt(), eventDates))"
+        expression = "java(Utils.calculateDisposition(entry.getPublishedAt(), eventDates))",
     )
     protected abstract fun mapVocaDbSongWithReleaseEvents(
         entry: VocaDbSongWithReleaseEvents,
-        @Context eventDates: EventDateBounds
+        @Context eventDates: EventDateBounds,
     ): SongEntryByVocaDbTagForEvent
 
     private fun mapItems(
         songEntries: List<VocaDbSongEntryWithNndPvsAndTags>,
         nonDisabledPvs: Map<String, NndThumbnail>,
         tagMappings: Map<String, List<VocaDbTagMapping>>,
-        likelyFirstWorks: List<Long>
+        likelyFirstWorks: List<Long>,
     ): List<VocaDbSongEntryWithPvs> {
         return songEntries.map { entry ->
             VocaDbSongEntryWithPvs(
@@ -73,7 +69,7 @@ abstract class SongWithPvsMapper {
         songEntry: VocaDbSongEntryWithNndPvsAndTags,
         nonDisabledPvs: Map<String, NndThumbnail>,
         tagMappings: Map<String, List<VocaDbTagMapping>>,
-        likelyFirstWork: Boolean
+        likelyFirstWork: Boolean,
     ): List<PvWithSuggestedTags> {
         val entryTagIds = songEntry.tags.map { it.id }
         return songEntry.pvs.mapNotNull { pv ->
@@ -82,16 +78,18 @@ abstract class SongWithPvsMapper {
                 is NndThumbnailError -> null
 
                 is NndThumbnailOk -> {
-                    val tags = thumbnail.data.tags.asSequence()
-                        .mapNotNull { tagMappings[kata2hiraAndLowercase(it.name)] }
-                        .flatten()
-                        .map { VocaDbTagSelectable(it.tag, entryTagIds.contains(it.tag.id)) }
-                        .distinctBy { it.tag.id }
-                        .filter {
-                            songEntry.type.tagIsApplicable(it.tag)
-                                    && (likelyFirstWork || it.tag.id != FIRST_WORK_TAG_ID)
-                        }
-                        .toList()
+                    val tags =
+                        thumbnail.data.tags
+                            .asSequence()
+                            .mapNotNull { tagMappings[kata2hiraAndLowercase(it.name)] }
+                            .flatten()
+                            .map { VocaDbTagSelectable(it.tag, entryTagIds.contains(it.tag.id)) }
+                            .distinctBy { it.tag.id }
+                            .filter {
+                                songEntry.type.tagIsApplicable(it.tag) &&
+                                    (likelyFirstWork || it.tag.id != FIRST_WORK_TAG_ID)
+                            }
+                            .toList()
                     PvWithSuggestedTags(
                         AvailableNndVideo(
                             pv.id,
@@ -101,11 +99,11 @@ abstract class SongWithPvsMapper {
                                 NndTagData(
                                     it.name,
                                     if (tagMappings.containsKey(kata2hiraAndLowercase(it.name))) MAPPED else NONE,
-                                    it.locked
+                                    it.locked,
                                 )
-                            }
+                            },
                         ),
-                        tags
+                        tags,
                     )
                 }
             }
@@ -114,16 +112,12 @@ abstract class SongWithPvsMapper {
 
     private fun mapUnavailablePvs(
         songEntry: VocaDbSongEntryWithNndPvsAndTags,
-        nonDisabledPvs: Map<String, NndThumbnail>
+        nonDisabledPvs: Map<String, NndThumbnail>,
     ): List<UnavailableNndVideo> {
         return songEntry.pvs.mapNotNull { pv ->
             val thumbnail = nonDisabledPvs[pv.id] ?: return@mapNotNull null
             when (thumbnail) {
-                is NndThumbnailError -> UnavailableNndVideo(
-                    pv.id,
-                    pv.name,
-                    thumbnail.error.code
-                )
+                is NndThumbnailError -> UnavailableNndVideo(pv.id, pv.name, thumbnail.error.code)
 
                 is NndThumbnailOk -> null
             }

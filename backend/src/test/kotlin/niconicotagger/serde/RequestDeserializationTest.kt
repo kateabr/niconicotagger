@@ -1,6 +1,7 @@
 package niconicotagger.serde
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import java.time.Instant
 import niconicotagger.dto.api.misc.ApiType.ARTISTS
 import niconicotagger.dto.api.misc.ApiType.SONGS
 import niconicotagger.dto.api.misc.ClientType.VOCADB
@@ -26,7 +27,6 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments.arguments
 import org.junit.jupiter.params.provider.FieldSource
-import java.time.Instant
 
 class RequestDeserializationTest {
 
@@ -42,10 +42,11 @@ class RequestDeserializationTest {
     }
 
     companion object {
-        val testData = listOf(
-            arguments(
-                MassAddReleaseEventRequest::class.java,
-                """
+        val testData =
+            listOf(
+                arguments(
+                    MassAddReleaseEventRequest::class.java,
+                    """
                 {
                     "subRequests": [
                         {
@@ -58,20 +59,13 @@ class RequestDeserializationTest {
                     ],
                     "clientType": "vocadb"
                 }
-                """.trimIndent(),
-                MassAddReleaseEventRequest(
-                    listOf(
-                        AddReleaseEventRequest(
-                            1,
-                            ReleaseEvent(1, "name", null)
-                        )
-                    ),
-                    VOCADB
-                )
-            ),
-            arguments(
-                MassDeleteTagsRequest::class.java,
                 """
+                        .trimIndent(),
+                    MassAddReleaseEventRequest(listOf(AddReleaseEventRequest(1, ReleaseEvent(1, "name", null))), VOCADB),
+                ),
+                arguments(
+                    MassDeleteTagsRequest::class.java,
+                    """
                 {
                     "subRequests": [
                         {
@@ -91,53 +85,45 @@ class RequestDeserializationTest {
                     ],
                     "clientType": "vocadb_beta"
                 }
-                """.trimIndent(),
-                MassDeleteTagsRequest(
-                    listOf(
-                        DeleteTagsRequest(
-                            SONGS,
-                            1,
-                            listOf(VocaDbTag(1, "1"), VocaDbTag(2, "2"))
-                        )
-                    ),
-                    VOCADB_BETA
-                )
-            ),
-            arguments(
-                QueryConsoleRequest::class.java,
                 """
+                        .trimIndent(),
+                    MassDeleteTagsRequest(
+                        listOf(DeleteTagsRequest(SONGS, 1, listOf(VocaDbTag(1, "1"), VocaDbTag(2, "2")))),
+                        VOCADB_BETA,
+                    ),
+                ),
+                arguments(
+                    QueryConsoleRequest::class.java,
+                    """
                 {
                     "apiType": "artists",
                     "query": "getTotalCount=true&maxResults=1&tagId[]=158&tagId[]=3353&advancedFilters[0][filterType]=HasMedia&advancedFilters[0][negate]=true",
                     "clientType": "vocadb"
                 }
-                """.trimIndent(),
-                QueryConsoleRequest(
-                    ARTISTS,
-                    "getTotalCount=true&maxResults=1&tagId[]=158&tagId[]=3353&advancedFilters[0][filterType]=HasMedia&advancedFilters[0][negate]=true",
-                    VOCADB
-                )
-            ),
-            arguments(
-                SongsWithPvsRequest::class.java,
                 """
+                        .trimIndent(),
+                    QueryConsoleRequest(
+                        ARTISTS,
+                        "getTotalCount=true&maxResults=1&tagId[]=158&tagId[]=3353&advancedFilters[0][filterType]=HasMedia&advancedFilters[0][negate]=true",
+                        VOCADB,
+                    ),
+                ),
+                arguments(
+                    SongsWithPvsRequest::class.java,
+                    """
                 {
                     "startOffset": 0,
                     "maxResults": 10,
                     "orderBy": "AdditionDate",
                     "clientType": "vocadb"
                 }
-                """.trimIndent(),
-                SongsWithPvsRequest(
-                    0,
-                    10,
-                    AdditionDate,
-                    VOCADB
-                )
-            ),
-            arguments(
-                SongTagsAndPvsMassUpdateRequest::class.java,
                 """
+                        .trimIndent(),
+                    SongsWithPvsRequest(0, 10, AdditionDate, VOCADB),
+                ),
+                arguments(
+                    SongTagsAndPvsMassUpdateRequest::class.java,
+                    """
                 {
                     "subRequests": [
                         {
@@ -155,21 +141,16 @@ class RequestDeserializationTest {
                     ],
                     "clientType": "vocadb"
                 }
-                """.trimIndent(),
-                SongTagsAndPvsMassUpdateRequest(
-                    listOf(
-                        SongTagsAndPvsUpdateRequest(
-                            1,
-                            listOf(1),
-                            setOf(PvToDisable("id", "DELETED"))
-                        )
-                    ),
-                    VOCADB
-                )
-            ),
-            arguments(
-                VideosByNndTagsRequest::class.java,
                 """
+                        .trimIndent(),
+                    SongTagsAndPvsMassUpdateRequest(
+                        listOf(SongTagsAndPvsUpdateRequest(1, listOf(1), setOf(PvToDisable("id", "DELETED")))),
+                        VOCADB,
+                    ),
+                ),
+                arguments(
+                    VideosByNndTagsRequest::class.java,
+                    """
                 {
                     "tags": [
                         "ｱアあＡAａa１1",
@@ -181,19 +162,20 @@ class RequestDeserializationTest {
                     "orderBy": "viewCounter",
                     "clientType": "vocadb_beta"
                 }
-                """.trimIndent(),
-                VideosByNndTagsRequest(
-                    setOf("アアあAAaa11", "tag"),
-                    "イイいIIii11 ウウうUUuu11 OR エエえEEee11",
-                    0,
-                    100,
-                    VIEW_COUNT,
-                    VOCADB_BETA
-                )
-            ),
-            arguments(
-                VideosByNndEventTagsRequest::class.java,
                 """
+                        .trimIndent(),
+                    VideosByNndTagsRequest(
+                        setOf("アアあAAaa11", "tag"),
+                        "イイいIIii11 ウウうUUuu11 OR エエえEEee11",
+                        0,
+                        100,
+                        VIEW_COUNT,
+                        VOCADB_BETA,
+                    ),
+                ),
+                arguments(
+                    VideosByNndEventTagsRequest::class.java,
+                    """
                 {
                     "tags": [
                         "ｱアあＡAａa１1",
@@ -210,24 +192,25 @@ class RequestDeserializationTest {
                     },
                     "clientType": "vocadb_beta"
                 }
-                """.trimIndent(),
-                VideosByNndEventTagsRequest(
-                    setOf("アアあAAaa11", "tag"),
-                    "イイいIIii11 ウウうUUuu11 OR エエえEEee11",
-                    0,
-                    100,
-                    VIEW_COUNT,
-                    EventDateBounds(
-                        Instant.parse("2014-01-01T00:00:00Z"),
-                        Instant.parse("2014-01-02T00:00:00Z"),
-                        true
-                    ),
-                    VOCADB_BETA
-                )
-            ),
-            arguments(
-                VideosByVocaDbTagRequest::class.java,
                 """
+                        .trimIndent(),
+                    VideosByNndEventTagsRequest(
+                        setOf("アアあAAaa11", "tag"),
+                        "イイいIIii11 ウウうUUuu11 OR エエえEEee11",
+                        0,
+                        100,
+                        VIEW_COUNT,
+                        EventDateBounds(
+                            Instant.parse("2014-01-01T00:00:00Z"),
+                            Instant.parse("2014-01-02T00:00:00Z"),
+                            true,
+                        ),
+                        VOCADB_BETA,
+                    ),
+                ),
+                arguments(
+                    VideosByVocaDbTagRequest::class.java,
+                    """
                 {
                     "tag": "ｱアあＡAａa１1",
                     "scope": "  OR ｲイいＩIｉi１1 ｳウうＵUｕu１1 OR ｴエえＥEｅe１1   ",
@@ -236,16 +219,17 @@ class RequestDeserializationTest {
                     "orderBy": "viewCounter",
                     "clientType": "vocadb"
                 }
-                """.trimIndent(),
-                VideosByVocaDbTagRequest(
-                    "アアあAAaa11",
-                    "イイいIIii11 ウウうUUuu11 OR エエえEEee11",
-                    0,
-                    100,
-                    VIEW_COUNT,
-                    VOCADB
-                )
+                """
+                        .trimIndent(),
+                    VideosByVocaDbTagRequest(
+                        "アアあAAaa11",
+                        "イイいIIii11 ウウうUUuu11 OR エエえEEee11",
+                        0,
+                        100,
+                        VIEW_COUNT,
+                        VOCADB,
+                    ),
+                ),
             )
-        )
     }
 }

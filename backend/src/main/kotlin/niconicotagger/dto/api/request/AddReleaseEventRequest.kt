@@ -7,13 +7,9 @@ import niconicotagger.dto.api.misc.ReleaseEvent
 
 @JsonIgnoreProperties(ignoreUnknown = false)
 data class MassAddReleaseEventRequest(
-    @field:Valid
-    override val subRequests: List<AddReleaseEventRequest>,
-    override val clientType: ClientType
+    @field:Valid override val subRequests: List<AddReleaseEventRequest>,
+    override val clientType: ClientType,
 ) : MassUpdateRequest<AddReleaseEventRequest>
 
-data class AddReleaseEventRequest(
-    override val entryId: Long,
-    @field:Valid
-    override val event: ReleaseEvent
-) : ReleaseEventAdditionRequest
+data class AddReleaseEventRequest(override val entryId: Long, @field:Valid override val event: ReleaseEvent) :
+    ReleaseEventAdditionRequest

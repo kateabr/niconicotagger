@@ -8,10 +8,8 @@ import niconicotagger.serde.ArtistRoleStringDeserializer
 
 data class VocaDbEntryArtist(
     val isSupport: Boolean,
-    @JsonAlias("artist")
-    val artistEntryData: VocaDbArtistEntryData?,
-    @JsonDeserialize(using = ArtistRoleStringDeserializer::class)
-    val effectiveRoles: List<ArtistRole> = emptyList()
+    @JsonAlias("artist") val artistEntryData: VocaDbArtistEntryData?,
+    @JsonDeserialize(using = ArtistRoleStringDeserializer::class) val effectiveRoles: List<ArtistRole> = emptyList(),
 )
 
 data class VocaDbArtistEntryData(val id: Long, val name: String, val artistType: ArtistType)

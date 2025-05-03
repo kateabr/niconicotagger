@@ -16,27 +16,25 @@ class ExceptionHandling : ProblemHandling, AdviceTrait {
     @ExceptionHandler
     fun handleVocadbLoginException(
         exception: VocaDbLoginException,
-        request: NativeWebRequest
+        request: NativeWebRequest,
     ): ResponseEntity<Problem> {
-        val message = exception.errorData.errors[""]?.joinToString(", ")
-            ?: exception.errorData.errors.entries.filter { it.key.isNotBlank() }
-                .joinToString("; ") { "${it.key}: ${it.value}" }
-        return this.create(
-            exception,
-            Problem.valueOf(Status.valueOf(exception.errorData.status), message),
-            request
-        )
+        val message =
+            exception.errorData.errors[""]?.joinToString(", ")
+                ?: exception.errorData.errors.entries
+                    .filter { it.key.isNotBlank() }
+                    .joinToString("; ") { "${it.key}: ${it.value}" }
+        return this.create(exception, Problem.valueOf(Status.valueOf(exception.errorData.status), message), request)
     }
 
     @ExceptionHandler
     fun handleWebClientResponseException(
         exception: WebClientResponseException,
-        request: NativeWebRequest
+        request: NativeWebRequest,
     ): ResponseEntity<Problem> {
         return this.create(
             exception,
             Problem.valueOf(Status.valueOf(exception.statusCode.value()), exception.message),
-            request
+            request,
         )
     }
 }

@@ -6,5 +6,5 @@ enum class NndTagType(@JsonValue val color: FrontendColorCode) {
     TARGET(FrontendColorCode.PRIMARY),
     SCOPE(FrontendColorCode.INFO),
     MAPPED(FrontendColorCode.DARK),
-    NONE(FrontendColorCode.SECONDARY)
+    NONE(FrontendColorCode.SECONDARY),
 }

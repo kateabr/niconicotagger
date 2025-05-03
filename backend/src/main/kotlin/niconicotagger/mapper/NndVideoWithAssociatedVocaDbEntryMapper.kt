@@ -1,5 +1,6 @@
 package niconicotagger.mapper
 
+import java.time.Instant
 import niconicotagger.dto.api.misc.AvailableNndVideoWithAdditionalData
 import niconicotagger.dto.api.misc.EventDateBounds
 import niconicotagger.dto.api.misc.NndTagData
@@ -18,7 +19,6 @@ import org.mapstruct.Context
 import org.mapstruct.Mapper
 import org.mapstruct.Mapping
 import org.mapstruct.MappingConstants.ComponentModel.SPRING
-import java.time.Instant
 
 @Mapper(componentModel = SPRING, imports = [Utils::class])
 abstract class NndVideoWithAssociatedVocaDbEntryMapper {
@@ -32,7 +32,7 @@ abstract class NndVideoWithAssociatedVocaDbEntryMapper {
         @Context videoTagTypes: Map<String, NndTagType>,
         @Context description: String?,
         @Context resultingTagSet: List<VocaDbTagSelectable>,
-        @Context publisher: PublisherInfo?
+        @Context publisher: PublisherInfo?,
     ): NndVideoWithAssociatedVocaDbEntryForTag
 
     @Mapping(target = "video", expression = "java(mapVideo(video, videoTagTypes, description))")
@@ -46,7 +46,7 @@ abstract class NndVideoWithAssociatedVocaDbEntryMapper {
         @Context eventDates: EventDateBounds,
         @Context videoTagTypes: Map<String, NndTagType>,
         @Context description: String?,
-        @Context publisher: PublisherInfo?
+        @Context publisher: PublisherInfo?,
     ): NndVideoWithAssociatedVocaDbEntryForEvent
 
     @Mapping(target = "description", expression = "java(description)")
@@ -54,13 +54,13 @@ abstract class NndVideoWithAssociatedVocaDbEntryMapper {
     protected abstract fun mapVideo(
         video: NndVideoData,
         @Context videoTagTypes: Map<String, NndTagType>,
-        @Context description: String?
+        @Context description: String?,
     ): AvailableNndVideoWithAdditionalData
 
     @Mapping(target = "mappedTags", expression = "java(resultingTagSet)")
     protected abstract fun mapSongEntryForTag(
         songEntry: VocaDbSongEntryWithTags?,
-        @Context resultingTagSet: List<VocaDbTagSelectable>
+        @Context resultingTagSet: List<VocaDbTagSelectable>,
     ): SongEntryWithTagAssignmentInfo?
 
     protected abstract fun mapReleaseEvent(releaseEvent: VocaDbReleaseEvent, seriesId: Long?): ReleaseEvent

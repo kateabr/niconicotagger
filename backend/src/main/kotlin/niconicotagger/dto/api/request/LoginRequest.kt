@@ -8,5 +8,5 @@ import niconicotagger.dto.api.misc.ClientType
 data class LoginRequest(
     @field:NotBlank val userName: String,
     @field:NotBlank val password: String,
-    val clientType: ClientType
+    val clientType: ClientType,
 )

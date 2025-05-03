@@ -6,6 +6,8 @@ import io.netty.channel.ChannelOption.CONNECT_TIMEOUT_MILLIS
 import io.netty.handler.logging.LogLevel.INFO
 import io.netty.handler.timeout.ReadTimeoutHandler
 import io.netty.handler.timeout.WriteTimeoutHandler
+import java.time.Duration
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import niconicotagger.constants.Constants.COOKIE_HEADER_KEY
@@ -55,144 +57,147 @@ import reactor.netty.Connection
 import reactor.netty.http.client.HttpClient
 import reactor.netty.transport.logging.AdvancedByteBufFormat.TEXTUAL
 import reactor.util.retry.Retry
-import java.time.Duration
-import java.util.concurrent.TimeUnit
 
-
-/**
- * Swagger: https://vocadb.net/swagger/index.html
- */
+/** Swagger: https://vocadb.net/swagger/index.html */
 open class VocaDbClient(private val baseUrl: String, private val jsonMapper: JsonMapper) {
-    private val timeoutSeconds: Int = 45;
+    private val timeoutSeconds: Int = 45
 
-    private val client: WebClient = WebClient.builder()
-        .clientConnector(
-            ReactorClientHttpConnector(
-                HttpClient
-                    .create()
-                    .wiretap(this::class.java.getCanonicalName(), INFO, TEXTUAL)
-                    .option(CONNECT_TIMEOUT_MILLIS, timeoutSeconds * 1000)
-                    .doOnConnected { conn: Connection ->
-                        conn
-                            .addHandlerFirst(ReadTimeoutHandler(timeoutSeconds))
-                            .addHandlerFirst(WriteTimeoutHandler(timeoutSeconds))
-                    })
-        )
-        .baseUrl(baseUrl)
-        .defaultHeader(USER_AGENT, DEFAULT_USER_AGENT)
-        .defaultHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
-        .codecs { configurer -> configurer.defaultCodecs().maxInMemorySize(500 * 1024) }
-        .filter { request, next ->
-            next.exchange(request)
-                .retryWhen(
-                    Retry.fixedDelay(3, Duration.ofSeconds(2))
-                        .filter { it is InternalServerError })
-        }
-        .build()
+    private val client: WebClient =
+        WebClient.builder()
+            .clientConnector(
+                ReactorClientHttpConnector(
+                    HttpClient.create()
+                        .wiretap(this::class.java.getCanonicalName(), INFO, TEXTUAL)
+                        .option(CONNECT_TIMEOUT_MILLIS, timeoutSeconds * 1000)
+                        .doOnConnected { conn: Connection ->
+                            conn
+                                .addHandlerFirst(ReadTimeoutHandler(timeoutSeconds))
+                                .addHandlerFirst(WriteTimeoutHandler(timeoutSeconds))
+                        }
+                )
+            )
+            .baseUrl(baseUrl)
+            .defaultHeader(USER_AGENT, DEFAULT_USER_AGENT)
+            .defaultHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
+            .codecs { configurer -> configurer.defaultCodecs().maxInMemorySize(500 * 1024) }
+            .filter { request, next ->
+                next
+                    .exchange(request)
+                    .retryWhen(Retry.fixedDelay(3, Duration.ofSeconds(2)).filter { it is InternalServerError })
+            }
+            .build()
     private var maxTagMappingsToLoad = 10000
-    private val tagMappingsCache = Caffeine.newBuilder()
-        .expireAfterWrite(1, TimeUnit.HOURS)
-        .build<String, List<VocaDbTagMapping>>()
+    private val tagMappingsCache =
+        Caffeine.newBuilder().expireAfterWrite(1, TimeUnit.HOURS).build<String, List<VocaDbTagMapping>>()
 
     suspend fun login(username: String, password: String): MultiValueMap<String, String> {
         val loginPayload = mapOf("keepLoggedIn" to true, "userName" to username, "password" to password)
-//        val antiForgeryCookies = getAntiForgeryCookies()
+        //        val antiForgeryCookies = getAntiForgeryCookies()
 
-        val loginResponse = client.post()
-            .uri("/api/users/login")
-//            .cookies { it.addAll(antiForgeryCookies) }
-//            .contentType(APPLICATION_JSON)
-            .bodyValue(loginPayload)
-            .awaitExchange {
-                if (it.statusCode().is2xxSuccessful) DbLoginSuccess(it.cookies())
-                else if (it.statusCode().is4xxClientError) it.awaitBody(DbLoginError::class)
-                else throw it.createException().awaitSingle()
+        val loginResponse =
+            client
+                .post()
+                .uri("/api/users/login")
+                //            .cookies { it.addAll(antiForgeryCookies) }
+                //            .contentType(APPLICATION_JSON)
+                .bodyValue(loginPayload)
+                .awaitExchange {
+                    if (it.statusCode().is2xxSuccessful) DbLoginSuccess(it.cookies())
+                    else if (it.statusCode().is4xxClientError) it.awaitBody(DbLoginError::class)
+                    else throw it.createException().awaitSingle()
+                }
+
+        val cookies =
+            when (loginResponse) {
+                is DbLoginSuccess -> loginResponse.cookies
+                is DbLoginError -> throw VocaDbLoginException(loginResponse)
             }
-
-        val cookies = when (loginResponse) {
-            is DbLoginSuccess -> loginResponse.cookies
-            is DbLoginError -> throw VocaDbLoginException(loginResponse)
-        }
 
         if (!cookies.containsKey(COOKIE_HEADER_KEY)) error("Required cookies are not found")
 
         val clientCookies =
-            MultiValueMap.fromMultiValue(cookies.entries.associate { entry -> entry.key to entry.value.map { it.value } })
+            MultiValueMap.fromMultiValue(
+                cookies.entries.associate { entry -> entry.key to entry.value.map { it.value } }
+            )
         checkUser(clientCookies)
         return clientCookies
     }
 
     private suspend fun getAntiForgeryCookies(): MultiValueMap<String, String> {
-        val cookies = client.get()
-            .uri("/api/antiforgery/token")
-            .exchangeToMono { Mono.just(it.cookies()) }
-            .awaitSingle()
+        val cookies =
+            client.get().uri("/api/antiforgery/token").exchangeToMono { Mono.just(it.cookies()) }.awaitSingle()
         val antiForgeryToken = cookies["XSRF-TOKEN"]?.first()?.value ?: error("Failed to obtain anti-forgery token")
         return MultiValueMap.fromSingleValue(
             mapOf(
                 "requestVerificationToken" to antiForgeryToken,
                 "X-XSRF-TOKEN" to antiForgeryToken,
-                "Origin" to baseUrl
+                "Origin" to baseUrl,
             )
         )
     }
 
     private suspend fun checkUser(cookies: MultiValueMap<String, String>) {
-        client.get()
+        client
+            .get()
             .uri("/api/users/current")
             .cookies { it.addAll(cookies) }
             .retrieve()
             .toEntity(VocaDbUser::class.java)
             .awaitSingle()
             ?.body
-            ?.checkUserPermissions()
-            ?: error("Could not get user information")
+            ?.checkUserPermissions() ?: error("Could not get user information")
     }
 
     suspend fun getTagByName(name: String): VocaDbTag {
-        val searchResult = client.get()
-            .uri(
-                "/api/tags?query={query}&maxResults={maxResults}&getTotalCount=true",
-                mapOf("query" to name, "maxResults" to 1)
-            )
-            .retrieve()
-            .toEntity(VocaDbTagSearchResult::class.java)
-            .awaitSingle()
-            .body
-            ?: error("Tag \"$name\" not found")
+        val searchResult =
+            client
+                .get()
+                .uri(
+                    "/api/tags?query={query}&maxResults={maxResults}&getTotalCount=true",
+                    mapOf("query" to name, "maxResults" to 1),
+                )
+                .retrieve()
+                .toEntity(VocaDbTagSearchResult::class.java)
+                .awaitSingle()
+                .body ?: error("Tag \"$name\" not found")
 
-        if (searchResult.totalCount != 1L) error("Received incorrect number of tags: expected 1, but found ${searchResult.totalCount} (ids=${searchResult.items.map { it.id }})")
+        if (searchResult.totalCount != 1L)
+            error(
+                "Received incorrect number of tags: expected 1, but found ${searchResult.totalCount} (ids=${searchResult.items.map { it.id }})"
+            )
 
         return searchResult.items[0]
     }
 
     suspend fun getTagUsages(apiType: ApiType, id: Long, cookie: String): VocaDbTagUsages {
-        return client.get()
+        return client
+            .get()
             .uri("/api/{apiType}/{id}/tagUsages", mapOf("apiType" to apiType, "id" to id))
             .cookies { it.add(COOKIE_HEADER_KEY, cookie) }
             .retrieve()
             .toEntity(VocaDbTagUsages::class.java)
             .awaitSingle()
-            ?.body
-            ?: error("Could not get tag usages for S/$id")
+            ?.body ?: error("Could not get tag usages for S/$id")
     }
 
     suspend fun deleteTagUsage(apiType: ApiType, tagUsageId: Long, cookie: String) {
-            client.delete()
-                .uri(
-                    "/api/users/current/{tagType}/{tagUsageId}",
-                    mapOf("tagType" to apiType.tagType, "tagUsageId" to tagUsageId)
-                )
-                .cookies { it.add(COOKIE_HEADER_KEY, cookie) }
-                .exchangeToMono { if (it.statusCode().is2xxSuccessful) it.releaseBody() else it.createError() }
-                .awaitSingleOrNull()
+        client
+            .delete()
+            .uri(
+                "/api/users/current/{tagType}/{tagUsageId}",
+                mapOf("tagType" to apiType.tagType, "tagUsageId" to tagUsageId),
+            )
+            .cookies { it.add(COOKIE_HEADER_KEY, cookie) }
+            .exchangeToMono { if (it.statusCode().is2xxSuccessful) it.releaseBody() else it.createError() }
+            .awaitSingleOrNull()
     }
 
     suspend fun getEventByName(name: String, fields: String): VocaDbReleaseEvent {
-        return client.get()
+        return client
+            .get()
             .uri(
                 "/api/releaseEvents?query={query}&lang=Default&fields=$fields&nameMatchMode=Exact&maxResults=1&getTotalCount=true",
-                mapOf("query" to name)
+                mapOf("query" to name),
             )
             .retrieve()
             .toEntity(VocaDbReleaseEventSearchResult::class.java)
@@ -200,36 +205,38 @@ open class VocaDbClient(private val baseUrl: String, private val jsonMapper: Jso
             .body
             ?.also {
                 if (it.totalCount != 1L)
-                    error("Received incorrect number of events: expected 1, but found ${it.totalCount} (ids=${it.items.map { item -> item.id }})")
+                    error(
+                        "Received incorrect number of events: expected 1, but found ${it.totalCount} (ids=${it.items.map { item -> item.id }})"
+                    )
             }
             ?.items
-            ?.first()
-            ?: error("Event \"$name\" not found")
+            ?.first() ?: error("Event \"$name\" not found")
     }
 
     suspend fun getEventSeriesById(id: Long, fields: String = "None"): VocaDbReleaseEventSeries {
-        return client.get()
+        return client
+            .get()
             .uri("/api/releaseEventSeries/{id}?fields={fields}", mapOf("id" to id, "fields" to fields))
             .retrieve()
             .toEntity(VocaDbReleaseEventSeries::class.java)
             .awaitSingle()
-            .body
-            ?: error("Event series id=$id not found")
+            .body ?: error("Event series id=$id not found")
     }
 
     suspend fun getSongForEdit(id: Long, cookie: String): MutableMap<String, Any> {
-        return client.get()
+        return client
+            .get()
             .uri("/api/songs/{id}/for-edit", id)
             .cookies { it.add(COOKIE_HEADER_KEY, cookie) }
             .retrieve()
             .toEntity(object : ParameterizedTypeReference<MutableMap<String, Any>>() {})
             .awaitSingle()
-            .body
-            ?: error("Failed to load song S/$id for editing")
+            .body ?: error("Failed to load song S/$id for editing")
     }
 
     suspend fun saveSong(id: Long, songData: Map<String, Any>, cookie: String) {
-        client.post()
+        client
+            .post()
             .uri("/api/songs/{id}", id)
             .contentType(APPLICATION_FORM_URLENCODED)
             .cookies { it.add(COOKIE_HEADER_KEY, cookie) }
@@ -244,16 +251,17 @@ open class VocaDbClient(private val baseUrl: String, private val jsonMapper: Jso
             if (cached != null) return cached
         }
         while (true) {
-            val response = client.get()
-                .uri(
-                    "/api/tags/mappings?start=0&maxEntries={maxEntries}&getTotalCount=true",
-                    mapOf("maxEntries" to maxTagMappingsToLoad)
-                )
-                .retrieve()
-                .toEntity<VocaDbTagMappings>()
-                .awaitSingle()
-                .body
-                ?: error("Failed to load tag mappings")
+            val response =
+                client
+                    .get()
+                    .uri(
+                        "/api/tags/mappings?start=0&maxEntries={maxEntries}&getTotalCount=true",
+                        mapOf("maxEntries" to maxTagMappingsToLoad),
+                    )
+                    .retrieve()
+                    .toEntity<VocaDbTagMappings>()
+                    .awaitSingle()
+                    .body ?: error("Failed to load tag mappings")
 
             if (response.totalCount > response.items.size) {
                 maxTagMappingsToLoad += 1000
@@ -266,10 +274,9 @@ open class VocaDbClient(private val baseUrl: String, private val jsonMapper: Jso
     }
 
     suspend fun <T : VocaDbSongEntryBase> getSongByNndPv(pvId: String, fields: String, responseClass: Class<T>): T? {
-        return client.get()
-            .uri(
-                "/api/songs/byPv?pvId=$pvId&pvService=NicoNicoDouga&fields=$fields"
-            )
+        return client
+            .get()
+            .uri("/api/songs/byPv?pvId=$pvId&pvService=NicoNicoDouga&fields=$fields")
             .retrieve()
             .toEntity(responseClass)
             .awaitSingle()
@@ -277,7 +284,8 @@ open class VocaDbClient(private val baseUrl: String, private val jsonMapper: Jso
     }
 
     suspend fun getArtistByQuery(query: String): VocaDbArtist? {
-        return client.get()
+        return client
+            .get()
             .uri("/api/artists?query={query}", mapOf("query" to query))
             .retrieve()
             .toEntity(VocaDbArtistSearchResult::class.java)
@@ -288,34 +296,30 @@ open class VocaDbClient(private val baseUrl: String, private val jsonMapper: Jso
     }
 
     suspend fun findArtistDuplicate(linkUrl: String): VocaDbArtist? {
-        return (client.post()
-            .uri("/Artist/FindDuplicate")
-            .contentType(APPLICATION_FORM_URLENCODED)
-            .body(
-                fromFormData(
-                    MultiValueMap.fromSingleValue(
-                        mapOf(
-                            "term1" to "",
-                            "term2" to "",
-                            "term3" to "",
-                            "linkUrl" to linkUrl
+        return (client
+                .post()
+                .uri("/Artist/FindDuplicate")
+                .contentType(APPLICATION_FORM_URLENCODED)
+                .body(
+                    fromFormData(
+                        MultiValueMap.fromSingleValue(
+                            mapOf("term1" to "", "term2" to "", "term3" to "", "linkUrl" to linkUrl)
                         )
                     )
                 )
-            )
-            .retrieve()
-            .toEntity(artistDuplicateResponseTypeReference)
-            .awaitSingle()
-            .body
-            ?: error("Could not check if \"$linkUrl\" is already associated with any artist"))
+                .retrieve()
+                .toEntity(artistDuplicateResponseTypeReference)
+                .awaitSingle()
+                .body ?: error("Could not check if \"$linkUrl\" is already associated with any artist"))
             .let { if (it.isEmpty()) null else VocaDbArtist(it[0].entry.id, it[0].entry.name.displayName) }
     }
 
     suspend fun artistHasSongsBeforeDate(artistId: Long, timestamp: String): Boolean {
-        return client.get()
+        return client
+            .get()
             .uri(
                 "/api/songs?artistId[]={artistId}&beforeDate={beforeDate}&maxResults=1&getTotalCount=true",
-                mapOf("artistId" to artistId, "beforeDate" to timestamp)
+                mapOf("artistId" to artistId, "beforeDate" to timestamp),
             )
             .retrieve()
             .toEntity(SimpleSearchResult::class.java)
@@ -326,37 +330,37 @@ open class VocaDbClient(private val baseUrl: String, private val jsonMapper: Jso
     }
 
     suspend fun getSongTags(songId: Long, cookie: String): List<VocaDbTagSelectable> {
-        return client.get()
+        return client
+            .get()
             .uri("/api/users/current/songTags/{songId}", mapOf("songId" to songId))
             .cookies { it.add(COOKIE_HEADER_KEY, cookie) }
             .retrieve()
             .toEntityList(VocaDbTagSelectable::class.java)
             .awaitSingle()
-            ?.body
-            ?: error("Could not load currently selected tags for entry S/$songId")
+            ?.body ?: error("Could not load currently selected tags for entry S/$songId")
     }
 
     suspend fun assignSongTags(songId: Long, tags: List<VocaDbTag>, cookie: String) {
-        client.put()
+        client
+            .put()
             .uri("/api/users/current/songTags/{songId}", mapOf("songId" to songId))
             .cookies { it.add(COOKIE_HEADER_KEY, cookie) }
             .bodyValue(tags)
             .retrieve()
             .toBodilessEntity()
-            .retryWhen(
-                Retry.backoff(5, Duration.ofSeconds(1))
-                    .filter { it is InternalServerError })
-            .awaitSingleOrNull()
-            ?: error("Could not assign tags $tags to entry S/$songId")
+            .retryWhen(Retry.backoff(5, Duration.ofSeconds(1)).filter { it is InternalServerError })
+            .awaitSingleOrNull() ?: error("Could not assign tags $tags to entry S/$songId")
     }
 
     suspend fun getDataWithTagsByCustomQuery(
         apiType: ApiType,
-        query: String
+        query: String,
     ): VocaDbCustomQuerySearchResult<out VocaDbCustomQueryData> {
-        return client.get()
+        return client
+            .get()
             .uri { uri ->
-                uri.path("/api").path("/$apiType")
+                uri.path("/api")
+                    .path("/$apiType")
                     .queryParam("fields", "Tags")
                     .queryParam("getTotalCount", "true")
                     .query(query)
@@ -370,8 +374,7 @@ open class VocaDbClient(private val baseUrl: String, private val jsonMapper: Jso
                 }
             )
             .awaitSingle()
-            ?.body
-            ?: error("Could not load data")
+            ?.body ?: error("Could not load data")
     }
 
     suspend fun getSongs(
@@ -380,21 +383,22 @@ open class VocaDbClient(private val baseUrl: String, private val jsonMapper: Jso
         orderBy: VocaDbSortOrder,
         additionalParams: Map<String, Any>,
     ): VocaDbSongEntryWithNndPvsAndTagsSearchResult {
-        return (client.get()
+        return (client
+            .get()
             .uri { uri ->
-                val builder = uri.path("/api/songs")
-                    .queryParam("start", startOffset)
-                    .queryParam("maxResults", maxResults)
-                    .queryParam("sort", orderBy)
-                    .queryParam("getTotalCount", true)
+                val builder =
+                    uri.path("/api/songs")
+                        .queryParam("start", startOffset)
+                        .queryParam("maxResults", maxResults)
+                        .queryParam("sort", orderBy)
+                        .queryParam("getTotalCount", true)
                 additionalParams.forEach { (param, value) -> builder.queryParam(param, value) }
                 builder.build()
             }
             .retrieve()
             .toEntity(VocaDbSongEntryWithNndPvsAndTagsSearchResult::class.java)
             .awaitSingle()
-            ?.body
-            ?: error("Could not load songs"))
+            ?.body ?: error("Could not load songs"))
     }
 
     companion object {
@@ -408,5 +412,4 @@ open class VocaDbClient(private val baseUrl: String, private val jsonMapper: Jso
 
         private data class SimpleSearchResult(val totalCount: Long)
     }
-
 }

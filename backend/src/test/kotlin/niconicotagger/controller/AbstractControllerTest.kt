@@ -1,9 +1,9 @@
 package niconicotagger.controller
 
-import AbstractApplicationContextTest
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension
 import jakarta.servlet.http.Cookie
+import niconicotagger.AbstractApplicationContextTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.extension.RegisterExtension
 import org.springframework.beans.factory.annotation.Autowired
@@ -20,8 +20,7 @@ import org.springframework.test.web.servlet.post
 @AutoConfigureMockMvc
 @DirtiesContext(classMode = BEFORE_CLASS)
 abstract class AbstractControllerTest : AbstractApplicationContextTest() {
-    @Autowired
-    lateinit var mockMvc: MockMvc
+    @Autowired lateinit var mockMvc: MockMvc
 
     @BeforeEach
     fun resetWiremock() {
@@ -32,24 +31,25 @@ abstract class AbstractControllerTest : AbstractApplicationContextTest() {
         request: String,
         expectedResponse: String,
         uriPath: String,
-        cookie: Cookie? = null
+        cookie: Cookie? = null,
     ) {
-        mockMvc.post("/api$uriPath") {
-            contentType = APPLICATION_JSON
-            content = request
-            cookie?.let { cookie(it) }
-        }.andExpect {
-            status { is4xxClientError() }
-            content { json(expectedResponse, STRICT) }
-        }
+        mockMvc
+            .post("/api$uriPath") {
+                contentType = APPLICATION_JSON
+                content = request
+                cookie?.let { cookie(it) }
+            }
+            .andExpect {
+                status { is4xxClientError() }
+                content { json(expectedResponse, STRICT) }
+            }
     }
 
     companion object {
         @JvmStatic
         @RegisterExtension
-        val wireMockExtension: WireMockExtension = WireMockExtension.newInstance()
-            .options(wireMockConfig().dynamicPort())
-            .build()
+        val wireMockExtension: WireMockExtension =
+            WireMockExtension.newInstance().options(wireMockConfig().dynamicPort()).build()
 
         @DynamicPropertySource
         @JvmStatic

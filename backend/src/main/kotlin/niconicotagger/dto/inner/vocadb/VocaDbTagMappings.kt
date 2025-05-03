@@ -6,7 +6,6 @@ import niconicotagger.serde.StringNormalizingDeserializer
 data class VocaDbTagMappings(val items: List<VocaDbTagMapping>, val totalCount: Long)
 
 data class VocaDbTagMapping(
-    @JsonDeserialize(using = StringNormalizingDeserializer::class)
-    val sourceTag: String,
-    val tag: VocaDbTag
+    @JsonDeserialize(using = StringNormalizingDeserializer::class) val sourceTag: String,
+    val tag: VocaDbTag,
 )

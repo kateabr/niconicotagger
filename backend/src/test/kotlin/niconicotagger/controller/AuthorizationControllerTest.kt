@@ -29,65 +29,68 @@ import org.springframework.test.web.servlet.post
 class AuthorizationControllerTest : AbstractControllerTest() {
 
     @Test
-    fun `login test (success)`(
-        @Given userName: String,
-        @Given password: String,
-        @Given cookie: String
-    ): Unit = runBlocking {
-        wireMockExtension.stubFor(
-            post(urlPathEqualTo("/api/users/login"))
-                .withRequestBody(
-                    equalToJson(
-                        """
+    fun `login test (success)`(@Given userName: String, @Given password: String, @Given cookie: String): Unit =
+        runBlocking {
+            wireMockExtension.stubFor(
+                post(urlPathEqualTo("/api/users/login"))
+                    .withRequestBody(
+                        equalToJson(
+                            """
                     {
                       "userName": "$userName",
                       "password": "$password",
                       "keepLoggedIn": true
                     }
-                    """.trimIndent()
+                    """
+                                .trimIndent()
+                        )
                     )
-                )
-                .withHeader(CONTENT_TYPE, equalTo(APPLICATION_JSON_VALUE))
-                .withHeader(USER_AGENT, equalTo(DEFAULT_USER_AGENT))
-                .willReturn(ok().withHeader(SET_COOKIE, "$COOKIE_HEADER_KEY=$cookie"))
-        )
-        wireMockExtension.stubFor(
-            get("/api/users/current")
-                .withCookie(COOKIE_HEADER_KEY, equalTo(cookie))
-                .withHeader(USER_AGENT, equalTo(DEFAULT_USER_AGENT))
-                .willReturn(
-                    okJson(
-                        """
+                    .withHeader(CONTENT_TYPE, equalTo(APPLICATION_JSON_VALUE))
+                    .withHeader(USER_AGENT, equalTo(DEFAULT_USER_AGENT))
+                    .willReturn(ok().withHeader(SET_COOKIE, "$COOKIE_HEADER_KEY=$cookie"))
+            )
+            wireMockExtension.stubFor(
+                get("/api/users/current")
+                    .withCookie(COOKIE_HEADER_KEY, equalTo(cookie))
+                    .withHeader(USER_AGENT, equalTo(DEFAULT_USER_AGENT))
+                    .willReturn(
+                        okJson(
+                            """
                     {
                       "active": true,
                       "groupId": "Trusted"
                     }
-                """.trimIndent()
+                """
+                                .trimIndent()
+                        )
                     )
-                )
-        )
+            )
 
-        mockMvc.post("/api/authorize") {
-            contentType = APPLICATION_JSON
-            content = """
+            mockMvc
+                .post("/api/authorize") {
+                    contentType = APPLICATION_JSON
+                    content =
+                        """
                 {
                   "userName": "$userName",
                   "password": "$password",
                   "clientType": "$VOCADB_BETA"
                 }
-                 """.trimIndent()
-        }.asyncDispatch()
-            .andExpect {
-                status { isOk() }
-                cookie { value(COOKIE_HEADER_KEY, cookie) }
-            }
-    }
+                 """
+                            .trimIndent()
+                }
+                .asyncDispatch()
+                .andExpect {
+                    status { isOk() }
+                    cookie { value(COOKIE_HEADER_KEY, cookie) }
+                }
+        }
 
     @Test
     fun `login test (error, db unavailable)`(
         @Given userName: String,
         @Given password: String,
-        @Given cookie: String
+        @Given cookie: String,
     ): Unit = runBlocking {
         wireMockExtension.stubFor(
             post(urlPathEqualTo("/api/users/login"))
@@ -99,7 +102,8 @@ class AuthorizationControllerTest : AbstractControllerTest() {
                       "password": "$password",
                       "keepLoggedIn": true
                     }
-                    """.trimIndent()
+                    """
+                            .trimIndent()
                     )
                 )
                 .withHeader(CONTENT_TYPE, equalTo(APPLICATION_JSON_VALUE))
@@ -107,16 +111,20 @@ class AuthorizationControllerTest : AbstractControllerTest() {
                 .willReturn(serviceUnavailable())
         )
 
-        mockMvc.post("/api/authorize") {
-            contentType = APPLICATION_JSON
-            content = """
+        mockMvc
+            .post("/api/authorize") {
+                contentType = APPLICATION_JSON
+                content =
+                    """
                 {
                   "userName": "$userName",
                   "password": "$password",
                   "clientType": "$VOCADB_BETA"
                 }
-                 """.trimIndent()
-        }.asyncDispatch()
+                 """
+                        .trimIndent()
+            }
+            .asyncDispatch()
             .andExpect {
                 status { isServiceUnavailable() }
                 content {
@@ -127,8 +135,9 @@ class AuthorizationControllerTest : AbstractControllerTest() {
                           "status": 503,
                           "detail": "503 Service Unavailable from POST ${wireMockExtension.runtimeInfo.httpBaseUrl}/api/users/login"
                         }
-                        """.trimIndent(),
-                        STRICT
+                        """
+                            .trimIndent(),
+                        STRICT,
                     )
                 }
                 cookie { doesNotExist(COOKIE_HEADER_KEY) }
@@ -139,7 +148,7 @@ class AuthorizationControllerTest : AbstractControllerTest() {
     fun `login test (error, incorrect user credentials)`(
         @Given userName: String,
         @Given password: String,
-        @Given cookie: String
+        @Given cookie: String,
     ): Unit = runBlocking {
         wireMockExtension.stubFor(
             post(urlPathEqualTo("/api/users/login"))
@@ -151,7 +160,8 @@ class AuthorizationControllerTest : AbstractControllerTest() {
                       "password": "$password",
                       "keepLoggedIn": true
                     }
-                    """.trimIndent()
+                    """
+                            .trimIndent()
                     )
                 )
                 .withHeader(CONTENT_TYPE, equalTo(APPLICATION_JSON_VALUE))
@@ -171,22 +181,27 @@ class AuthorizationControllerTest : AbstractControllerTest() {
                               "status": 400,
                               "traceId": "00-a63eda555adb2184bc5299a123de32d1-039f365b64f95314-00"
                             }
-                            """.trimIndent()
+                            """
+                                .trimIndent()
                         )
                         .withHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
                 )
         )
 
-        mockMvc.post("/api/authorize") {
-            contentType = APPLICATION_JSON
-            content = """
+        mockMvc
+            .post("/api/authorize") {
+                contentType = APPLICATION_JSON
+                content =
+                    """
                 {
                   "userName": "$userName",
                   "password": "$password",
                   "clientType": "$VOCADB_BETA"
                 }
-                 """.trimIndent()
-        }.asyncDispatch()
+                 """
+                        .trimIndent()
+            }
+            .asyncDispatch()
             .andExpect {
                 status { isBadRequest() }
                 content {
@@ -197,8 +212,9 @@ class AuthorizationControllerTest : AbstractControllerTest() {
                           "status": 400,
                           "detail": "Username or password doesn't match"
                         }
-                        """.trimIndent(),
-                        STRICT
+                        """
+                            .trimIndent(),
+                        STRICT,
                     )
                 }
                 cookie { doesNotExist(COOKIE_HEADER_KEY) }
@@ -207,41 +223,43 @@ class AuthorizationControllerTest : AbstractControllerTest() {
 
     @ParameterizedTest
     @FieldSource("errorTestData")
-    fun `login test (invalid request)`(
-        requestJson: String,
-        responseJson: String
-    ): Unit = runBlocking {
-        mockMvc.post("/api/authorize") {
-            contentType = APPLICATION_JSON
-            content = requestJson
-        }.andExpect {
-            status { is4xxClientError() }
-            content { json(responseJson, STRICT) }
-        }
+    fun `login test (invalid request)`(requestJson: String, responseJson: String): Unit = runBlocking {
+        mockMvc
+            .post("/api/authorize") {
+                contentType = APPLICATION_JSON
+                content = requestJson
+            }
+            .andExpect {
+                status { is4xxClientError() }
+                content { json(responseJson, STRICT) }
+            }
     }
 
     companion object {
-        val errorTestData = listOf(
-            argumentSet(
-                "empty request",
-                "",
-                """
+        val errorTestData =
+            listOf(
+                argumentSet(
+                    "empty request",
+                    "",
+                    """
                 {
                   "title": "Bad Request",
                   "status": 400,
                   "detail": "Required request body is missing: public java.lang.Object niconicotagger.controller.AuthorizationController.login(niconicotagger.dto.api.request.LoginRequest,jakarta.servlet.http.HttpServletResponse,kotlin.coroutines.Continuation<? super kotlin.Unit>)"
-                }""".trimIndent()
-            ),
-            argumentSet(
-                "empty user data",
-                """
+                }"""
+                        .trimIndent(),
+                ),
+                argumentSet(
+                    "empty user data",
+                    """
                 {
                   "userName": "",
                   "password": "",
                   "clientType": "vocadb_beta"
                 }
-                 """.trimIndent(),
-                """
+                 """
+                        .trimIndent(),
+                    """
                 {
                   "type": "https://zalando.github.io/problem/constraint-violation",
                   "status": 400,
@@ -256,9 +274,9 @@ class AuthorizationControllerTest : AbstractControllerTest() {
                     }
                   ],
                   "title": "Constraint Violation"
-                }""".trimIndent()
+                }"""
+                        .trimIndent(),
+                ),
             )
-        )
     }
-
 }

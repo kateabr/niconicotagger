@@ -14,7 +14,7 @@ data class QueryConsoleArtistData(
     override val id: Long,
     override val name: String,
     override val tags: List<VocaDbTag>,
-    val type: ArtistType
+    val type: ArtistType,
 ) : QueryConsoleData
 
 data class QueryConsoleSongData(
@@ -22,5 +22,5 @@ data class QueryConsoleSongData(
     override val name: String,
     override val tags: List<VocaDbTag>,
     val type: SongType,
-    val artistString: String
+    val artistString: String,
 ) : QueryConsoleData

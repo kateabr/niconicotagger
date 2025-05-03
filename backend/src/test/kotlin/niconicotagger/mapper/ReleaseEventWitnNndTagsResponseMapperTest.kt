@@ -1,5 +1,6 @@
 package niconicotagger.mapper
 
+import java.util.stream.Stream
 import niconicotagger.dto.api.response.ReleaseEventWithVocaDbTagsResponse
 import niconicotagger.dto.api.response.ReleaseEventWitnNndTagsResponse
 import niconicotagger.dto.inner.misc.ReleaseEventCategory
@@ -23,7 +24,6 @@ import org.junit.jupiter.params.provider.ArgumentsProvider
 import org.junit.jupiter.params.provider.ArgumentsSource
 import org.junit.jupiter.params.provider.FieldSource
 import org.mapstruct.factory.Mappers
-import java.util.stream.Stream
 
 @ExtendWith(InstancioExtension::class)
 class ReleaseEventWitnNndTagsResponseMapperTest {
@@ -33,13 +33,11 @@ class ReleaseEventWitnNndTagsResponseMapperTest {
     @FieldSource("tagExtractionTestData")
     fun `NND tag extraction test`(link: WebLink, expectedTags: List<String>) {
         assertThat(
-            mapper.mapWithLinks(
-                Instancio.of(VocaDbReleaseEvent::class.java)
-                    .set(field("webLinks"), listOf(link))
-                    .create(),
-                null
+                mapper.mapWithLinks(
+                    Instancio.of(VocaDbReleaseEvent::class.java).set(field("webLinks"), listOf(link)).create(),
+                    null,
+                )
             )
-        )
             .extracting { it.nndTags }
             .asInstanceOf(list(String::class.java))
             .containsExactlyInAnyOrderElementsOf(expectedTags)
@@ -50,7 +48,7 @@ class ReleaseEventWitnNndTagsResponseMapperTest {
     fun `link aggregation test`(
         event: VocaDbReleaseEvent,
         series: VocaDbReleaseEventSeries?,
-        expectedTags: List<String>
+        expectedTags: List<String>,
     ) {
         assertThat(mapper.mapWithLinks(event, series))
             .extracting { it.nndTags }
@@ -65,7 +63,7 @@ class ReleaseEventWitnNndTagsResponseMapperTest {
         series: VocaDbReleaseEventSeries?,
         expectedCategory: ReleaseEventCategory,
         expectedFilteringFlag: Boolean,
-        @Given vocadbTagId: Long
+        @Given vocadbTagId: Long,
     ) {
         assertThat(mapper.mapWithTags(event, series))
             .usingRecursiveComparison()
@@ -76,7 +74,7 @@ class ReleaseEventWitnNndTagsResponseMapperTest {
                     event.endDate,
                     event.name,
                     expectedCategory,
-                    event.tags
+                    event.tags,
                 )
             )
     }
@@ -87,7 +85,7 @@ class ReleaseEventWitnNndTagsResponseMapperTest {
         event: VocaDbReleaseEvent,
         series: VocaDbReleaseEventSeries?,
         expectedCategory: ReleaseEventCategory,
-        expectedFilteringFlag: Boolean
+        expectedFilteringFlag: Boolean,
     ) {
         assertThat(mapper.mapWithLinks(event, series))
             .usingRecursiveComparison()
@@ -100,183 +98,168 @@ class ReleaseEventWitnNndTagsResponseMapperTest {
                     event.name,
                     expectedCategory,
                     expectedFilteringFlag,
-                    emptyList(),     // checked in `NND tag extraction test`
-                    event.seriesId
+                    emptyList(), // checked in `NND tag extraction test`
+                    event.seriesId,
                 )
             )
     }
 
     companion object {
-        val tagExtractionTestData = listOf(
-            argumentSet(
-                "no schema, host: nicovideo.jp",
-                WebLink("nicovideo.jp/tag/%E9%87%8D%E9%9F%B3%E3%83%86%E3%83%88%E8%AA%95%E7%94%9F%E7%A5%AD"),
-                listOf("重音テト誕生祭")
-            ),
-            argumentSet(
-                "no schema, host: www.nicovideo.jp",
-                WebLink("www.nicovideo.jp/tag/%E9%87%8D%E9%9F%B3%E3%83%86%E3%83%88%E8%AA%95%E7%94%9F%E7%A5%AD"),
-                listOf("重音テト誕生祭")
-            ),
-            argumentSet(
-                "schema: http",
-                WebLink("http://www.nicovideo.jp/tag/%E9%87%8D%E9%9F%B3%E3%83%86%E3%83%88%E8%AA%95%E7%94%9F%E7%A5%AD"),
-                listOf("重音テト誕生祭")
-            ),
-            argumentSet(
-                "schema: https",
-                WebLink("https://www.nicovideo.jp/tag/%E9%87%8D%E9%9F%B3%E3%83%86%E3%83%88%E8%AA%95%E7%94%9F%E7%A5%AD"),
-                listOf("重音テト誕生祭")
-            ),
-            argumentSet(
-                "random params in the end",
-                WebLink("https://www.nicovideo.jp/tag/%E9%87%8D%E9%9F%B3%E3%83%86%E3%83%88%E8%AA%95%E7%94%9F%E7%A5%AD?rf=nvpc&rp=watch&ra=content_tree&rd=content_tree_children"),
-                listOf("重音テト誕生祭")
-            ),
-            argumentSet(
-                "name starts with a hashtag (#)",
-                WebLink("https://www.nicovideo.jp/tag/%23some_event"),
-                listOf("#some_event")
-            ),
-            argumentSet(
-                "not a tag link",
-                WebLink("https://www.nicovideo.jp/watch/sm12345"),
-                emptyList<String>()
-            ),
-            argumentSet(
-                "not an NND link",
-                WebLink("https://piapro.jp"),
-                emptyList<String>()
+        val tagExtractionTestData =
+            listOf(
+                argumentSet(
+                    "no schema, host: nicovideo.jp",
+                    WebLink("nicovideo.jp/tag/%E9%87%8D%E9%9F%B3%E3%83%86%E3%83%88%E8%AA%95%E7%94%9F%E7%A5%AD"),
+                    listOf("重音テト誕生祭"),
+                ),
+                argumentSet(
+                    "no schema, host: www.nicovideo.jp",
+                    WebLink("www.nicovideo.jp/tag/%E9%87%8D%E9%9F%B3%E3%83%86%E3%83%88%E8%AA%95%E7%94%9F%E7%A5%AD"),
+                    listOf("重音テト誕生祭"),
+                ),
+                argumentSet(
+                    "schema: http",
+                    WebLink(
+                        "http://www.nicovideo.jp/tag/%E9%87%8D%E9%9F%B3%E3%83%86%E3%83%88%E8%AA%95%E7%94%9F%E7%A5%AD"
+                    ),
+                    listOf("重音テト誕生祭"),
+                ),
+                argumentSet(
+                    "schema: https",
+                    WebLink(
+                        "https://www.nicovideo.jp/tag/%E9%87%8D%E9%9F%B3%E3%83%86%E3%83%88%E8%AA%95%E7%94%9F%E7%A5%AD"
+                    ),
+                    listOf("重音テト誕生祭"),
+                ),
+                argumentSet(
+                    "random params in the end",
+                    WebLink(
+                        "https://www.nicovideo.jp/tag/%E9%87%8D%E9%9F%B3%E3%83%86%E3%83%88%E8%AA%95%E7%94%9F%E7%A5%AD?rf=nvpc&rp=watch&ra=content_tree&rd=content_tree_children"
+                    ),
+                    listOf("重音テト誕生祭"),
+                ),
+                argumentSet(
+                    "name starts with a hashtag (#)",
+                    WebLink("https://www.nicovideo.jp/tag/%23some_event"),
+                    listOf("#some_event"),
+                ),
+                argumentSet("not a tag link", WebLink("https://www.nicovideo.jp/watch/sm12345"), emptyList<String>()),
+                argumentSet("not an NND link", WebLink("https://piapro.jp"), emptyList<String>()),
             )
-        )
 
-        val linkAggregationTestData = listOf(
-            argumentSet(
-                "suitable links in both event and series",
-                Instancio.of(VocaDbReleaseEvent::class.java)
-                    .set(
-                        field("webLinks"),
-                        listOf(
-                            WebLink("https://www.nicovideo.jp/tag/event_specific_tag"),
-                            WebLink("https://piapro.jp")
+        val linkAggregationTestData =
+            listOf(
+                argumentSet(
+                    "suitable links in both event and series",
+                    Instancio.of(VocaDbReleaseEvent::class.java)
+                        .set(
+                            field("webLinks"),
+                            listOf(
+                                WebLink("https://www.nicovideo.jp/tag/event_specific_tag"),
+                                WebLink("https://piapro.jp"),
+                            ),
                         )
-                    )
-                    .create(),
-                Instancio.of(VocaDbReleaseEventSeries::class.java)
-                    .set(
-                        field("webLinks"),
-                        listOf(WebLink("https://www.nicovideo.jp/tag/general_series_tag"), WebLink("https://x.com"))
-                    )
-                    .create(),
-                listOf("event_specific_tag", "general_series_tag")
-            ),
-            argumentSet(
-                "suitable links in event only",
-                Instancio.of(VocaDbReleaseEvent::class.java)
-                    .set(
-                        field("webLinks"),
-                        listOf(
-                            WebLink("https://www.nicovideo.jp/tag/event_specific_tag"),
-                            WebLink("https://piapro.jp")
+                        .create(),
+                    Instancio.of(VocaDbReleaseEventSeries::class.java)
+                        .set(
+                            field("webLinks"),
+                            listOf(WebLink("https://www.nicovideo.jp/tag/general_series_tag"), WebLink("https://x.com")),
                         )
-                    )
-                    .create(),
-                Instancio.of(VocaDbReleaseEventSeries::class.java)
-                    .set(
-                        field("webLinks"),
-                        listOf(WebLink("https://x.com"))
-                    )
-                    .create(),
-                listOf("event_specific_tag")
-            ),
-            argumentSet(
-                "suitable links in event only, standalone event (no series)",
-                Instancio.of(VocaDbReleaseEvent::class.java)
-                    .set(
-                        field("webLinks"),
-                        listOf(
-                            WebLink("https://www.nicovideo.jp/tag/event_specific_tag"),
-                            WebLink("https://piapro.jp")
+                        .create(),
+                    listOf("event_specific_tag", "general_series_tag"),
+                ),
+                argumentSet(
+                    "suitable links in event only",
+                    Instancio.of(VocaDbReleaseEvent::class.java)
+                        .set(
+                            field("webLinks"),
+                            listOf(
+                                WebLink("https://www.nicovideo.jp/tag/event_specific_tag"),
+                                WebLink("https://piapro.jp"),
+                            ),
                         )
-                    )
-                    .create(),
-                null,
-                listOf("event_specific_tag")
-            ),
-            argumentSet(
-                "suitable links in series only",
-                Instancio.of(VocaDbReleaseEvent::class.java)
-                    .set(
-                        field("webLinks"),
-                        listOf(WebLink("https://piapro.jp"))
-                    )
-                    .create(),
-                Instancio.of(VocaDbReleaseEventSeries::class.java)
-                    .set(
-                        field("webLinks"),
-                        listOf(WebLink("https://www.nicovideo.jp/tag/general_series_tag"), WebLink("https://x.com"))
-                    )
-                    .create(),
-                listOf("general_series_tag")
-            ),
-            argumentSet(
-                "no suitable links at all",
-                Instancio.of(VocaDbReleaseEvent::class.java)
-                    .set(
-                        field("webLinks"),
-                        listOf(WebLink("https://piapro.jp"))
-                    )
-                    .create(),
-                Instancio.of(VocaDbReleaseEventSeries::class.java)
-                    .set(
-                        field("webLinks"),
-                        listOf(WebLink("https://x.com"))
-                    )
-                    .create(),
-                listOf<String>()
-            ),
-            argumentSet(
-                "no suitable links, standalone event (no series)",
-                Instancio.of(VocaDbReleaseEvent::class.java)
-                    .set(
-                        field("webLinks"),
-                        listOf(WebLink("https://piapro.jp"))
-                    )
-                    .create(),
-                null,
-                listOf<String>()
+                        .create(),
+                    Instancio.of(VocaDbReleaseEventSeries::class.java)
+                        .set(field("webLinks"), listOf(WebLink("https://x.com")))
+                        .create(),
+                    listOf("event_specific_tag"),
+                ),
+                argumentSet(
+                    "suitable links in event only, standalone event (no series)",
+                    Instancio.of(VocaDbReleaseEvent::class.java)
+                        .set(
+                            field("webLinks"),
+                            listOf(
+                                WebLink("https://www.nicovideo.jp/tag/event_specific_tag"),
+                                WebLink("https://piapro.jp"),
+                            ),
+                        )
+                        .create(),
+                    null,
+                    listOf("event_specific_tag"),
+                ),
+                argumentSet(
+                    "suitable links in series only",
+                    Instancio.of(VocaDbReleaseEvent::class.java)
+                        .set(field("webLinks"), listOf(WebLink("https://piapro.jp")))
+                        .create(),
+                    Instancio.of(VocaDbReleaseEventSeries::class.java)
+                        .set(
+                            field("webLinks"),
+                            listOf(WebLink("https://www.nicovideo.jp/tag/general_series_tag"), WebLink("https://x.com")),
+                        )
+                        .create(),
+                    listOf("general_series_tag"),
+                ),
+                argumentSet(
+                    "no suitable links at all",
+                    Instancio.of(VocaDbReleaseEvent::class.java)
+                        .set(field("webLinks"), listOf(WebLink("https://piapro.jp")))
+                        .create(),
+                    Instancio.of(VocaDbReleaseEventSeries::class.java)
+                        .set(field("webLinks"), listOf(WebLink("https://x.com")))
+                        .create(),
+                    listOf<String>(),
+                ),
+                argumentSet(
+                    "no suitable links, standalone event (no series)",
+                    Instancio.of(VocaDbReleaseEvent::class.java)
+                        .set(field("webLinks"), listOf(WebLink("https://piapro.jp")))
+                        .create(),
+                    null,
+                    listOf<String>(),
+                ),
             )
-        )
 
         class ReleaseEventTestData : ArgumentsProvider {
             private fun inheritFromSeries(): ArgumentSet {
-                val series = Instancio.of(VocaDbReleaseEventSeries::class.java)
-                    .set(field("webLinks"), listOf(WebLink("https://www.nicovideo.jp/tag/tag")))
-                    .create()
+                val series =
+                    Instancio.of(VocaDbReleaseEventSeries::class.java)
+                        .set(field("webLinks"), listOf(WebLink("https://www.nicovideo.jp/tag/tag")))
+                        .create()
                 return argumentSet(
                     "event category is \"Unspecified\" => inherit from series; series has NND tags => suggest filtering",
-                    Instancio.of(VocaDbReleaseEvent::class.java)
-                        .set(field("category"), Unspecified)
-                        .create(),
+                    Instancio.of(VocaDbReleaseEvent::class.java).set(field("category"), Unspecified).create(),
                     series,
                     series.category,
-                    true
+                    true,
                 )
             }
 
             private fun doNotInheritFromSeries(): ArgumentSet {
-                val event = Instancio.of(VocaDbReleaseEvent::class.java)
-                    .generate(field("category")) { gen ->
-                        gen.enumOf(ReleaseEventCategory::class.java).excluding(Unspecified)
-                    }
-                    .setBlank(field("webLinks"))
-                    .create()
+                val event =
+                    Instancio.of(VocaDbReleaseEvent::class.java)
+                        .generate(field("category")) { gen ->
+                            gen.enumOf(ReleaseEventCategory::class.java).excluding(Unspecified)
+                        }
+                        .setBlank(field("webLinks"))
+                        .create()
                 return argumentSet(
                     "category in event is not \"Unspecified\" => keep the event category; no NND tags in series => do not suggest filtering",
                     event,
                     Instancio.create(VocaDbReleaseEventSeries::class.java),
                     event.category,
-                    false
+                    false,
                 )
             }
 
@@ -287,14 +270,13 @@ class ReleaseEventWitnNndTagsResponseMapperTest {
                     event,
                     null,
                     event.category,
-                    false
+                    false,
                 )
             }
 
             override fun provideArguments(context: ExtensionContext?): Stream<out Arguments> {
                 return Stream.of(inheritFromSeries(), doNotInheritFromSeries(), standaloneEvent())
             }
-
         }
     }
 }

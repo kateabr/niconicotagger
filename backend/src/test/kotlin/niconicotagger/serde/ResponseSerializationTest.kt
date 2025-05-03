@@ -1,8 +1,15 @@
 package niconicotagger.serde
 
-import Utils.createSampleSongTypeStats
-import Utils.jsonMapper
+import java.time.Duration
+import java.time.LocalDateTime
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
+import java.time.ZoneOffset.UTC
+import java.time.format.DateTimeFormatter.ISO_DATE
+import java.util.stream.Stream
 import net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson
+import niconicotagger.Utils.createSampleSongTypeStats
+import niconicotagger.Utils.jsonMapper
 import niconicotagger.dto.api.misc.ApiType.ARTISTS
 import niconicotagger.dto.api.misc.ApiType.SONGS
 import niconicotagger.dto.api.misc.AvailableNndVideo
@@ -52,13 +59,6 @@ import org.junit.jupiter.params.provider.Arguments.ArgumentSet
 import org.junit.jupiter.params.provider.Arguments.argumentSet
 import org.junit.jupiter.params.provider.ArgumentsProvider
 import org.junit.jupiter.params.provider.ArgumentsSource
-import java.time.Duration
-import java.time.LocalDateTime
-import java.time.OffsetDateTime
-import java.time.ZoneOffset
-import java.time.ZoneOffset.UTC
-import java.time.format.DateTimeFormatter.ISO_DATE
-import java.util.stream.Stream
 
 class ResponseSerializationTest {
 
@@ -66,7 +66,7 @@ class ResponseSerializationTest {
     @ArgumentsSource(QueryConsoleResponseTestData::class)
     fun `QueryConsoleResponse serialization test`(
         responseObject: QueryConsoleResponse<QueryConsoleData>,
-        json: String
+        json: String,
     ) {
         assertThatJson(jsonMapper.writeValueAsString(responseObject)).isEqualTo(json)
     }
@@ -81,7 +81,7 @@ class ResponseSerializationTest {
     @ArgumentsSource(ReleaseEventWithLinkedTagResponseTestData::class)
     fun `ReleaseEventWithLinkedTagResponse serialization test`(
         responseObject: ReleaseEventWithVocaDbTagsResponse,
-        json: String
+        json: String,
     ) {
         assertThatJson(jsonMapper.writeValueAsString(responseObject)).isEqualTo(json)
     }
@@ -90,7 +90,7 @@ class ResponseSerializationTest {
     @ArgumentsSource(VideosByTagsResponseTestData::class)
     fun `VideosByTagsResponse serialization test`(
         responseObject: VideosByTagsResponse<NndVideoWithAssociatedVocaDbEntry<SongEntryBase>, SongEntryBase>,
-        expectedJson: String
+        expectedJson: String,
     ) {
         assertThatJson(jsonMapper.writeValueAsString(responseObject)).isEqualTo(expectedJson)
     }
@@ -104,17 +104,21 @@ class ResponseSerializationTest {
     companion object {
         class ReleaseEventResponseTestData : ArgumentsProvider {
             private fun timezoneAdjustment(): ArgumentSet {
-                val responseObject = Instancio.of(ReleaseEventWitnNndTagsResponse::class.java)
-                    .set(
-                        field("date"),
-                        OffsetDateTime.of(LocalDateTime.parse("2025-04-05T01:00:00"), ZoneOffset.ofHours(3)).toInstant()
-                    )
-                    .set(
-                        field("endDate"),
-                        OffsetDateTime.of(LocalDateTime.parse("2025-04-05T03:00:00"), ZoneOffset.ofHours(3)).toInstant()
-                    )
-                    .create()
-                val json = """
+                val responseObject =
+                    Instancio.of(ReleaseEventWitnNndTagsResponse::class.java)
+                        .set(
+                            field("date"),
+                            OffsetDateTime.of(LocalDateTime.parse("2025-04-05T01:00:00"), ZoneOffset.ofHours(3))
+                                .toInstant(),
+                        )
+                        .set(
+                            field("endDate"),
+                            OffsetDateTime.of(LocalDateTime.parse("2025-04-05T03:00:00"), ZoneOffset.ofHours(3))
+                                .toInstant(),
+                        )
+                        .create()
+                val json =
+                    """
                     {
                         "id": ${responseObject.id},
                         "date": "2025-04-04",
@@ -125,19 +129,18 @@ class ResponseSerializationTest {
                         "suggestFiltering": ${responseObject.suggestFiltering},
                         "seriesId": ${responseObject.seriesId}
                     }
-                    """.trimIndent()
-                return argumentSet(
-                    "with timezone adjustment in dates",
-                    responseObject,
-                    json
-                )
+                    """
+                        .trimIndent()
+                return argumentSet("with timezone adjustment in dates", responseObject, json)
             }
 
             private fun noDates(): ArgumentSet {
-                val responseObject = Instancio.of(ReleaseEventWitnNndTagsResponse::class.java)
-                    .ignore(all(field("date"), field("endDate")))
-                    .create()
-                val json = """
+                val responseObject =
+                    Instancio.of(ReleaseEventWitnNndTagsResponse::class.java)
+                        .ignore(all(field("date"), field("endDate")))
+                        .create()
+                val json =
+                    """
                     {
                         "id": ${responseObject.id},
                         "date": null,
@@ -148,34 +151,34 @@ class ResponseSerializationTest {
                         "suggestFiltering": ${responseObject.suggestFiltering},
                         "seriesId": ${responseObject.seriesId}
                     }
-                    """.trimIndent()
-                return argumentSet(
-                    "with empty date fields",
-                    responseObject,
-                    json
-                )
+                    """
+                        .trimIndent()
+                return argumentSet("with empty date fields", responseObject, json)
             }
 
             override fun provideArguments(context: ExtensionContext?): Stream<out Arguments> {
                 return Stream.of(timezoneAdjustment(), noDates())
             }
-
         }
 
         class ReleaseEventWithLinkedTagResponseTestData : ArgumentsProvider {
             private fun timezoneAdjustment(): ArgumentSet {
-                val responseObject = Instancio.of(ReleaseEventWithVocaDbTagsResponse::class.java)
-                    .set(
-                        field("date"),
-                        OffsetDateTime.of(LocalDateTime.parse("2025-04-05T01:00:00"), ZoneOffset.ofHours(3)).toInstant()
-                    )
-                    .set(
-                        field("endDate"),
-                        OffsetDateTime.of(LocalDateTime.parse("2025-04-05T03:00:00"), ZoneOffset.ofHours(3)).toInstant()
-                    )
-                    .setBlank(field("vocaDbTags"))
-                    .create()
-                val json = """
+                val responseObject =
+                    Instancio.of(ReleaseEventWithVocaDbTagsResponse::class.java)
+                        .set(
+                            field("date"),
+                            OffsetDateTime.of(LocalDateTime.parse("2025-04-05T01:00:00"), ZoneOffset.ofHours(3))
+                                .toInstant(),
+                        )
+                        .set(
+                            field("endDate"),
+                            OffsetDateTime.of(LocalDateTime.parse("2025-04-05T03:00:00"), ZoneOffset.ofHours(3))
+                                .toInstant(),
+                        )
+                        .setBlank(field("vocaDbTags"))
+                        .create()
+                val json =
+                    """
                     {
                         "id": ${responseObject.id},
                         "date": "2025-04-04",
@@ -184,20 +187,19 @@ class ResponseSerializationTest {
                         "category": "${responseObject.category}",
                         "vocaDbTags": []
                     }
-                    """.trimIndent()
-                return argumentSet(
-                    "with timezone adjustment in dates",
-                    responseObject,
-                    json
-                )
+                    """
+                        .trimIndent()
+                return argumentSet("with timezone adjustment in dates", responseObject, json)
             }
 
             private fun noDates(): ArgumentSet {
-                val responseObject = Instancio.of(ReleaseEventWithVocaDbTagsResponse::class.java)
-                    .ignore(all(field("date"), field("endDate")))
-                    .generate(field("vocaDbTags")) { gen -> gen.collection<VocaDbTag>().size(2) }
-                    .create()
-                val json = """
+                val responseObject =
+                    Instancio.of(ReleaseEventWithVocaDbTagsResponse::class.java)
+                        .ignore(all(field("date"), field("endDate")))
+                        .generate(field("vocaDbTags")) { gen -> gen.collection<VocaDbTag>().size(2) }
+                        .create()
+                val json =
+                    """
                     {
                         "id": ${responseObject.id},
                         "date": null,
@@ -215,29 +217,27 @@ class ResponseSerializationTest {
                             }
                         ]
                     }
-                    """.trimIndent()
-                return argumentSet(
-                    "with empty date fields",
-                    responseObject,
-                    json
-                )
+                    """
+                        .trimIndent()
+                return argumentSet("with empty date fields", responseObject, json)
             }
 
             override fun provideArguments(context: ExtensionContext?): Stream<out Arguments> {
                 return Stream.of(timezoneAdjustment(), noDates())
             }
-
         }
 
         class QueryConsoleResponseTestData : ArgumentsProvider {
             private fun artist(): ArgumentSet {
-                val responseObject = Instancio.of(object : TypeToken<QueryConsoleResponse<QueryConsoleArtistData>> {})
-                    .withSetting(COLLECTION_MIN_SIZE, 1)
-                    .withSetting(COLLECTION_MAX_SIZE, 1)
-                    .withSetting(MAP_MIN_SIZE, 1)
-                    .withSetting(MAP_MAX_SIZE, 1)
-                    .create()
-                val json = """
+                val responseObject =
+                    Instancio.of(object : TypeToken<QueryConsoleResponse<QueryConsoleArtistData>> {})
+                        .withSetting(COLLECTION_MIN_SIZE, 1)
+                        .withSetting(COLLECTION_MAX_SIZE, 1)
+                        .withSetting(MAP_MIN_SIZE, 1)
+                        .withSetting(MAP_MAX_SIZE, 1)
+                        .create()
+                val json =
+                    """
                 {
                     "items": [
                         {
@@ -260,20 +260,21 @@ class ResponseSerializationTest {
                         }
                     ]
                 }
-                """.trimIndent()
-                return argumentSet(
-                    ARTISTS.toString(), responseObject, json
-                )
+                """
+                        .trimIndent()
+                return argumentSet(ARTISTS.toString(), responseObject, json)
             }
 
             private fun song(): ArgumentSet {
-                val responseObject = Instancio.of(object : TypeToken<QueryConsoleResponse<QueryConsoleSongData>> {})
-                    .withSetting(COLLECTION_MIN_SIZE, 1)
-                    .withSetting(COLLECTION_MAX_SIZE, 1)
-                    .withSetting(MAP_MIN_SIZE, 1)
-                    .withSetting(MAP_MAX_SIZE, 1)
-                    .create()
-                val json = """
+                val responseObject =
+                    Instancio.of(object : TypeToken<QueryConsoleResponse<QueryConsoleSongData>> {})
+                        .withSetting(COLLECTION_MIN_SIZE, 1)
+                        .withSetting(COLLECTION_MAX_SIZE, 1)
+                        .withSetting(MAP_MIN_SIZE, 1)
+                        .withSetting(MAP_MAX_SIZE, 1)
+                        .create()
+                val json =
+                    """
                 {
                     "items": [
                         {
@@ -297,80 +298,77 @@ class ResponseSerializationTest {
                         }
                     ]
                 }
-                """.trimIndent()
-                return argumentSet(
-                    SONGS.toString(), responseObject, json
-                )
+                """
+                        .trimIndent()
+                return argumentSet(SONGS.toString(), responseObject, json)
             }
 
             override fun provideArguments(context: ExtensionContext?): Stream<out Arguments> {
                 return Stream.of(artist(), song())
             }
-
         }
 
         class VideosByTagsResponseTestData : ArgumentsProvider {
             private fun videosByNndTagsForTagging(): ArgumentSet {
-                val responseObject = VideosByNndTagsResponseForTagging(
-                    listOf(
-                        Instancio.of(NndVideoWithAssociatedVocaDbEntryForTag::class.java)
-                            .ignore(
-                                all(
-                                    field(AvailableNndVideoWithAdditionalData::class.java, "description"),
-                                    field("entry")
+                val responseObject =
+                    VideosByNndTagsResponseForTagging(
+                        listOf(
+                            Instancio.of(NndVideoWithAssociatedVocaDbEntryForTag::class.java)
+                                .ignore(
+                                    all(
+                                        field(AvailableNndVideoWithAdditionalData::class.java, "description"),
+                                        field("entry"),
+                                    )
                                 )
-                            )
-                            .set(
-                                field(AvailableNndVideoWithAdditionalData::class.java, "tags"),
-                                listOf(
-                                    NndTagData("targetTag", TARGET, true),
-                                    NndTagData("scopeTag", SCOPE, true),
-                                    NndTagData("mappedTag", MAPPED, true),
-                                    NndTagData("randomTag", NONE, true)
+                                .set(
+                                    field(AvailableNndVideoWithAdditionalData::class.java, "tags"),
+                                    listOf(
+                                        NndTagData("targetTag", TARGET, true),
+                                        NndTagData("scopeTag", SCOPE, true),
+                                        NndTagData("mappedTag", MAPPED, true),
+                                        NndTagData("randomTag", NONE, true),
+                                    ),
                                 )
-                            )
-                            .set(
-                                field(AvailableNndVideoWithAdditionalData::class.java, "length"),
-                                Duration.ofMinutes(2)
-                            )
-                            .create(),
-                        Instancio.of(NndVideoWithAssociatedVocaDbEntryForTag::class.java)
-                            .ignore(all(field("publisher")))
-                            .set(
-                                field(AvailableNndVideoWithAdditionalData::class.java, "tags"),
-                                listOf(NndTagData("targetTag", TARGET, false))
-                            )
-                            .set(
-                                field(AvailableNndVideoWithAdditionalData::class.java, "length"),
-                                Duration.ofHours(1).plusMinutes(1).plusSeconds(10)
-                            )
-                            .generate(
-                                field(
-                                    SongEntryWithTagAssignmentInfo::class.java,
-                                    "mappedTags"
+                                .set(
+                                    field(AvailableNndVideoWithAdditionalData::class.java, "length"),
+                                    Duration.ofMinutes(2),
                                 )
-                            ) { gen -> gen.collection<VocaDbTagSelectable>().size(2) }
-                            .set(field(SongEntryWithTagAssignmentInfo::class.java, "type"), Original)
-                            .create(),
-                        Instancio.of(NndVideoWithAssociatedVocaDbEntryForTag::class.java)
-                            .ignore(all(field("publisher"), field("entry")))
-                            .set(
-                                field(AvailableNndVideoWithAdditionalData::class.java, "tags"),
-                                listOf(NndTagData("targetTag", TARGET, false))
-                            )
-                            .set(
-                                field(AvailableNndVideoWithAdditionalData::class.java, "length"),
-                                Duration.ofMinutes(2)
-                            )
-                            .create()
-                    ),
-                    2,
-                    Instancio.create(String::class.java),
-                    createSampleSongTypeStats(Original),
-                    Instancio.ofList(VocaDbTag::class.java).size(2).create()
-                )
+                                .create(),
+                            Instancio.of(NndVideoWithAssociatedVocaDbEntryForTag::class.java)
+                                .ignore(all(field("publisher")))
+                                .set(
+                                    field(AvailableNndVideoWithAdditionalData::class.java, "tags"),
+                                    listOf(NndTagData("targetTag", TARGET, false)),
+                                )
+                                .set(
+                                    field(AvailableNndVideoWithAdditionalData::class.java, "length"),
+                                    Duration.ofHours(1).plusMinutes(1).plusSeconds(10),
+                                )
+                                .generate(field(SongEntryWithTagAssignmentInfo::class.java, "mappedTags")) { gen ->
+                                    gen.collection<VocaDbTagSelectable>().size(2)
+                                }
+                                .set(field(SongEntryWithTagAssignmentInfo::class.java, "type"), Original)
+                                .create(),
+                            Instancio.of(NndVideoWithAssociatedVocaDbEntryForTag::class.java)
+                                .ignore(all(field("publisher"), field("entry")))
+                                .set(
+                                    field(AvailableNndVideoWithAdditionalData::class.java, "tags"),
+                                    listOf(NndTagData("targetTag", TARGET, false)),
+                                )
+                                .set(
+                                    field(AvailableNndVideoWithAdditionalData::class.java, "length"),
+                                    Duration.ofMinutes(2),
+                                )
+                                .create(),
+                        ),
+                        2,
+                        Instancio.create(String::class.java),
+                        createSampleSongTypeStats(Original),
+                        Instancio.ofList(VocaDbTag::class.java).size(2).create(),
+                    )
 
-                val expectedJson = """
+                val expectedJson =
+                    """
                 {
                     "cleanScope": "${responseObject.cleanScope}",
                     "totalCount": ${responseObject.totalCount},
@@ -494,70 +492,70 @@ class ResponseSerializationTest {
                         }
                     ]
                 }
-            """.trimIndent()
+            """
+                        .trimIndent()
 
-                return argumentSet(
-                    VideosByNndTagsResponseForTagging::class.simpleName,
-                    responseObject,
-                    expectedJson
-                )
+                return argumentSet(VideosByNndTagsResponseForTagging::class.simpleName, responseObject, expectedJson)
             }
 
             private fun videosByTagsResponseForEvent(): ArgumentSet {
-                val responseObject = VideosByNndTagsResponseForEvent(
-                    listOf(
-                        Instancio.of(NndVideoWithAssociatedVocaDbEntryForEvent::class.java)
-                            .ignore(
-                                all(
-                                    field(AvailableNndVideoWithAdditionalData::class.java, "description"),
-                                    field("entry")
+                val responseObject =
+                    VideosByNndTagsResponseForEvent(
+                        listOf(
+                            Instancio.of(NndVideoWithAssociatedVocaDbEntryForEvent::class.java)
+                                .ignore(
+                                    all(
+                                        field(AvailableNndVideoWithAdditionalData::class.java, "description"),
+                                        field("entry"),
+                                    )
                                 )
-                            )
-                            .set(
-                                field(AvailableNndVideoWithAdditionalData::class.java, "tags"),
-                                listOf(
-                                    NndTagData("targetTag", TARGET, true),
-                                    NndTagData("scopeTag", SCOPE, true),
-                                    NndTagData("mappedTag", MAPPED, true),
-                                    NndTagData("randomTag", NONE, true)
+                                .set(
+                                    field(AvailableNndVideoWithAdditionalData::class.java, "tags"),
+                                    listOf(
+                                        NndTagData("targetTag", TARGET, true),
+                                        NndTagData("scopeTag", SCOPE, true),
+                                        NndTagData("mappedTag", MAPPED, true),
+                                        NndTagData("randomTag", NONE, true),
+                                    ),
                                 )
-                            )
-                            .set(
-                                field(AvailableNndVideoWithAdditionalData::class.java, "length"),
-                                Duration.ofMinutes(2)
-                            )
-                            .create(),
-                        Instancio.of(NndVideoWithAssociatedVocaDbEntryForEvent::class.java)
-                            .ignore(all(field("publisher")))
-                            .set(
-                                field(AvailableNndVideoWithAdditionalData::class.java, "tags"),
-                                listOf(NndTagData("targetTag", TARGET, false))
-                            )
-                            .set(
-                                field(AvailableNndVideoWithAdditionalData::class.java, "length"),
-                                Duration.ofHours(1).plusMinutes(1).plusSeconds(10)
-                            )
-                            .set(field(SongEntryWithReleaseEventInfo::class.java, "type"), Original)
-                            .generate(field(SongEntryWithReleaseEventInfo::class.java, "events")) { gen ->
-                                gen.collection<ReleaseEvent>().size(2)
-                            }.create(),
-                        Instancio.of(NndVideoWithAssociatedVocaDbEntryForEvent::class.java)
-                            .ignore(all(field("publisher"), field("entry")))
-                            .set(
-                                field(AvailableNndVideoWithAdditionalData::class.java, "tags"),
-                                listOf(NndTagData("targetTag", TARGET, false))
-                            )
-                            .set(
-                                field(AvailableNndVideoWithAdditionalData::class.java, "length"),
-                                Duration.ofMinutes(2)
-                            )
-                            .create()
-                    ),
-                    2,
-                    Instancio.create(String::class.java),
-                )
+                                .set(
+                                    field(AvailableNndVideoWithAdditionalData::class.java, "length"),
+                                    Duration.ofMinutes(2),
+                                )
+                                .create(),
+                            Instancio.of(NndVideoWithAssociatedVocaDbEntryForEvent::class.java)
+                                .ignore(all(field("publisher")))
+                                .set(
+                                    field(AvailableNndVideoWithAdditionalData::class.java, "tags"),
+                                    listOf(NndTagData("targetTag", TARGET, false)),
+                                )
+                                .set(
+                                    field(AvailableNndVideoWithAdditionalData::class.java, "length"),
+                                    Duration.ofHours(1).plusMinutes(1).plusSeconds(10),
+                                )
+                                .set(field(SongEntryWithReleaseEventInfo::class.java, "type"), Original)
+                                .generate(field(SongEntryWithReleaseEventInfo::class.java, "events")) { gen ->
+                                    gen.collection<ReleaseEvent>().size(2)
+                                }
+                                .create(),
+                            Instancio.of(NndVideoWithAssociatedVocaDbEntryForEvent::class.java)
+                                .ignore(all(field("publisher"), field("entry")))
+                                .set(
+                                    field(AvailableNndVideoWithAdditionalData::class.java, "tags"),
+                                    listOf(NndTagData("targetTag", TARGET, false)),
+                                )
+                                .set(
+                                    field(AvailableNndVideoWithAdditionalData::class.java, "length"),
+                                    Duration.ofMinutes(2),
+                                )
+                                .create(),
+                        ),
+                        2,
+                        Instancio.create(String::class.java),
+                    )
 
-                val expectedJson = """
+                val expectedJson =
+                    """
                 {
                     "cleanScope": "${responseObject.cleanScope}",
                     "totalCount": ${responseObject.totalCount},
@@ -670,60 +668,61 @@ class ResponseSerializationTest {
                         }
                     ]
                 }
-            """.trimIndent()
+            """
+                        .trimIndent()
 
-                return argumentSet(
-                    VideosByNndTagsResponseForEvent::class.simpleName,
-                    responseObject,
-                    expectedJson
-                )
+                return argumentSet(VideosByNndTagsResponseForEvent::class.simpleName, responseObject, expectedJson)
             }
 
             override fun provideArguments(context: ExtensionContext?): Stream<out Arguments> {
-                return VideosByTagsResponse::class.sealedSubclasses.map {
-                    when (it) {
-                        VideosByTagsResponseForTagging::class -> videosByNndTagsForTagging()
-                        VideosByNndTagsResponseForEvent::class -> videosByTagsResponseForEvent()
-                        else -> error("No arguments configured for class ${it.simpleName}")
+                return VideosByTagsResponse::class
+                    .sealedSubclasses
+                    .map {
+                        when (it) {
+                            VideosByTagsResponseForTagging::class -> videosByNndTagsForTagging()
+                            VideosByNndTagsResponseForEvent::class -> videosByTagsResponseForEvent()
+                            else -> error("No arguments configured for class ${it.simpleName}")
+                        }
                     }
-                }.stream()
+                    .stream()
             }
-
         }
 
         class SongsWithPvsResponseTestData : ArgumentsProvider {
             private fun availablePvWithTags(): ArgumentSet {
-                val songEntry = Instancio.of(SongEntry::class.java)
-                    .set(field("type"), Original)
-                    .create()
-                val pv1 = Instancio.of(AvailableNndVideo::class.java)
-                    .generate(field("tags")) { gen -> gen.collection<NndTagData>().size(2) }
-                    .create()
-                val pv2 = Instancio.of(AvailableNndVideo::class.java)
-                    .ignore(field("description"))
-                    .generate(field("tags")) { gen -> gen.collection<NndTagData>().size(2) }
-                    .create()
-                val responseObject = SongsWithPvsResponse(
-                    listOf(
-                        VocaDbSongEntryWithPvs(
-                            songEntry,
-                            listOf(
-                                PvWithSuggestedTags(
-                                    pv1,
-                                    Instancio.ofList(VocaDbTagSelectable::class.java).size(2).create()
+                val songEntry = Instancio.of(SongEntry::class.java).set(field("type"), Original).create()
+                val pv1 =
+                    Instancio.of(AvailableNndVideo::class.java)
+                        .generate(field("tags")) { gen -> gen.collection<NndTagData>().size(2) }
+                        .create()
+                val pv2 =
+                    Instancio.of(AvailableNndVideo::class.java)
+                        .ignore(field("description"))
+                        .generate(field("tags")) { gen -> gen.collection<NndTagData>().size(2) }
+                        .create()
+                val responseObject =
+                    SongsWithPvsResponse(
+                        listOf(
+                            VocaDbSongEntryWithPvs(
+                                songEntry,
+                                listOf(
+                                    PvWithSuggestedTags(
+                                        pv1,
+                                        Instancio.ofList(VocaDbTagSelectable::class.java).size(2).create(),
+                                    ),
+                                    PvWithSuggestedTags(
+                                        pv2,
+                                        Instancio.ofList(VocaDbTagSelectable::class.java).size(2).create(),
+                                    ),
                                 ),
-                                PvWithSuggestedTags(
-                                    pv2,
-                                    Instancio.ofList(VocaDbTagSelectable::class.java).size(2).create()
-                                )
-                            ),
-                            emptyList()
-                        )
-                    ),
-                    createSampleSongTypeStats(songEntry.type),
-                    Instancio.create(Long::class.java)
-                )
-                val expectedJson = """
+                                emptyList(),
+                            )
+                        ),
+                        createSampleSongTypeStats(songEntry.type),
+                        Instancio.create(Long::class.java),
+                    )
+                val expectedJson =
+                    """
                     {
                         "items": [
                             {
@@ -825,35 +824,31 @@ class ResponseSerializationTest {
                         },
                         "totalCount": ${responseObject.totalCount}
                     }
-                    """.trimIndent()
+                    """
+                        .trimIndent()
 
                 return argumentSet(
                     "song has two available PVs with different tags; publish date is present in the entry",
                     responseObject,
-                    expectedJson
+                    expectedJson,
                 )
             }
 
             private fun unavailablePvAndNoPublishDate(): ArgumentSet {
-                val songEntry = Instancio.of(SongEntry::class.java)
-                    .ignore(field("publishedAt"))
-                    .set(field("type"), Original)
-                    .create()
+                val songEntry =
+                    Instancio.of(SongEntry::class.java)
+                        .ignore(field("publishedAt"))
+                        .set(field("type"), Original)
+                        .create()
                 val pv = Instancio.create(UnavailableNndVideo::class.java)
-                val responseObject = SongsWithPvsResponse(
-                    listOf(
-                        VocaDbSongEntryWithPvs(
-                            songEntry,
-                            emptyList(),
-                            listOf(
-                                pv
-                            )
-                        )
-                    ),
-                    createSampleSongTypeStats(songEntry.type),
-                    Instancio.create(Long::class.java)
-                )
-                val expectedJson = """
+                val responseObject =
+                    SongsWithPvsResponse(
+                        listOf(VocaDbSongEntryWithPvs(songEntry, emptyList(), listOf(pv))),
+                        createSampleSongTypeStats(songEntry.type),
+                        Instancio.create(Long::class.java),
+                    )
+                val expectedJson =
+                    """
                     {
                         "items": [
                             {
@@ -888,21 +883,19 @@ class ResponseSerializationTest {
                         },
                         "totalCount": ${responseObject.totalCount}
                     }
-                    """.trimIndent()
+                    """
+                        .trimIndent()
 
                 return argumentSet(
                     "song has an unavailable PV that should be disabled; publish date is missing from the entry",
                     responseObject,
-                    expectedJson
+                    expectedJson,
                 )
             }
 
             override fun provideArguments(context: ExtensionContext?): Stream<out Arguments> {
                 return Stream.of(availablePvWithTags(), unavailablePvAndNoPublishDate())
             }
-
         }
-
     }
-
 }

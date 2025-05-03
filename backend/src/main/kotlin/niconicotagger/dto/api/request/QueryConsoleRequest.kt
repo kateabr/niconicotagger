@@ -5,8 +5,4 @@ import niconicotagger.dto.api.misc.ApiType
 import niconicotagger.dto.api.misc.ClientType
 
 @JsonIgnoreProperties(ignoreUnknown = false)
-data class QueryConsoleRequest(
-    val apiType: ApiType,
-    val query: String,
-    val clientType: ClientType
-)
+data class QueryConsoleRequest(val apiType: ApiType, val query: String, val clientType: ClientType)

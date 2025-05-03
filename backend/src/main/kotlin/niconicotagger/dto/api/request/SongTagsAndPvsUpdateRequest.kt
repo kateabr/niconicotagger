@@ -7,14 +7,12 @@ import niconicotagger.dto.api.misc.PvToDisable
 
 @JsonIgnoreProperties(ignoreUnknown = false)
 data class SongTagsAndPvsMassUpdateRequest(
-    @field:Valid
-    override val subRequests: List<SongTagsAndPvsUpdateRequest>,
-    override val clientType: ClientType
+    @field:Valid override val subRequests: List<SongTagsAndPvsUpdateRequest>,
+    override val clientType: ClientType,
 ) : MassUpdateRequest<SongTagsAndPvsUpdateRequest>
 
 data class SongTagsAndPvsUpdateRequest(
     val songId: Long,
     val tags: List<Long>,
-    @field:Valid
-    val nndPvsToDisable: Set<PvToDisable>
+    @field:Valid val nndPvsToDisable: Set<PvToDisable>,
 )

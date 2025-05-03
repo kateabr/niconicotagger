@@ -9,17 +9,18 @@ class PublisherLinkConfig(
     private val nndUser: LinkData,
     private val nndChannel: LinkData,
     private val vocadbBeta: LinkData,
-    private val vocadb: LinkData
+    private val vocadb: LinkData,
 ) {
     private fun getLinkData(publisherType: PublisherType, clientType: ClientType? = null): LinkData {
         return when (publisherType) {
             PublisherType.NND_USER -> nndUser
             PublisherType.NND_CHANNEL -> nndChannel
-            PublisherType.DATABASE -> when (clientType) {
-                ClientType.VOCADB -> vocadb
-                ClientType.VOCADB_BETA -> vocadbBeta
-                null -> error("Cannot provide publisher link base for $publisherType: client type not provided")
-            }
+            PublisherType.DATABASE ->
+                when (clientType) {
+                    ClientType.VOCADB -> vocadb
+                    ClientType.VOCADB_BETA -> vocadbBeta
+                    null -> error("Cannot provide publisher link base for $publisherType: client type not provided")
+                }
         }
     }
 

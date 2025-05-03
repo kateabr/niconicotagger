@@ -7,7 +7,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.autoconfigure.web.servlet.error.ErrorMvcAutoConfiguration
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 
-
 @SpringBootApplication(exclude = [ErrorMvcAutoConfiguration::class])
 @EnableConfigurationProperties(value = [AppConfiguration::class, PublisherLinkConfig::class])
 class Application {

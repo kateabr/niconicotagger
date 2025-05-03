@@ -22,8 +22,7 @@ class AuthorizationController(private val dbClientHolder: DbClientHolder) {
         val cookie = dbClientHolder.getClient(request.clientType).login(request.userName, request.password)
         response.setHeader(
             SET_COOKIE,
-            ResponseCookie.from(cookie.keys.first(), cookie.values.first()[0]).build().toString()
+            ResponseCookie.from(cookie.keys.first(), cookie.values.first()[0]).build().toString(),
         )
     }
-
 }

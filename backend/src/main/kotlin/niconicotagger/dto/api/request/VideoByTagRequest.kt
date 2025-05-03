@@ -36,15 +36,11 @@ data class VideosByNndTagsRequest(
     @JsonDeserialize(contentUsing = StringNormalizingDeserializer::class)
     @field:NotEmpty
     override val tags: Set<String>,
-    @JsonDeserialize(using = NndScopeNormalizingDeserializer::class)
-    override val scope: String,
-    @field:Min(0)
-    override val startOffset: Long,
-    @field:Min(10)
-    @field:Max(100)
-    override val maxResults: Long,
+    @JsonDeserialize(using = NndScopeNormalizingDeserializer::class) override val scope: String,
+    @field:Min(0) override val startOffset: Long,
+    @field:Min(10) @field:Max(100) override val maxResults: Long,
     override val orderBy: NndSortOrder,
-    override val clientType: ClientType
+    override val clientType: ClientType,
 ) : VideosByNndTagsRequestBase
 
 @JsonIgnoreProperties(ignoreUnknown = false)
@@ -52,30 +48,20 @@ data class VideosByNndEventTagsRequest(
     @JsonDeserialize(contentUsing = StringNormalizingDeserializer::class)
     @field:NotEmpty
     override val tags: Set<String>,
-    @JsonDeserialize(using = NndScopeNormalizingDeserializer::class)
-    override val scope: String,
-    @field:Min(0)
-    override val startOffset: Long,
-    @field:Min(10)
-    @field:Max(100)
-    override val maxResults: Long,
+    @JsonDeserialize(using = NndScopeNormalizingDeserializer::class) override val scope: String,
+    @field:Min(0) override val startOffset: Long,
+    @field:Min(10) @field:Max(100) override val maxResults: Long,
     override val orderBy: NndSortOrder,
     val dates: EventDateBounds,
-    override val clientType: ClientType
+    override val clientType: ClientType,
 ) : VideosByNndTagsRequestBase
 
 @JsonIgnoreProperties(ignoreUnknown = false)
 data class VideosByVocaDbTagRequest(
-    @JsonDeserialize(using = StringNormalizingDeserializer::class)
-    @field:NotBlank
-    val tag: String,
-    @JsonDeserialize(using = NndScopeNormalizingDeserializer::class)
-    override val scope: String,
-    @field:Min(0)
-    override val startOffset: Long,
-    @field:Min(10)
-    @field:Max(100)
-    override val maxResults: Long,
+    @JsonDeserialize(using = StringNormalizingDeserializer::class) @field:NotBlank val tag: String,
+    @JsonDeserialize(using = NndScopeNormalizingDeserializer::class) override val scope: String,
+    @field:Min(0) override val startOffset: Long,
+    @field:Min(10) @field:Max(100) override val maxResults: Long,
     override val orderBy: NndSortOrder,
-    override val clientType: ClientType
+    override val clientType: ClientType,
 ) : VideoByTagRequest

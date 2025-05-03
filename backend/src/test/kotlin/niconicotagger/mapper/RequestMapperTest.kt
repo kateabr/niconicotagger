@@ -24,7 +24,7 @@ class RequestMapperTest {
                     request.startOffset,
                     request.maxResults,
                     request.orderBy,
-                    request.clientType
+                    request.clientType,
                 )
             )
     }
