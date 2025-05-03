@@ -83,7 +83,7 @@ class UpdatingController(private val service: UpdatingService) {
         @Valid @RequestBody request: SongTagsAndPvsMassUpdateRequest,
         @CookieValue(COOKIE_HEADER_KEY) cookie: String
     ): List<UpdateError> = withContext(SupervisorJob()) {
-        request.subRequests.chunked(5)
+        request.subRequests.chunked(maxOf(request.subRequests.size / 5, 1))
             .map { sublist ->
                 async {
                     sublist.map {

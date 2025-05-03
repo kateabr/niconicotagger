@@ -103,7 +103,7 @@
                     <td>
                       How many results you want in your batch, defaults to
                       <span class="text-monospace">10</span>.
-                      <div class="alert-dark rounded p-2 mt-2">
+                      <div class="alert-dark rounded p-2 my-1">
                         <b-icon-arrow-right-circle class="mr-1" />Don't make it
                         too big: it will slow everything down and can even cause
                         timeouts.
@@ -132,8 +132,12 @@
                     <td class="text-monospace">tagId[]</td>
                     <td class="text-monospace">number</td>
                     <td>
-                      Load only entries tagged with a specific tag. If you need
-                      several tags, use several of these.
+                      Load only entries tagged with a specific tag.
+                      <div class="alert-dark rounded p-2 my-1">
+                        <b-icon-arrow-right-circle class="mr-1" />
+                        Having several of these creates an intersection, not a
+                        union.
+                      </div>
                     </td>
                   </tr>
                   <tr>
@@ -182,8 +186,28 @@
                     </td>
                     <td class="text-monospace">number</td>
                     <td>
-                      Load only songs by a select artist. Use several of these
-                      for several artists.
+                      Load only songs by a select artist.
+                      <div class="alert-dark rounded p-2 my-1">
+                        <b-icon-arrow-right-circle class="mr-1" />
+                        Having several of these creates an intersection, not a
+                        union.
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="text-monospace">
+                      childVoicebanks
+                      <b-badge class="ml-1" variant="primary">songs</b-badge>
+                    </td>
+                    <td class="text-monospace">true / false</td>
+                    <td>
+                      Include songs that feature derived voicebanks (appends and
+                      equivalents). Defaults to
+                      <span class="text-monospace">false</span>.
+                      <div class="alert-dark rounded p-2 my-1">
+                        <b-icon-arrow-right-circle class="mr-1" />
+                        Will only work for derivatives that have an artist entry.
+                      </div>
                     </td>
                   </tr>
                   <tr>
@@ -240,6 +264,11 @@
                     <td class="text-monospace">true / false</td>
                     <td>
                       Defaults to <span class="text-monospace">false.</span>
+                      <div class="alert-dark rounded p-2 my-1">
+                        <b-icon-arrow-right-circle class="mr-1" />Does not apply
+                        to disabled PVs. Songs that have all qualifying PVs
+                        disabled will be filtered out.
+                      </div>
                     </td>
                   </tr>
                   <tr>

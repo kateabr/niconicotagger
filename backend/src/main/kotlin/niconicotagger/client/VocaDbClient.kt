@@ -2,6 +2,7 @@ package niconicotagger.client
 
 import com.fasterxml.jackson.databind.json.JsonMapper
 import com.github.benmanes.caffeine.cache.Caffeine
+import com.sksamuel.aedile.core.asCache
 import io.netty.channel.ChannelOption.CONNECT_TIMEOUT_MILLIS
 import io.netty.handler.logging.LogLevel.INFO
 import io.netty.handler.timeout.ReadTimeoutHandler
@@ -56,7 +57,7 @@ import reactor.netty.http.client.HttpClient
 import reactor.netty.transport.logging.AdvancedByteBufFormat.TEXTUAL
 import reactor.util.retry.Retry
 import java.time.Duration
-import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeUnit.HOURS
 
 
 /**
@@ -91,8 +92,8 @@ open class VocaDbClient(private val baseUrl: String, private val jsonMapper: Jso
         .build()
     private var maxTagMappingsToLoad = 10000
     private val tagMappingsCache = Caffeine.newBuilder()
-        .expireAfterWrite(1, TimeUnit.HOURS)
-        .build<String, List<VocaDbTagMapping>>()
+        .expireAfterWrite(1, HOURS)
+        .asCache<String, List<VocaDbTagMapping>>()
 
     suspend fun login(username: String, password: String): MultiValueMap<String, String> {
         val loginPayload = mapOf("keepLoggedIn" to true, "userName" to username, "password" to password)
@@ -178,14 +179,14 @@ open class VocaDbClient(private val baseUrl: String, private val jsonMapper: Jso
     }
 
     suspend fun deleteTagUsage(apiType: ApiType, tagUsageId: Long, cookie: String) {
-            client.delete()
-                .uri(
-                    "/api/users/current/{tagType}/{tagUsageId}",
-                    mapOf("tagType" to apiType.tagType, "tagUsageId" to tagUsageId)
-                )
-                .cookies { it.add(COOKIE_HEADER_KEY, cookie) }
-                .exchangeToMono { if (it.statusCode().is2xxSuccessful) it.releaseBody() else it.createError() }
-                .awaitSingleOrNull()
+        client.delete()
+            .uri(
+                "/api/users/current/{tagType}/{tagUsageId}",
+                mapOf("tagType" to apiType.tagType, "tagUsageId" to tagUsageId)
+            )
+            .cookies { it.add(COOKIE_HEADER_KEY, cookie) }
+            .exchangeToMono { if (it.statusCode().is2xxSuccessful) it.releaseBody() else it.createError() }
+            .awaitSingleOrNull()
     }
 
     suspend fun getEventByName(name: String, fields: String): VocaDbReleaseEvent {

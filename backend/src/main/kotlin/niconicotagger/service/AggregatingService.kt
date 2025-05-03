@@ -1,5 +1,7 @@
 package niconicotagger.service
 
+import com.github.benmanes.caffeine.cache.Caffeine
+import com.sksamuel.aedile.core.asCache
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -57,6 +59,7 @@ import niconicotagger.serde.Utils.normalizeToken
 import org.springframework.stereotype.Service
 import java.time.ZoneOffset.UTC
 import java.time.format.DateTimeFormatter.ISO_DATE_TIME
+import java.util.concurrent.TimeUnit.HOURS
 
 @Service
 class AggregatingService(
@@ -69,6 +72,10 @@ class AggregatingService(
     private val songWithPvsMapper: SongWithPvsMapper,
     private val publisherLinkConfig: PublisherLinkConfig
 ) {
+    private val publisherCache = Caffeine.newBuilder()
+        .expireAfterWrite(6, HOURS)
+        .maximumSize(100)
+        .asCache<String, PublisherInfo>()
 
     private fun getClient(clientType: ClientType) = dbClientHolder.getClient(clientType)
 
@@ -103,26 +110,30 @@ class AggregatingService(
 
         val videos = nndClient.getVideosByTags(request)
         val result = coroutineScope {
-            videos.data.map { video ->
-                video.tags.forEach { tagStyleHolder.put(it, NONE) }
-                val videoTagsWithStyle = video.tags.associateWith { tagStyleHolder.get(it) }
+            nndClient.getVideosByTags(request).data.map { video ->
                 async {
-                    val songEntry = getClient(request.clientType).getSongByNndPv(
-                        video.id,
-                        "ReleaseEvent",
-                        VocaDbSongWithReleaseEvents::class.java
-                    )
-                    val publisher = if (songEntry == null) getPublisher(video, request.clientType) else null
-                    val description = video.description ?: nndClient.getFormattedDescription(video.id)
+                    video.tags.forEach { tagStyleHolder.put(it, NONE) }
+                    val videoTagsWithStyle = video.tags.associateWith { tagStyleHolder.get(it) }
+
+                    val description = async { video.description ?: nndClient.getFormattedDescription(video.id) }
+                    val songEntry = async {
+                        getClient(request.clientType).getSongByNndPv(
+                            video.id,
+                            "ReleaseEvent",
+                            VocaDbSongWithReleaseEvents::class.java
+                        )
+                    }
+                    val publisher =
+                        async { if (songEntry.await() == null) getPublisher(video, request.clientType) else null }
 
                     videoWithAssociatedEntryMapper.mapForEvent(
                         video,
-                        songEntry,
-                        minOf(songEntry?.publishedAt ?: video.publishedAt, video.publishedAt),
+                        songEntry.await(),
+                        minOf(songEntry.await()?.publishedAt ?: video.publishedAt, video.publishedAt),
                         request.dates,
                         videoTagsWithStyle,
-                        description,
-                        publisher
+                        description.await(),
+                        publisher.await()
                     )
                 }
             }
@@ -230,23 +241,35 @@ class AggregatingService(
 
     internal suspend fun getPublisher(video: NndVideoData, clientType: ClientType): PublisherInfo? {
         if (video.userId != null) {
-            getClient(clientType)
-                .getArtistByQuery(publisherLinkConfig.getLinkPath(video.userId, NND_USER))
-                ?.let { return createPublisher(it.id, it.name, DATABASE, clientType) }
+            publisherCache.getOrNull("${video.userId}_${DATABASE}") {
+                getClient(clientType)
+                    .getArtistByQuery(publisherLinkConfig.getLinkPath(video.userId, NND_USER))
+                    ?.let { createPublisher(it.id, it.name, DATABASE, clientType) }
+            }?.let { return it }
         }
         if (video.channelId != null) {
-            getClient(clientType)
-                .findArtistDuplicate(publisherLinkConfig.getFullLink(video.channelId, NND_CHANNEL))
-                ?.let { return createPublisher(it.id, it.name, DATABASE, clientType) }
+            publisherCache.getOrNull("ch${video.channelId}_${DATABASE}") {
+                getClient(clientType)
+                    .findArtistDuplicate(publisherLinkConfig.getFullLink(video.channelId, NND_CHANNEL))
+                    ?.let { createPublisher(it.id, it.name, DATABASE, clientType) }
+            }?.let { return it }
         }
         return nndClient.getThumbInfo(video.id)
             .let { thumbnail ->
                 when (thumbnail) {
                     is NndThumbnailOk -> {
                         thumbnail.data.userId
-                            ?.let { createPublisher(it, thumbnail.data.publisherName, NND_USER) }
+                            ?.let { userId ->
+                                publisherCache.getOrNull("${userId}_${NND_USER}") {
+                                    createPublisher(userId, thumbnail.data.publisherName, NND_USER)
+                                }
+                            }
                             ?: thumbnail.data.channelId
-                                ?.let { createPublisher(it, thumbnail.data.publisherName, NND_CHANNEL) }
+                                ?.let { channelId ->
+                                    publisherCache.getOrNull("ch${channelId}_${NND_USER}") {
+                                        createPublisher(channelId, thumbnail.data.publisherName, NND_CHANNEL)
+                                    }
+                                }
                     }
 
                     else -> null
