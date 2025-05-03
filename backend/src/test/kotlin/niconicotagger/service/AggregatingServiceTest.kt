@@ -457,7 +457,6 @@ class AggregatingServiceTest {
             apiType: ApiType,
             @Given query: String,
             @Given clientType: ClientType,
-            @Given cookie: String,
         ): Unit = runBlocking {
             val response =
                 Instancio.of(
@@ -486,12 +485,7 @@ class AggregatingServiceTest {
                     } returns QueryConsoleResponse(mockk<List<QueryConsoleSongData>>(), emptyList(), 1)
             }
 
-            assertThat(
-                    aggregatingService.getDataWithTagsByCustomQuery(
-                        QueryConsoleRequest(apiType, query, clientType),
-                        cookie,
-                    )
-                )
+            assertThat(aggregatingService.getDataWithTagsByCustomQuery(QueryConsoleRequest(apiType, query, clientType)))
                 .extracting { it.totalCount }
                 .isEqualTo(1L)
 

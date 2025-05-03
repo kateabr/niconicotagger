@@ -1,7 +1,6 @@
 package niconicotagger.controller
 
 import jakarta.validation.Valid
-import niconicotagger.constants.Constants.COOKIE_HEADER_KEY
 import niconicotagger.dto.api.misc.QueryConsoleData
 import niconicotagger.dto.api.request.GetReleaseEventRequest
 import niconicotagger.dto.api.request.QueryConsoleRequest
@@ -17,7 +16,6 @@ import niconicotagger.dto.api.response.VideosByNndTagsResponseForEvent
 import niconicotagger.dto.api.response.VideosByNndTagsResponseForTagging
 import niconicotagger.dto.api.response.VideosByVocaDbTagResponse
 import niconicotagger.service.AggregatingService
-import org.springframework.web.bind.annotation.CookieValue
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -29,10 +27,9 @@ class AggregatingController(private val service: AggregatingService) {
 
     @PostMapping(value = ["/data/by_custom_query"])
     suspend fun getDataByCustomQuery(
-        @Valid @RequestBody request: QueryConsoleRequest,
-        @CookieValue(COOKIE_HEADER_KEY) cookie: String,
+        @Valid @RequestBody request: QueryConsoleRequest
     ): QueryConsoleResponse<out QueryConsoleData> {
-        return service.getDataWithTagsByCustomQuery(request, cookie)
+        return service.getDataWithTagsByCustomQuery(request)
     }
 
     @PostMapping(value = ["/release_event"])

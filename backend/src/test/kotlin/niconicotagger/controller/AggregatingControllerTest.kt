@@ -8,13 +8,11 @@ import com.github.tomakehurst.wiremock.client.WireMock.okJson
 import com.github.tomakehurst.wiremock.client.WireMock.post
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathTemplate
-import jakarta.servlet.http.Cookie
 import java.util.stream.Stream
 import kotlinx.coroutines.runBlocking
 import niconicotagger.Utils.jsonMapper
 import niconicotagger.Utils.loadResource
 import niconicotagger.constants.Constants.API_SEARCH_FIELDS
-import niconicotagger.constants.Constants.COOKIE_HEADER_KEY
 import niconicotagger.constants.Constants.DEFAULT_USER_AGENT
 import niconicotagger.constants.Constants.GENRE_FILTER
 import niconicotagger.dto.api.misc.ApiType
@@ -25,7 +23,6 @@ import niconicotagger.dto.api.misc.NndSortOrder.PUBLISH_TIME
 import niconicotagger.dto.api.misc.VocaDbSortOrder.AdditionDate
 import niconicotagger.dto.api.misc.VocaDbSortOrder.PublishDate
 import niconicotagger.dto.inner.misc.PvService.NicoNicoDouga
-import org.instancio.junit.Given
 import org.instancio.junit.InstancioExtension
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
@@ -54,60 +51,43 @@ class AggregatingControllerTest : AbstractControllerTest() {
 
     @ParameterizedTest(name = "[{index}] apiType={0}")
     @ArgumentsSource(DataByCustomQuerySuccessTestData::class)
-    fun `get data by custom query test`(
-        apiType: ApiType,
-        entryLookupResult: String,
-        tagUsageResponses: Map<String, String>,
-        expectedResponse: String,
-        @Given cookie: String,
-    ): Unit = runBlocking {
-        wireMockExtension.stubFor(
-            get(urlPathTemplate("/api/{apiType}"))
-                .withPathParam("apiType", equalTo(apiType.toString()))
-                .withQueryParams(
-                    mapOf(
-                        "fields" to equalTo("Tags"),
-                        "getTotalCount" to equalTo("true"),
-                        "start" to equalTo("0"),
-                        "maxResults" to equalTo("10"),
-                    )
-                )
-                .withHeader(CONTENT_TYPE, equalTo(APPLICATION_JSON_VALUE))
-                .withHeader(USER_AGENT, equalTo(DEFAULT_USER_AGENT))
-                .willReturn(okJson(entryLookupResult))
-        )
-        tagUsageResponses.forEach {
+    fun `get data by custom query test`(apiType: ApiType, entryLookupResult: String, expectedResponse: String): Unit =
+        runBlocking {
             wireMockExtension.stubFor(
-                get(urlPathTemplate("/api/{apiType}/{id}/tagUsages"))
+                get(urlPathTemplate("/api/{apiType}"))
                     .withPathParam("apiType", equalTo(apiType.toString()))
-                    .withPathParam("id", equalTo(it.key))
-                    .withCookie(COOKIE_HEADER_KEY, equalTo(cookie))
+                    .withQueryParams(
+                        mapOf(
+                            "fields" to equalTo("Tags"),
+                            "getTotalCount" to equalTo("true"),
+                            "start" to equalTo("0"),
+                            "maxResults" to equalTo("10"),
+                        )
+                    )
                     .withHeader(CONTENT_TYPE, equalTo(APPLICATION_JSON_VALUE))
                     .withHeader(USER_AGENT, equalTo(DEFAULT_USER_AGENT))
-                    .willReturn(okJson(it.value))
+                    .willReturn(okJson(entryLookupResult))
             )
-        }
 
-        mockMvc
-            .post("/api/get/data/by_custom_query") {
-                contentType = APPLICATION_JSON
-                content =
-                    """
+            mockMvc
+                .post("/api/get/data/by_custom_query") {
+                    contentType = APPLICATION_JSON
+                    content =
+                        """
                 {
                     "apiType": "$apiType",
                     "query": "start=0&maxResults=10",
                     "clientType": "$VOCADB_BETA"
                 }
                  """
-                        .trimIndent()
-                cookie(Cookie(COOKIE_HEADER_KEY, cookie))
-            }
-            .asyncDispatch()
-            .andExpect {
-                status { isOk() }
-                content { json(expectedResponse, STRICT) }
-            }
-    }
+                            .trimIndent()
+                }
+                .asyncDispatch()
+                .andExpect {
+                    status { isOk() }
+                    content { json(expectedResponse, STRICT) }
+                }
+        }
 
     @Nested
     inner class GetReleaseEventTest {
@@ -890,12 +870,6 @@ class AggregatingControllerTest : AbstractControllerTest() {
                 return arguments(
                     ARTISTS,
                     loadResource("$dataFolder/$ARTISTS/entry_lookup_result.json").decodeToString(),
-                    mapOf(
-                        "110395" to
-                            loadResource("$dataFolder/$ARTISTS/tag_usages_lookup_result_110395.json").decodeToString(),
-                        "111393" to
-                            loadResource("$dataFolder/$ARTISTS/tag_usages_lookup_result_111393.json").decodeToString(),
-                    ),
                     loadResource("$dataFolder/$ARTISTS/expected_response.json").decodeToString(),
                 )
             }
@@ -904,12 +878,6 @@ class AggregatingControllerTest : AbstractControllerTest() {
                 return arguments(
                     SONGS,
                     loadResource("$dataFolder/$SONGS/entry_lookup_result.json").decodeToString(),
-                    mapOf(
-                        "411366" to
-                            loadResource("$dataFolder/$SONGS/tag_usages_lookup_result_411366.json").decodeToString(),
-                        "415274" to
-                            loadResource("$dataFolder/$SONGS/tag_usages_lookup_result_415274.json").decodeToString(),
-                    ),
                     loadResource("$dataFolder/$SONGS/expected_response.json").decodeToString(),
                 )
             }

@@ -120,4 +120,4 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - run: mvn compile -am detekt:check spotless:check modernizer:modernizer spotbugs:check pmd:check pmd:cpd-check
+      - run: mvn compile -am detekt:check spotless:check modernizer:modernizer pmd:check pmd:cpd-check

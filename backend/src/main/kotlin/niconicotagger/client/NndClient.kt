@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.json.JsonMapper
 import com.fasterxml.jackson.dataformat.xml.XmlMapper
 import com.github.benmanes.caffeine.cache.Caffeine
 import com.sksamuel.aedile.core.asCache
+import java.util.concurrent.TimeUnit.HOURS
+import java.util.regex.Pattern
 import kotlinx.coroutines.reactor.awaitSingle
 import niconicotagger.client.Utils.createNndFilters
 import niconicotagger.constants.Constants.API_SEARCH_FIELDS
@@ -25,8 +27,6 @@ import org.springframework.web.reactive.function.client.ExchangeStrategies
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.awaitBody
 import org.springframework.web.util.UriComponentsBuilder
-import java.util.concurrent.TimeUnit.HOURS
-import java.util.regex.Pattern
 
 /** Api docs: https://site.nicovideo.jp/search-api-docs/snapshot */
 class NndClient(
@@ -45,26 +45,22 @@ class NndClient(
                     .build()
             )
             .build()
-    private val thumbCache = Caffeine.newBuilder()
-        .expireAfterWrite(1, HOURS)
-        .maximumSize(100)
-        .asCache<String, NndThumbnail>()
-    private val formattedDescriptionCache = Caffeine.newBuilder()
-        .expireAfterWrite(1, HOURS)
-        .maximumSize(100)
-        .asCache<String, String?>()
+    private val thumbCache =
+        Caffeine.newBuilder().expireAfterWrite(1, HOURS).maximumSize(100).asCache<String, NndThumbnail>()
+    private val formattedDescriptionCache =
+        Caffeine.newBuilder().expireAfterWrite(1, HOURS).maximumSize(100).asCache<String, String?>()
 
     suspend fun getThumbInfo(id: String): NndThumbnail {
         return thumbCache.get(id) {
             xmlMapper.readValue(
-                client.get()
+                client
+                    .get()
                     .uri("$thumbBaseUrl/api/getthumbinfo/{id}", id)
                     .header(CONTENT_TYPE, APPLICATION_XML_VALUE)
                     .retrieve()
                     .awaitBody<ByteArray>(),
-                NndThumbnail::class.java
-            ,
-               ) ?: error("Failed to retrieve thumbnail for id $id")
+                NndThumbnail::class.java,
+            ) ?: error("Failed to retrieve thumbnail for id $id")
         }
     }
 
@@ -86,10 +82,7 @@ class NndClient(
                 html = getEmbedResponse(matcher.group(1))
             }
 
-            val dataProps = Jsoup.parse(html)
-                .body()
-                .getElementById("ext-player")
-                ?.attr("data-props")
+            val dataProps = Jsoup.parse(html).body().getElementById("ext-player")?.attr("data-props")
             val description =
                 jsonMapper.readValue(dataProps, object : TypeReference<Map<String, Any>>() {})["description"] as String?
 

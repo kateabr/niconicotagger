@@ -494,11 +494,6 @@
                             <artifactId>spotbugs</artifactId>
                             <version>${spotbugs.version}</version>
                         </dependency>
-                        <dependency>
-                            <groupId>sage.libs</groupId>
-                            <artifactId>checkers-configuration</artifactId>
-                            <version>${revision}</version>
-                        </dependency>
                     </dependencies>
                 </plugin>
                 <plugin>

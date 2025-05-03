@@ -95,7 +95,6 @@ class NndVideoWithAssociatedVocaDbEntryMapperTest {
     @ParameterizedTest
     @ArgumentsSource(TestData::class)
     fun `NND video with associated VocaDB entry mapping test (for event)`(
-        nndTagMappings: Map<String, VocaDbTag>,
         video: NndVideoData,
         songEntry: VocaDbSongWithReleaseEvents?,
         publishDate: Instant,
@@ -203,7 +202,6 @@ class NndVideoWithAssociatedVocaDbEntryMapperTest {
                     .map {
                         argumentSet(
                             "${it.second}, ${it.first.second}",
-                            nndTagMappings,
                             video,
                             songEntry,
                             publishDate,

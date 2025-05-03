@@ -1,6 +1,7 @@
 package niconicotagger.mapper
 
 import java.net.URLDecoder
+import java.nio.charset.Charset
 import niconicotagger.dto.api.response.ReleaseEventWithVocaDbTagsResponse
 import niconicotagger.dto.api.response.ReleaseEventWitnNndTagsResponse
 import niconicotagger.dto.inner.misc.ReleaseEventCategory
@@ -35,7 +36,7 @@ abstract class ReleaseEventMapper {
             .map { it.url }
             .mapNotNull { nndTagRegex.find(it) }
             .map { it.groupValues[1] }
-            .map { URLDecoder.decode(it, "UTF-8") }
+            .map { URLDecoder.decode(it, Charset.forName("UTF-8")) }
 
     protected fun mapCategory(event: VocaDbReleaseEvent, series: VocaDbReleaseEventSeries?): ReleaseEventCategory =
         if (event.category == Unspecified && series != null) series.category else event.category

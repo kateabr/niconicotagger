@@ -17,7 +17,9 @@ class NndTagDeserializer : JsonDeserializer<NndTag>() {
         if (p.currentToken == VALUE_STRING) return NndTag(normalizeToken(p.valueAsString), false)
 
         val locked = p.nextFieldName(lockFieldName)
-        while (!p.nextFieldName(tagFieldName)) {}
+        while (!p.nextFieldName(tagFieldName)) {
+            // do nothing
+        }
         val tag = p.nextTextValue()
         do {
             p.nextToken()

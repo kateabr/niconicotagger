@@ -9,8 +9,6 @@ import niconicotagger.dto.api.response.QueryConsoleResponse
 import niconicotagger.dto.inner.vocadb.VocaDbCustomQueryArtistData
 import niconicotagger.dto.inner.vocadb.VocaDbCustomQuerySongData
 import niconicotagger.dto.inner.vocadb.VocaDbTag
-import niconicotagger.dto.inner.vocadb.VocaDbTagUsage
-import niconicotagger.dto.inner.vocadb.VocaDbTagUsages
 import niconicotagger.dto.inner.vocadb.search.result.VocaDbCustomQuerySearchResult
 import org.assertj.core.api.Assertions.assertThat
 import org.instancio.Instancio
@@ -35,19 +33,6 @@ class QueryResponseMapperTest {
                 .create()
         val response =
             VocaDbCustomQuerySearchResult<VocaDbCustomQueryArtistData>(listOf(responseItem1, responseItem2), 2)
-        val tagUsages =
-            mapOf(
-                responseItem1.id to
-                    VocaDbTagUsages(
-                        true,
-                        listOf(VocaDbTagUsage(100, responseItem1.tags[0]), VocaDbTagUsage(200, responseItem1.tags[1])),
-                    ),
-                responseItem2.id to
-                    VocaDbTagUsages(
-                        true,
-                        listOf(VocaDbTagUsage(101, responseItem2.tags[0]), VocaDbTagUsage(300, responseItem2.tags[1])),
-                    ),
-            )
 
         assertThat(mapper.map<QueryConsoleArtistData>(response))
             .usingRecursiveComparison()
@@ -87,19 +72,6 @@ class QueryResponseMapperTest {
                 .set(field("tags"), listOf(VocaDbTag(1, "1"), VocaDbTag(3, "3")))
                 .create()
         val response = VocaDbCustomQuerySearchResult<VocaDbCustomQuerySongData>(listOf(responseItem1, responseItem2), 2)
-        val tagUsages =
-            mapOf(
-                responseItem1.id to
-                    VocaDbTagUsages(
-                        true,
-                        listOf(VocaDbTagUsage(100, responseItem1.tags[0]), VocaDbTagUsage(200, responseItem1.tags[1])),
-                    ),
-                responseItem2.id to
-                    VocaDbTagUsages(
-                        true,
-                        listOf(VocaDbTagUsage(101, responseItem2.tags[0]), VocaDbTagUsage(300, responseItem2.tags[1])),
-                    ),
-            )
 
         assertThat(mapper.map<QueryConsoleSongData>(response))
             .usingRecursiveComparison()

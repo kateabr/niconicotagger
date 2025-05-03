@@ -7,6 +7,8 @@ import io.netty.channel.ChannelOption.CONNECT_TIMEOUT_MILLIS
 import io.netty.handler.logging.LogLevel.INFO
 import io.netty.handler.timeout.ReadTimeoutHandler
 import io.netty.handler.timeout.WriteTimeoutHandler
+import java.time.Duration
+import java.util.concurrent.TimeUnit.HOURS
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import niconicotagger.constants.Constants.COOKIE_HEADER_KEY
@@ -51,13 +53,10 @@ import org.springframework.web.reactive.function.client.awaitBodilessEntity
 import org.springframework.web.reactive.function.client.awaitBody
 import org.springframework.web.reactive.function.client.awaitExchange
 import org.springframework.web.reactive.function.client.toEntity
-import reactor.core.publisher.Mono
 import reactor.netty.Connection
 import reactor.netty.http.client.HttpClient
 import reactor.netty.transport.logging.AdvancedByteBufFormat.TEXTUAL
 import reactor.util.retry.Retry
-import java.time.Duration
-import java.util.concurrent.TimeUnit.HOURS
 
 /** Swagger: https://vocadb.net/swagger/index.html */
 open class VocaDbClient(private val baseUrl: String, private val jsonMapper: JsonMapper) {
@@ -93,20 +92,13 @@ open class VocaDbClient(private val baseUrl: String, private val jsonMapper: Jso
 
     suspend fun login(username: String, password: String): MultiValueMap<String, String> {
         val loginPayload = mapOf("keepLoggedIn" to true, "userName" to username, "password" to password)
-        //        val antiForgeryCookies = getAntiForgeryCookies()
 
         val loginResponse =
-            client
-                .post()
-                .uri("/api/users/login")
-                //            .cookies { it.addAll(antiForgeryCookies) }
-                //            .contentType(APPLICATION_JSON)
-                .bodyValue(loginPayload)
-                .awaitExchange {
-                    if (it.statusCode().is2xxSuccessful) DbLoginSuccess(it.cookies())
-                    else if (it.statusCode().is4xxClientError) it.awaitBody(DbLoginError::class)
-                    else throw it.createException().awaitSingle()
-                }
+            client.post().uri("/api/users/login").bodyValue(loginPayload).awaitExchange {
+                if (it.statusCode().is2xxSuccessful) DbLoginSuccess(it.cookies())
+                else if (it.statusCode().is4xxClientError) it.awaitBody(DbLoginError::class)
+                else throw it.createException().awaitSingle()
+            }
 
         val cookies =
             when (loginResponse) {
@@ -122,19 +114,6 @@ open class VocaDbClient(private val baseUrl: String, private val jsonMapper: Jso
             )
         checkUser(clientCookies)
         return clientCookies
-    }
-
-    private suspend fun getAntiForgeryCookies(): MultiValueMap<String, String> {
-        val cookies =
-            client.get().uri("/api/antiforgery/token").exchangeToMono { Mono.just(it.cookies()) }.awaitSingle()
-        val antiForgeryToken = cookies["XSRF-TOKEN"]?.first()?.value ?: error("Failed to obtain anti-forgery token")
-        return MultiValueMap.fromSingleValue(
-            mapOf(
-                "requestVerificationToken" to antiForgeryToken,
-                "X-XSRF-TOKEN" to antiForgeryToken,
-                "Origin" to baseUrl,
-            )
-        )
     }
 
     private suspend fun checkUser(cookies: MultiValueMap<String, String>) {

@@ -15,11 +15,10 @@ import niconicotagger.dto.inner.misc.SongType.Original
 import niconicotagger.dto.inner.vocadb.DatabaseEntity
 import niconicotagger.dto.inner.vocadb.VocaDbTag
 import niconicotagger.dto.inner.vocadb.VocaDbTagUsages
-import niconicotagger.mapper.RequestMapper
 import org.springframework.stereotype.Service
 
 @Service
-class UpdatingService(private val dbClientHolder: DbClientHolder, private val requestMapper: RequestMapper) {
+class UpdatingService(private val dbClientHolder: DbClientHolder) {
 
     private fun getClient(clientType: ClientType) = dbClientHolder.getClient(clientType)
 

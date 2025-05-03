@@ -12,7 +12,6 @@ import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.InstanceOfAssertFactories.list
 import org.instancio.Instancio
 import org.instancio.Select.field
-import org.instancio.junit.Given
 import org.instancio.junit.InstancioExtension
 import org.junit.jupiter.api.extension.ExtendWith
 import org.junit.jupiter.api.extension.ExtensionContext
@@ -62,8 +61,6 @@ class ReleaseEventWitnNndTagsResponseMapperTest {
         event: VocaDbReleaseEvent,
         series: VocaDbReleaseEventSeries?,
         expectedCategory: ReleaseEventCategory,
-        expectedFilteringFlag: Boolean,
-        @Given vocadbTagId: Long,
     ) {
         assertThat(mapper.mapWithTags(event, series))
             .usingRecursiveComparison()

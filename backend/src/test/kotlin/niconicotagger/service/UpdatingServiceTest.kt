@@ -28,7 +28,6 @@ import niconicotagger.dto.inner.vocadb.VocaDbTag
 import niconicotagger.dto.inner.vocadb.VocaDbTagSelectable
 import niconicotagger.dto.inner.vocadb.VocaDbTagUsage
 import niconicotagger.dto.inner.vocadb.VocaDbTagUsages
-import niconicotagger.mapper.RequestMapper
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatExceptionOfType
 import org.instancio.Instancio
@@ -52,8 +51,7 @@ class UpdatingServiceTest {
 
     private val client = mockk<VocaDbClient>()
     private val clientHolder = mockk<DbClientHolder>()
-    private val requestMapper = mockk<RequestMapper>()
-    private val service = spyk(UpdatingService(clientHolder, requestMapper))
+    private val service = spyk(UpdatingService(clientHolder))
 
     @BeforeEach
     fun setup() {
@@ -143,7 +141,6 @@ class UpdatingServiceTest {
     @Test
     fun `delete tags test (success)`(
         @Given entryId: Long,
-        @Given event: ReleaseEvent,
         @Given tagUsage: VocaDbTagUsage,
         @Given clientType: ClientType,
         @Given cookie: String,
