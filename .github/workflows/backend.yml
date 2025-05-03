@@ -70,11 +70,9 @@ jobs:
       - name: set version
         run: mvn versions:set -DnewVersion="$VERSION"
 
-      - name: build image
-        run: mvn package spring-boot:build-image-no-fork -DskipTests=true -Dspring-boot.build-image.createdDate=now
-
-      - name: push images
+      - name: build & push image
         run: |
+          mvn package spring-boot:build-image-no-fork -DskipTests=true -Dspring-boot.build-image.createdDate=now
           docker push ghcr.io/${{ github.repository }}:latest
 
       - uses: actions/delete-package-versions@v3

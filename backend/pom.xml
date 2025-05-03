@@ -724,7 +724,7 @@
                         </layers>
                         <image>
                             <name>${project.artifactId}:${project.version}</name>
-                            <tags>ghcr.io/${project.artifactId}:${project.version},ghcr.io/${project.artifactId}:latest</tags>
+                            <tags>ghcr.io/kateabr/${project.artifactId}:${project.version},ghcr.io/kateabr/${project.artifactId}:latest</tags>
                         </image>
                     </configuration>
                     <executions>
