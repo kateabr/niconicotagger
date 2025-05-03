@@ -8,11 +8,8 @@ import niconicotagger.dto.api.misc.VocaDbSortOrder
 
 @JsonIgnoreProperties(ignoreUnknown = false)
 data class SongsWithPvsRequest(
-    @field:Min(0)
-    val startOffset: Long,
-    @field:Min(10)
-    @field:Max(100)
-    val maxResults: Long,
+    @field:Min(0) val startOffset: Long,
+    @field:Min(10) @field:Max(100) val maxResults: Long,
     val orderBy: VocaDbSortOrder,
-    val clientType: ClientType
+    val clientType: ClientType,
 )

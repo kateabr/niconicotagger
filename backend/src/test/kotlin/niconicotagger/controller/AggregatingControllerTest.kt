@@ -1,7 +1,5 @@
 package niconicotagger.controller
 
-import Utils.jsonMapper
-import Utils.loadResource
 import com.github.tomakehurst.wiremock.client.WireMock.equalTo
 import com.github.tomakehurst.wiremock.client.WireMock.equalToJson
 import com.github.tomakehurst.wiremock.client.WireMock.get
@@ -11,7 +9,10 @@ import com.github.tomakehurst.wiremock.client.WireMock.post
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathTemplate
 import jakarta.servlet.http.Cookie
+import java.util.stream.Stream
 import kotlinx.coroutines.runBlocking
+import niconicotagger.Utils.jsonMapper
+import niconicotagger.Utils.loadResource
 import niconicotagger.constants.Constants.API_SEARCH_FIELDS
 import niconicotagger.constants.Constants.COOKIE_HEADER_KEY
 import niconicotagger.constants.Constants.DEFAULT_USER_AGENT
@@ -47,7 +48,6 @@ import org.springframework.http.MediaType.APPLICATION_XML_VALUE
 import org.springframework.http.MediaType.TEXT_HTML_VALUE
 import org.springframework.test.json.JsonCompareMode.STRICT
 import org.springframework.test.web.servlet.post
-import java.util.stream.Stream
 
 @ExtendWith(InstancioExtension::class)
 class AggregatingControllerTest : AbstractControllerTest() {
@@ -59,7 +59,7 @@ class AggregatingControllerTest : AbstractControllerTest() {
         entryLookupResult: String,
         tagUsageResponses: Map<String, String>,
         expectedResponse: String,
-        @Given cookie: String
+        @Given cookie: String,
     ): Unit = runBlocking {
         wireMockExtension.stubFor(
             get(urlPathTemplate("/api/{apiType}"))
@@ -69,7 +69,7 @@ class AggregatingControllerTest : AbstractControllerTest() {
                         "fields" to equalTo("Tags"),
                         "getTotalCount" to equalTo("true"),
                         "start" to equalTo("0"),
-                        "maxResults" to equalTo("10")
+                        "maxResults" to equalTo("10"),
                     )
                 )
                 .withHeader(CONTENT_TYPE, equalTo(APPLICATION_JSON_VALUE))
@@ -88,17 +88,21 @@ class AggregatingControllerTest : AbstractControllerTest() {
             )
         }
 
-        mockMvc.post("/api/get/data/by_custom_query") {
-            contentType = APPLICATION_JSON
-            content = """
+        mockMvc
+            .post("/api/get/data/by_custom_query") {
+                contentType = APPLICATION_JSON
+                content =
+                    """
                 {
                     "apiType": "$apiType",
                     "query": "start=0&maxResults=10",
                     "clientType": "$VOCADB_BETA"
                 }
-                 """.trimIndent()
-            cookie(Cookie(COOKIE_HEADER_KEY, cookie))
-        }.asyncDispatch()
+                 """
+                        .trimIndent()
+                cookie(Cookie(COOKIE_HEADER_KEY, cookie))
+            }
+            .asyncDispatch()
             .andExpect {
                 status { isOk() }
                 content { json(expectedResponse, STRICT) }
@@ -114,7 +118,7 @@ class AggregatingControllerTest : AbstractControllerTest() {
             expectedResponse: String,
             eventFields: String,
             seriesFields: String,
-            uriPath: String
+            uriPath: String,
         ) {
             eventLookupResult.forEach {
                 wireMockExtension.stubFor(
@@ -145,15 +149,19 @@ class AggregatingControllerTest : AbstractControllerTest() {
                 )
             }
 
-            mockMvc.post("/api/get$uriPath") {
-                contentType = APPLICATION_JSON
-                content = """
+            mockMvc
+                .post("/api/get$uriPath") {
+                    contentType = APPLICATION_JSON
+                    content =
+                        """
                 {
                     "eventName": "${eventLookupResult.keys.first()}",
                     "clientType": "$VOCADB_BETA"
                 }
-                 """.trimIndent()
-            }.asyncDispatch()
+                 """
+                            .trimIndent()
+                }
+                .asyncDispatch()
                 .andExpect {
                     status { isOk() }
                     content { json(expectedResponse, STRICT) }
@@ -165,7 +173,7 @@ class AggregatingControllerTest : AbstractControllerTest() {
         fun `get release event test (success)`(
             eventLookupResult: Map<String, String>,
             seriesLookupResult: Map<String, String>,
-            expectedResponse: String
+            expectedResponse: String,
         ) {
             testValidRequest(
                 eventLookupResult,
@@ -173,7 +181,7 @@ class AggregatingControllerTest : AbstractControllerTest() {
                 expectedResponse,
                 "WebLinks",
                 "WebLinks",
-                "/release_event"
+                "/release_event",
             )
         }
 
@@ -182,7 +190,7 @@ class AggregatingControllerTest : AbstractControllerTest() {
         fun `get release event with linked tag test (success)`(
             eventLookupResult: Map<String, String>,
             seriesLookupResult: Map<String, String>,
-            expectedResponse: String
+            expectedResponse: String,
         ) {
             testValidRequest(
                 eventLookupResult,
@@ -190,20 +198,23 @@ class AggregatingControllerTest : AbstractControllerTest() {
                 expectedResponse,
                 "Tags",
                 "None",
-                "/release_event/with_linked_tags"
+                "/release_event/with_linked_tags",
             )
         }
 
         @ParameterizedTest(name = "[{index}] {0}")
-        @CsvSource(value = ["release event,/release_event", "release event with linked tag,/release_event/with_linked_tags"])
-        fun `get release event test (invalid request)`(testNameIgnored: String, uriPath: String) {
+        @CsvSource(
+            value = ["release event,/release_event", "release event with linked tag,/release_event/with_linked_tags"]
+        )
+        fun `get release event test (invalid request)`(ignored: String, uriPath: String) {
             testInvalidRequest(
                 """
                 {
                     "eventName": "",
                     "clientType": "$VOCADB_BETA"
                 }
-                """.trimIndent(),
+                """
+                    .trimIndent(),
                 """
                 {
                   "type": "https://zalando.github.io/problem/constraint-violation",
@@ -216,8 +227,9 @@ class AggregatingControllerTest : AbstractControllerTest() {
                   ],
                   "title": "Constraint Violation"
                 }
-                """.trimIndent(),
-                "/get$uriPath"
+                """
+                    .trimIndent(),
+                "/get$uriPath",
             )
         }
     }
@@ -234,7 +246,7 @@ class AggregatingControllerTest : AbstractControllerTest() {
             dbPublisherLookupResultChannel: Map<String, String>,
             thumbnails: Map<String, String>,
             embeds: Map<String, String>,
-            songFields: String
+            songFields: String,
         ) {
             tagLookupResult.forEach {
                 wireMockExtension.stubFor(
@@ -274,9 +286,7 @@ class AggregatingControllerTest : AbstractControllerTest() {
                             "_sort" to equalTo("viewCounter"),
                             "targets" to equalTo("tagsExact"),
                             "fields" to equalTo(API_SEARCH_FIELDS),
-                            "jsonFilter" to equalToJson(
-                                jsonMapper.writeValueAsString(GENRE_FILTER)
-                            )
+                            "jsonFilter" to equalToJson(jsonMapper.writeValueAsString(GENRE_FILTER)),
                         )
                     )
                     .withHeader(CONTENT_TYPE, equalTo(APPLICATION_JSON_VALUE))
@@ -290,7 +300,7 @@ class AggregatingControllerTest : AbstractControllerTest() {
                             mapOf(
                                 "pvId" to equalTo(it.key),
                                 "pvService" to equalTo(NicoNicoDouga.toString()),
-                                "fields" to equalTo(songFields)
+                                "fields" to equalTo(songFields),
                             )
                         )
                         .withHeader(CONTENT_TYPE, equalTo(APPLICATION_JSON_VALUE))
@@ -352,7 +362,7 @@ class AggregatingControllerTest : AbstractControllerTest() {
             embeds: Map<String, String>,
             expectedResponse: String,
             uriPath: String,
-            songFields: String
+            songFields: String,
         ) {
             setupStubs(
                 tagLookupResult,
@@ -364,13 +374,15 @@ class AggregatingControllerTest : AbstractControllerTest() {
                 dbPublisherLookupResultChannel,
                 thumbnails,
                 embeds,
-                songFields
+                songFields,
             )
 
-            mockMvc.post("/api/get/videos$uriPath") {
-                contentType = APPLICATION_JSON
-                content = request
-            }.asyncDispatch()
+            mockMvc
+                .post("/api/get/videos$uriPath") {
+                    contentType = APPLICATION_JSON
+                    content = request
+                }
+                .asyncDispatch()
                 .andExpect {
                     status { isOk() }
                     content { json(expectedResponse, STRICT) }
@@ -390,7 +402,7 @@ class AggregatingControllerTest : AbstractControllerTest() {
             dbPublisherLookupResultChannel: Map<String, String>,
             thumbnails: Map<String, String>,
             embeds: Map<String, String>,
-            expectedResponse: String
+            expectedResponse: String,
         ) {
             testValidRequest(
                 request,
@@ -405,7 +417,7 @@ class AggregatingControllerTest : AbstractControllerTest() {
                 embeds,
                 expectedResponse,
                 "/by_nnd_tags/for_tagging",
-                "Tags,Artists"
+                "Tags,Artists",
             )
         }
 
@@ -422,7 +434,7 @@ class AggregatingControllerTest : AbstractControllerTest() {
             dbPublisherLookupResultChannel: Map<String, String>,
             thumbnails: Map<String, String>,
             embeds: Map<String, String>,
-            expectedResponse: String
+            expectedResponse: String,
         ) {
             testValidRequest(
                 request,
@@ -437,7 +449,7 @@ class AggregatingControllerTest : AbstractControllerTest() {
                 embeds,
                 expectedResponse,
                 "/by_vocadb_tag",
-                "Tags,Artists"
+                "Tags,Artists",
             )
         }
 
@@ -454,7 +466,7 @@ class AggregatingControllerTest : AbstractControllerTest() {
             dbPublisherLookupResultChannel: Map<String, String>,
             thumbnails: Map<String, String>,
             embeds: Map<String, String>,
-            expectedResponse: String
+            expectedResponse: String,
         ) {
             testValidRequest(
                 request,
@@ -469,7 +481,7 @@ class AggregatingControllerTest : AbstractControllerTest() {
                 embeds,
                 expectedResponse,
                 "/by_nnd_tags/for_event",
-                "ReleaseEvent"
+                "ReleaseEvent",
             )
         }
 
@@ -486,7 +498,8 @@ class AggregatingControllerTest : AbstractControllerTest() {
                     "orderBy": "$PUBLISH_TIME",
                     "clientType": "$VOCADB_BETA"
                 }
-                """.trimIndent(),
+                """
+                    .trimIndent(),
                 """
                 {
                   "type": "https://zalando.github.io/problem/constraint-violation",
@@ -507,8 +520,9 @@ class AggregatingControllerTest : AbstractControllerTest() {
                   ],
                   "title": "Constraint Violation"
                 }
-                """.trimIndent(),
-                "/get/videos/by_nnd_tags/for_tagging"
+                """
+                    .trimIndent(),
+                "/get/videos/by_nnd_tags/for_tagging",
             )
         }
 
@@ -516,7 +530,7 @@ class AggregatingControllerTest : AbstractControllerTest() {
         @CsvSource(value = ["9,must be greater than or equal to 10", "101, must be less than or equal to 100"])
         fun `get videos by VocaDB tag mappings test (invalid request)`(
             maxResults: Long,
-            maxResultsConstraintMessage: String
+            maxResultsConstraintMessage: String,
         ) {
             testInvalidRequest(
                 """
@@ -528,7 +542,8 @@ class AggregatingControllerTest : AbstractControllerTest() {
                     "orderBy": "$PUBLISH_TIME",
                     "clientType": "$VOCADB_BETA"
                 }
-                """.trimIndent(),
+                """
+                    .trimIndent(),
                 """
                 {
                   "type": "https://zalando.github.io/problem/constraint-violation",
@@ -549,8 +564,9 @@ class AggregatingControllerTest : AbstractControllerTest() {
                   ],
                   "title": "Constraint Violation"
                 }
-                """.trimIndent(),
-                "/get/videos/by_vocadb_tag"
+                """
+                    .trimIndent(),
+                "/get/videos/by_vocadb_tag",
             )
         }
 
@@ -558,7 +574,7 @@ class AggregatingControllerTest : AbstractControllerTest() {
         @CsvSource(value = ["9,must be greater than or equal to 10", "101, must be less than or equal to 100"])
         fun `get videos by VocaDB event NND tags test (invalid request)`(
             maxResults: Long,
-            maxResultsConstraintMessage: String
+            maxResultsConstraintMessage: String,
         ) {
             testInvalidRequest(
                 """
@@ -575,7 +591,8 @@ class AggregatingControllerTest : AbstractControllerTest() {
                     },
                     "clientType": "$VOCADB_BETA"
                 }
-                """.trimIndent(),
+                """
+                    .trimIndent(),
                 """
                 {
                   "type": "https://zalando.github.io/problem/constraint-violation",
@@ -596,8 +613,9 @@ class AggregatingControllerTest : AbstractControllerTest() {
                   ],
                   "title": "Constraint Violation"
                 }
-                """.trimIndent(),
-                "/get/videos/by_nnd_tags/for_event"
+                """
+                    .trimIndent(),
+                "/get/videos/by_nnd_tags/for_event",
             )
         }
     }
@@ -630,7 +648,7 @@ class AggregatingControllerTest : AbstractControllerTest() {
                             "sort" to equalTo(PublishDate.toString()),
                             "getTotalCount" to equalTo("true"),
                             "pvServices" to equalTo(NicoNicoDouga.toString()),
-                            "fields" to equalTo("PVs,Tags,Artists")
+                            "fields" to equalTo("PVs,Tags,Artists"),
                         )
                     )
                     .withHeader(CONTENT_TYPE, equalTo(APPLICATION_JSON_VALUE))
@@ -638,10 +656,10 @@ class AggregatingControllerTest : AbstractControllerTest() {
                     .willReturn(okJson(loadResource("$dataFolder/song_lookup_result.json").decodeToString()))
             )
             mapOf(
-                "sm44594436" to loadResource("$dataFolder/video_lookup_result_sm44594436.xml"),
-                "sm44594435" to loadResource("$dataFolder/video_lookup_result_not_found.xml"),
-                "sm44594434" to loadResource("$dataFolder/video_lookup_result_sm44594434.xml")
-            )
+                    "sm44594436" to loadResource("$dataFolder/video_lookup_result_sm44594436.xml"),
+                    "sm44594435" to loadResource("$dataFolder/video_lookup_result_not_found.xml"),
+                    "sm44594434" to loadResource("$dataFolder/video_lookup_result_sm44594434.xml"),
+                )
                 .forEach {
                     wireMockExtension.stubFor(
                         get(urlPathTemplate("/api/getthumbinfo/{id}"))
@@ -652,17 +670,21 @@ class AggregatingControllerTest : AbstractControllerTest() {
                     )
                 }
 
-            mockMvc.post("/api/get/songs") {
-                contentType = APPLICATION_JSON
-                content = """
+            mockMvc
+                .post("/api/get/songs") {
+                    contentType = APPLICATION_JSON
+                    content =
+                        """
                 {
                     "startOffset": 0,
                     "maxResults": 10,
                     "orderBy": "$PublishDate",
                     "clientType": "$VOCADB_BETA"
                 }
-                 """.trimIndent()
-            }.asyncDispatch()
+                 """
+                            .trimIndent()
+                }
+                .asyncDispatch()
                 .andExpect {
                     status { isOk() }
                     content { json(loadResource("$dataFolder/expected_response.json").decodeToString(), STRICT) }
@@ -673,23 +695,27 @@ class AggregatingControllerTest : AbstractControllerTest() {
         @CsvSource(value = ["9,must be greater than or equal to 10", "101, must be less than or equal to 100"])
         fun `get VocaDB song entries for tagging test (invalid request)`(
             maxResults: Long,
-            maxResultsConstraintMessage: String
+            maxResultsConstraintMessage: String,
         ) {
-            mockMvc.post("/api/get/songs") {
-                contentType = APPLICATION_JSON
-                content = """
+            mockMvc
+                .post("/api/get/songs") {
+                    contentType = APPLICATION_JSON
+                    content =
+                        """
                 {
                     "startOffset": -1,
                     "maxResults": $maxResults,
                     "orderBy": "$AdditionDate",
                     "clientType": "$VOCADB_BETA"
                 }
-                """.trimIndent()
-            }.andExpect {
-                status { is4xxClientError() }
-                content {
-                    json(
-                        """
+                """
+                            .trimIndent()
+                }
+                .andExpect {
+                    status { is4xxClientError() }
+                    content {
+                        json(
+                            """
                         {
                           "type": "https://zalando.github.io/problem/constraint-violation",
                           "status": 400,
@@ -705,11 +731,12 @@ class AggregatingControllerTest : AbstractControllerTest() {
                           ],
                           "title": "Constraint Violation"
                         }
-                        """.trimIndent(),
-                        STRICT
-                    )
+                        """
+                                .trimIndent(),
+                            STRICT,
+                        )
+                    }
                 }
-            }
         }
     }
 
@@ -718,18 +745,34 @@ class AggregatingControllerTest : AbstractControllerTest() {
             private fun series(): ArgumentSet {
                 return argumentSet(
                     "series event",
-                    mapOf("11月1日はネル誕生祭 2008" to loadResource("responses/integration/aggregate/$dataFolder/series/event_lookup_result.json").decodeToString()),
-                    mapOf("176" to loadResource("responses/integration/aggregate/$dataFolder/series/series_lookup_result.json").decodeToString()),
-                    loadResource("responses/integration/aggregate/$dataFolder/series/expected_response.json").decodeToString(),
+                    mapOf(
+                        "11月1日はネル誕生祭 2008" to
+                            loadResource("responses/integration/aggregate/$dataFolder/series/event_lookup_result.json")
+                                .decodeToString()
+                    ),
+                    mapOf(
+                        "176" to
+                            loadResource("responses/integration/aggregate/$dataFolder/series/series_lookup_result.json")
+                                .decodeToString()
+                    ),
+                    loadResource("responses/integration/aggregate/$dataFolder/series/expected_response.json")
+                        .decodeToString(),
                 )
             }
 
             private fun standalone(): ArgumentSet {
                 return argumentSet(
                     "standalone event",
-                    mapOf("『在りし日の歌』祭り" to loadResource("responses/integration/aggregate/$dataFolder/standalone/event_lookup_result.json").decodeToString()),
+                    mapOf(
+                        "『在りし日の歌』祭り" to
+                            loadResource(
+                                    "responses/integration/aggregate/$dataFolder/standalone/event_lookup_result.json"
+                                )
+                                .decodeToString()
+                    ),
                     emptyMap<String, String>(),
-                    loadResource("responses/integration/aggregate/$dataFolder/standalone/expected_response.json").decodeToString(),
+                    loadResource("responses/integration/aggregate/$dataFolder/standalone/expected_response.json")
+                        .decodeToString(),
                 )
             }
 
@@ -742,41 +785,86 @@ class AggregatingControllerTest : AbstractControllerTest() {
             protected fun loadTestData(
                 caseType: String,
                 tagQuery: String,
-                tagLookupRequired: Boolean = false
+                tagLookupRequired: Boolean = false,
             ): ArgumentSet {
                 val request =
-                    loadResource("responses/integration/aggregate/videos_by_tags/$dataFolder/$caseType/request.json").decodeToString()
+                    loadResource("responses/integration/aggregate/videos_by_tags/$dataFolder/$caseType/request.json")
+                        .decodeToString()
                 val tagLookupResult =
-                    if (tagLookupRequired) mapOf("シューゲイザー" to loadResource("responses/integration/aggregate/videos_by_tags/$dataFolder/$caseType/tag_lookup_result.json").decodeToString())
+                    if (tagLookupRequired)
+                        mapOf(
+                            "シューゲイザー" to
+                                loadResource(
+                                        "responses/integration/aggregate/videos_by_tags/$dataFolder/$caseType/tag_lookup_result.json"
+                                    )
+                                    .decodeToString()
+                        )
                     else emptyMap()
                 val tagMappings =
-                    loadResource("responses/integration/aggregate/videos_by_tags/$dataFolder/$caseType/tag_mappings.json").decodeToString()
+                    loadResource(
+                            "responses/integration/aggregate/videos_by_tags/$dataFolder/$caseType/tag_mappings.json"
+                        )
+                        .decodeToString()
                 val nndVideoSearchResult =
-                    loadResource("responses/integration/aggregate/videos_by_tags/$dataFolder/$caseType/nnd_video_search_result.json").decodeToString()
-                val dbSongLookupResult = mapOf(
-                    // not added, publisher in the db
-                    "sm35039682" to "null",
-                    // added, published from a channel
-                    "sm33123156" to loadResource("responses/integration/aggregate/videos_by_tags/$dataFolder/$caseType/song_by_pv_lookup_result_sm33123156.json").decodeToString(),
-                    // added, published from a user account
-                    "sm32396434" to loadResource("responses/integration/aggregate/videos_by_tags/$dataFolder/$caseType/song_by_pv_lookup_result_sm32396434.json").decodeToString(),
-                    // not added, published from a user account
-                    "sm33123155" to "null",
-                    // not added, published from a channel
-                    "sm32396435" to "null"
-                )
-                val dbPublisherLookupResultUser = mapOf(
-                    "user/87192516" to loadResource("responses/integration/aggregate/videos_by_tags/$dataFolder/$caseType/publisher_lookup_result_87192516.json").decodeToString(),
-                    "user/102050" to loadResource("responses/integration/aggregate/videos_by_tags/$dataFolder/$caseType/publisher_lookup_result_empty.json").decodeToString()
-                )
+                    loadResource(
+                            "responses/integration/aggregate/videos_by_tags/$dataFolder/$caseType/nnd_video_search_result.json"
+                        )
+                        .decodeToString()
+                val dbSongLookupResult =
+                    mapOf(
+                        // not added, publisher in the db
+                        "sm35039682" to "null",
+                        // added, published from a channel
+                        "sm33123156" to
+                            loadResource(
+                                    "responses/integration/aggregate/videos_by_tags/$dataFolder/$caseType/song_by_pv_lookup_result_sm33123156.json"
+                                )
+                                .decodeToString(),
+                        // added, published from a user account
+                        "sm32396434" to
+                            loadResource(
+                                    "responses/integration/aggregate/videos_by_tags/$dataFolder/$caseType/song_by_pv_lookup_result_sm32396434.json"
+                                )
+                                .decodeToString(),
+                        // not added, published from a user account
+                        "sm33123155" to "null",
+                        // not added, published from a channel
+                        "sm32396435" to "null",
+                    )
+                val dbPublisherLookupResultUser =
+                    mapOf(
+                        "user/87192516" to
+                            loadResource(
+                                    "responses/integration/aggregate/videos_by_tags/$dataFolder/$caseType/publisher_lookup_result_87192516.json"
+                                )
+                                .decodeToString(),
+                        "user/102050" to
+                            loadResource(
+                                    "responses/integration/aggregate/videos_by_tags/$dataFolder/$caseType/publisher_lookup_result_empty.json"
+                                )
+                                .decodeToString(),
+                    )
                 val dbPublisherLookupResultChannel = mapOf("https://ch.nicovideo.jp/channel/ch5981761" to "[]")
-                val thumbnails = listOf("sm32396435", "sm33123155").associateWith {
-                    loadResource("responses/integration/aggregate/videos_by_tags/$dataFolder/$caseType/thumbnail_lookup_result_$it.xml").decodeToString()
-                }
+                val thumbnails =
+                    listOf("sm32396435", "sm33123155").associateWith {
+                        loadResource(
+                                "responses/integration/aggregate/videos_by_tags/$dataFolder/$caseType/thumbnail_lookup_result_$it.xml"
+                            )
+                            .decodeToString()
+                    }
                 val embeds =
-                    mapOf("sm35039682" to loadResource("responses/integration/aggregate/videos_by_tags/$dataFolder/$caseType/embed_sm35039682.html").decodeToString())
+                    mapOf(
+                        "sm35039682" to
+                            loadResource(
+                                    "responses/integration/aggregate/videos_by_tags/$dataFolder/$caseType/embed_sm35039682.html"
+                                )
+                                .decodeToString()
+                    )
                 val expectedResponse =
-                    loadResource("responses/integration/aggregate/videos_by_tags/$dataFolder/$caseType/expected_response.json").decodeToString()
+                    loadResource(
+                            "responses/integration/aggregate/videos_by_tags/$dataFolder/$caseType/expected_response.json"
+                        )
+                        .decodeToString()
 
                 return argumentSet(
                     caseType,
@@ -790,7 +878,7 @@ class AggregatingControllerTest : AbstractControllerTest() {
                     dbPublisherLookupResultChannel,
                     thumbnails,
                     embeds,
-                    expectedResponse
+                    expectedResponse,
                 )
             }
         }
@@ -803,10 +891,12 @@ class AggregatingControllerTest : AbstractControllerTest() {
                     ARTISTS,
                     loadResource("$dataFolder/$ARTISTS/entry_lookup_result.json").decodeToString(),
                     mapOf(
-                        "110395" to loadResource("$dataFolder/$ARTISTS/tag_usages_lookup_result_110395.json").decodeToString(),
-                        "111393" to loadResource("$dataFolder/$ARTISTS/tag_usages_lookup_result_111393.json").decodeToString()
+                        "110395" to
+                            loadResource("$dataFolder/$ARTISTS/tag_usages_lookup_result_110395.json").decodeToString(),
+                        "111393" to
+                            loadResource("$dataFolder/$ARTISTS/tag_usages_lookup_result_111393.json").decodeToString(),
                     ),
-                    loadResource("$dataFolder/$ARTISTS/expected_response.json").decodeToString()
+                    loadResource("$dataFolder/$ARTISTS/expected_response.json").decodeToString(),
                 )
             }
 
@@ -815,22 +905,25 @@ class AggregatingControllerTest : AbstractControllerTest() {
                     SONGS,
                     loadResource("$dataFolder/$SONGS/entry_lookup_result.json").decodeToString(),
                     mapOf(
-                        "411366" to loadResource("$dataFolder/$SONGS/tag_usages_lookup_result_411366.json").decodeToString(),
-                        "415274" to loadResource("$dataFolder/$SONGS/tag_usages_lookup_result_415274.json").decodeToString()
+                        "411366" to
+                            loadResource("$dataFolder/$SONGS/tag_usages_lookup_result_411366.json").decodeToString(),
+                        "415274" to
+                            loadResource("$dataFolder/$SONGS/tag_usages_lookup_result_415274.json").decodeToString(),
                     ),
-                    loadResource("$dataFolder/$SONGS/expected_response.json").decodeToString()
+                    loadResource("$dataFolder/$SONGS/expected_response.json").decodeToString(),
                 )
             }
 
             override fun provideArguments(context: ExtensionContext?): Stream<out Arguments> {
-                return ApiType.entries.map {
-                    when (it) {
-                        ARTISTS -> artists()
-                        SONGS -> songs()
+                return ApiType.entries
+                    .map {
+                        when (it) {
+                            ARTISTS -> artists()
+                            SONGS -> songs()
+                        }
                     }
-                }.stream()
+                    .stream()
             }
-
         }
 
         class ReleaseEventTestData : ReleaseEventTestDataBase("event")
@@ -841,31 +934,27 @@ class AggregatingControllerTest : AbstractControllerTest() {
             override fun provideArguments(context: ExtensionContext?): Stream<out Arguments> {
                 return Stream.of(
                     loadTestData("empty_scope", "shoegazer "),
-                    loadTestData("non_empty_scope", "shoegazer VOCALOID")
+                    loadTestData("non_empty_scope", "shoegazer VOCALOID"),
                 )
             }
-
         }
 
         class GetVideosByVocaDbTagMappingsTestData : GetVideosByVocaDbTagMappingsTestDataBase("vocadb_tag_mappings") {
             override fun provideArguments(context: ExtensionContext?): Stream<out Arguments> {
                 return Stream.of(
                     loadTestData("empty_scope", "shoegazer OR シューゲイザー ", true),
-                    loadTestData("non_empty_scope", "shoegazer OR シューゲイザー VOCALOID", true)
+                    loadTestData("non_empty_scope", "shoegazer OR シューゲイザー VOCALOID", true),
                 )
             }
-
         }
 
         class GetVideosByEventNndTagsTestData : GetVideosByVocaDbTagMappingsTestDataBase("event_nnd_tags") {
             override fun provideArguments(context: ExtensionContext?): Stream<out Arguments> {
                 return Stream.of(
                     loadTestData("empty_scope", "冬のシューゲイザー祭2017 "),
-                    loadTestData("non_empty_scope", "冬のシューゲイザー祭2017 VOCALOID")
+                    loadTestData("non_empty_scope", "冬のシューゲイザー祭2017 VOCALOID"),
                 )
             }
-
         }
     }
-
 }

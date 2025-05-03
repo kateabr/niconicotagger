@@ -32,7 +32,7 @@ enum class SongType(private val tagIdsToIgnore: Set<Long>) {
             6650,
             8043,
             8409,
-            423
+            423,
         )
     ),
     Other(emptySet());

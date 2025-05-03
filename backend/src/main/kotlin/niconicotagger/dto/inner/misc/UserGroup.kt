@@ -6,5 +6,5 @@ enum class UserGroup {
     Regular,
     Trusted,
     Moderator,
-    Admin
+    Admin,
 }

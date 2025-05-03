@@ -14,21 +14,15 @@ sealed interface VocaDbCustomQueryData {
 
 data class VocaDbCustomQueryArtistData(
     override val id: Long,
-    @JsonAlias("defaultName")
-    override val name: String,
-    @JsonDeserialize(contentUsing = VocaDbTagDeserializer::class)
-    override val tags: List<VocaDbTag>,
-    @JsonAlias("artistType")
-    val type: ArtistType
+    @JsonAlias("defaultName") override val name: String,
+    @JsonDeserialize(contentUsing = VocaDbTagDeserializer::class) override val tags: List<VocaDbTag>,
+    @JsonAlias("artistType") val type: ArtistType,
 ) : VocaDbCustomQueryData
 
 data class VocaDbCustomQuerySongData(
     override val id: Long,
-    @JsonAlias("defaultName")
-    override val name: String,
-    @JsonDeserialize(contentUsing = VocaDbTagDeserializer::class)
-    override val tags: List<VocaDbTag>,
-    @JsonAlias("songType")
-    val type: SongType,
-    val artistString: String
+    @JsonAlias("defaultName") override val name: String,
+    @JsonDeserialize(contentUsing = VocaDbTagDeserializer::class) override val tags: List<VocaDbTag>,
+    @JsonAlias("songType") val type: SongType,
+    val artistString: String,
 ) : VocaDbCustomQueryData

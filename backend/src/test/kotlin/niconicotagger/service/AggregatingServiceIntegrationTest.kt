@@ -1,12 +1,13 @@
 package niconicotagger.service
 
-import AbstractApplicationContextTest
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
 import io.mockk.coVerifyCount
 import io.mockk.every
 import io.mockk.verifyAll
+import java.util.stream.Stream
 import kotlinx.coroutines.runBlocking
+import niconicotagger.AbstractApplicationContextTest
 import niconicotagger.client.DbClientHolder
 import niconicotagger.client.NndClient
 import niconicotagger.client.VocaDbClient
@@ -35,20 +36,15 @@ import org.junit.jupiter.params.provider.Arguments.argumentSet
 import org.junit.jupiter.params.provider.ArgumentsProvider
 import org.junit.jupiter.params.provider.ArgumentsSource
 import org.springframework.beans.factory.annotation.Autowired
-import java.util.stream.Stream
 
 class AggregatingServiceIntegrationTest : AbstractApplicationContextTest() {
-    @MockkBean
-    lateinit var dbClientHolder: DbClientHolder
+    @MockkBean lateinit var dbClientHolder: DbClientHolder
 
-    @MockkBean
-    lateinit var nndClient: NndClient
+    @MockkBean lateinit var nndClient: NndClient
 
-    @MockkBean
-    lateinit var dbClient: VocaDbClient
+    @MockkBean lateinit var dbClient: VocaDbClient
 
-    @Autowired
-    lateinit var aggregatingService: AggregatingService
+    @Autowired lateinit var aggregatingService: AggregatingService
 
     @BeforeEach
     fun setup() {
@@ -62,6 +58,7 @@ class AggregatingServiceIntegrationTest : AbstractApplicationContextTest() {
 
     @ParameterizedTest
     @ArgumentsSource(GetPublisherTestData::class)
+    @Suppress("CognitiveComplexMethod")
     fun `get publisher test`(
         video: NndVideoData,
         nndPublisherType: PublisherType,
@@ -69,10 +66,9 @@ class AggregatingServiceIntegrationTest : AbstractApplicationContextTest() {
         vocaDbArtist: VocaDbArtist?,
         nndThumbnail: NndThumbnailOk,
         expectedPublisher: PublisherInfo,
-        clientType: ClientType
+        clientType: ClientType,
     ): Unit = runBlocking {
-        if (nndPublisherType == NND_USER)
-            coEvery { dbClient.getArtistByQuery(eq(artistQuery)) } returns vocaDbArtist
+        if (nndPublisherType == NND_USER) coEvery { dbClient.getArtistByQuery(eq(artistQuery)) } returns vocaDbArtist
         else if (nndPublisherType == NND_CHANNEL)
             coEvery { dbClient.findArtistDuplicate(eq(artistQuery)) } returns vocaDbArtist
         if (vocaDbArtist == null) {
@@ -92,12 +88,8 @@ class AggregatingServiceIntegrationTest : AbstractApplicationContextTest() {
     companion object {
         class GetPublisherTestData : ArgumentsProvider {
             private fun artistInDb(): Stream<ArgumentSet> {
-                val userVideo = Instancio.of(NndVideoData::class.java)
-                    .ignore(field("channelId"))
-                    .create()
-                val channelVideo = Instancio.of(NndVideoData::class.java)
-                    .ignore(field("userId"))
-                    .create()
+                val userVideo = Instancio.of(NndVideoData::class.java).ignore(field("channelId")).create()
+                val channelVideo = Instancio.of(NndVideoData::class.java).ignore(field("userId")).create()
                 val vocaDbEntryArtist = Instancio.create(VocaDbArtist::class.java)
                 return Stream.of(
                     argumentSet(
@@ -111,7 +103,7 @@ class AggregatingServiceIntegrationTest : AbstractApplicationContextTest() {
                             "https://vocadb.net/Ar/" + vocaDbEntryArtist.id,
                             "Ar/" + vocaDbEntryArtist.id,
                             vocaDbEntryArtist.name,
-                            DATABASE
+                            DATABASE,
                         ),
                         VOCADB,
                     ),
@@ -126,26 +118,20 @@ class AggregatingServiceIntegrationTest : AbstractApplicationContextTest() {
                             "https://beta.vocadb.net/Ar/" + vocaDbEntryArtist.id,
                             "Ar/" + vocaDbEntryArtist.id,
                             vocaDbEntryArtist.name,
-                            DATABASE
+                            DATABASE,
                         ),
-                        VOCADB_BETA
-                    )
+                        VOCADB_BETA,
+                    ),
                 )
             }
 
             private fun artistNotInDb(): Stream<ArgumentSet> {
-                val userVideo = Instancio.of(NndVideoData::class.java)
-                    .ignore(field("channelId"))
-                    .create()
-                val channelVideo = Instancio.of(NndVideoData::class.java)
-                    .ignore(field("userId"))
-                    .create()
-                val thumbnailUser = Instancio.of(NndThumbnailOk::class.java)
-                    .ignore(field(ThumbData::class.java, "channelId"))
-                    .create()
-                val thumbnailChannel = Instancio.of(NndThumbnailOk::class.java)
-                    .ignore(field(ThumbData::class.java, "userId"))
-                    .create()
+                val userVideo = Instancio.of(NndVideoData::class.java).ignore(field("channelId")).create()
+                val channelVideo = Instancio.of(NndVideoData::class.java).ignore(field("userId")).create()
+                val thumbnailUser =
+                    Instancio.of(NndThumbnailOk::class.java).ignore(field(ThumbData::class.java, "channelId")).create()
+                val thumbnailChannel =
+                    Instancio.of(NndThumbnailOk::class.java).ignore(field(ThumbData::class.java, "userId")).create()
                 return Stream.of(
                     argumentSet(
                         "publisher not in the database, published by a user",
@@ -158,9 +144,9 @@ class AggregatingServiceIntegrationTest : AbstractApplicationContextTest() {
                             "https://www.nicovideo.jp/user/" + thumbnailUser.data.userId,
                             "user/" + thumbnailUser.data.userId,
                             thumbnailUser.data.publisherName,
-                            NND_USER
+                            NND_USER,
                         ),
-                        VOCADB_BETA
+                        VOCADB_BETA,
                     ),
                     argumentSet(
                         "publisher not in the database, published by a channel",
@@ -173,17 +159,16 @@ class AggregatingServiceIntegrationTest : AbstractApplicationContextTest() {
                             "https://ch.nicovideo.jp/channel/ch" + thumbnailChannel.data.channelId,
                             "channel/ch${thumbnailChannel.data.channelId}",
                             thumbnailChannel.data.publisherName,
-                            NND_CHANNEL
+                            NND_CHANNEL,
                         ),
-                        VOCADB
-                    )
+                        VOCADB,
+                    ),
                 )
             }
 
             override fun provideArguments(context: ExtensionContext?): Stream<out Arguments> {
                 return Stream.concat(artistInDb(), artistNotInDb())
             }
-
         }
     }
 }

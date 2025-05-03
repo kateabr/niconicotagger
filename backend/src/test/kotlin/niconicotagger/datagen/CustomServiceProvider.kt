@@ -29,10 +29,11 @@ class CustomServiceProvider : InstancioServiceProvider {
         override fun generate(random: Random): MultiValueMap<String, String> {
             return MultiValueMap.fromMultiValue(
                 mapOf(
-                    random.alphanumeric(10) to generateSequence<Long>(0) { it + 1 }
-                        .take(random.intRange(1, 4))
-                        .map { random.alphanumeric(10) }
-                        .toList()
+                    random.alphanumeric(10) to
+                        generateSequence<Long>(0) { it + 1 }
+                            .take(random.intRange(1, 4))
+                            .map { random.alphanumeric(10) }
+                            .toList()
                 )
             )
         }

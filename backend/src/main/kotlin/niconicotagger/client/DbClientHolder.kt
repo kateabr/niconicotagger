@@ -9,10 +9,11 @@ import org.springframework.stereotype.Component
 
 @Component
 class DbClientHolder(config: AppConfiguration, jsonMapper: JsonMapper) {
-    private val databaseClients = mapOf(
-        VOCADB to VocaDbClient(config.vocaDbClientBaseAddress.regular, jsonMapper),
-        VOCADB_BETA to VocaDbClient(config.vocaDbClientBaseAddress.beta, jsonMapper)
-    )
+    private val databaseClients =
+        mapOf(
+            VOCADB to VocaDbClient(config.vocaDbClientBaseAddress.regular, jsonMapper),
+            VOCADB_BETA to VocaDbClient(config.vocaDbClientBaseAddress.beta, jsonMapper),
+        )
 
     fun getClient(clientType: ClientType): VocaDbClient {
         return databaseClients[clientType]

@@ -17,5 +17,5 @@ enum class ArtistRole {
     Mixer,
     Chorus,
     Encoder,
-    VocalDataProvider
+    VocalDataProvider,
 }

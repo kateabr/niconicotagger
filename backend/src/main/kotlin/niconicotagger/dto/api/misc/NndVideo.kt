@@ -2,9 +2,9 @@ package niconicotagger.dto.api.misc
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.databind.annotation.JsonSerialize
-import niconicotagger.serde.DurationToTimeStringSerializer
 import java.time.Duration
 import java.time.Instant
+import niconicotagger.serde.DurationToTimeStringSerializer
 
 sealed interface NndVideo {
     val id: String
@@ -30,18 +30,10 @@ data class AvailableNndVideoWithAdditionalData(
     override val title: String,
     override val description: String?,
     override val tags: List<NndTagData>,
-    @JsonSerialize(using = DurationToTimeStringSerializer::class)
-    val length: Duration,
-    @JsonIgnore
-    val viewCounter: Long,
-    @JsonIgnore
-    val publishedAt: Instant,
-    @JsonIgnore
-    val likeCounter: Long
+    @JsonSerialize(using = DurationToTimeStringSerializer::class) val length: Duration,
+    @JsonIgnore val viewCounter: Long,
+    @JsonIgnore val publishedAt: Instant,
+    @JsonIgnore val likeCounter: Long,
 ) : AvailableNndVideoBase
 
-data class UnavailableNndVideo(
-    val id: String,
-    val title: String,
-    val error: String
-)
+data class UnavailableNndVideo(val id: String, val title: String, val error: String)

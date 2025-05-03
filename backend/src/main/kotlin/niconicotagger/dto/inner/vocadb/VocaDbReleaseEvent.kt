@@ -1,10 +1,10 @@
 package niconicotagger.dto.inner.vocadb
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize
+import java.time.Instant
 import niconicotagger.dto.inner.misc.ReleaseEventCategory
 import niconicotagger.dto.inner.misc.WebLink
 import niconicotagger.serde.VocaDbTagDeserializer
-import java.time.Instant
 
 data class VocaDbReleaseEvent(
     val id: Long,
@@ -13,7 +13,6 @@ data class VocaDbReleaseEvent(
     val name: String,
     val category: ReleaseEventCategory,
     val webLinks: List<WebLink> = emptyList(),
-    @JsonDeserialize(contentUsing = VocaDbTagDeserializer::class)
-    val tags: List<VocaDbTag> = emptyList(),
-    val seriesId: Long?
+    @JsonDeserialize(contentUsing = VocaDbTagDeserializer::class) val tags: List<VocaDbTag> = emptyList(),
+    val seriesId: Long?,
 )

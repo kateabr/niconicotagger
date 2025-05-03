@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.json.JsonMapper
 import com.fasterxml.jackson.dataformat.xml.XmlMapper
 import com.github.benmanes.caffeine.cache.Caffeine
 import com.sksamuel.aedile.core.asCache
+import java.util.regex.Pattern
 import kotlinx.coroutines.reactor.awaitSingle
 import niconicotagger.client.Utils.createNndFilters
 import niconicotagger.constants.Constants.API_SEARCH_FIELDS
@@ -28,25 +29,23 @@ import org.springframework.web.util.UriComponentsBuilder
 import java.util.concurrent.TimeUnit.HOURS
 import java.util.regex.Pattern
 
-/**
- * Api docs: https://site.nicovideo.jp/search-api-docs/snapshot
- */
+/** Api docs: https://site.nicovideo.jp/search-api-docs/snapshot */
 class NndClient(
     private val thumbBaseUrl: String,
     private val embedBaseUrl: String,
     private val apiBaseUrl: String,
     private val jsonMapper: JsonMapper,
-    private val xmlMapper: XmlMapper
+    private val xmlMapper: XmlMapper,
 ) {
-    private val client: WebClient = WebClient.builder()
-        .defaultHeader(USER_AGENT, DEFAULT_USER_AGENT)
-        .exchangeStrategies(
-            ExchangeStrategies.builder()
-                .codecs { configurer ->
-                    configurer.defaultCodecs().jaxb2Decoder(Jaxb2XmlDecoder(APPLICATION_XML))
-                }.build()
-        )
-        .build()
+    private val client: WebClient =
+        WebClient.builder()
+            .defaultHeader(USER_AGENT, DEFAULT_USER_AGENT)
+            .exchangeStrategies(
+                ExchangeStrategies.builder()
+                    .codecs { configurer -> configurer.defaultCodecs().jaxb2Decoder(Jaxb2XmlDecoder(APPLICATION_XML)) }
+                    .build()
+            )
+            .build()
     private val thumbCache = Caffeine.newBuilder()
         .expireAfterWrite(6, HOURS)
         .maximumSize(100)
@@ -65,13 +64,14 @@ class NndClient(
                     .retrieve()
                     .awaitBody<ByteArray>(),
                 NndThumbnail::class.java
-            )
-                ?: error("Failed to retrieve thumbnail for id $id")
+            ,
+               ) ?: error("Failed to retrieve thumbnail for id $id")
         }
     }
 
     private suspend fun getEmbedResponse(id: String): String {
-        return client.get()
+        return client
+            .get()
             .uri("$embedBaseUrl/watch/{id}", id)
             .header(CONTENT_TYPE, TEXT_HTML_VALUE)
             .exchangeToMono { it.bodyToMono(String::class.java) }
@@ -99,14 +99,14 @@ class NndClient(
     }
 
     suspend fun <T : VideosByNndTagsRequestBase> getVideosByTags(request: T): NndApiSearchResult {
-        return client.get()
+        return client
+            .get()
             .uri(buildApiRequestUri(request))
             .header(CONTENT_TYPE, APPLICATION_JSON_VALUE)
             .retrieve()
             .toEntity(NndApiSearchResult::class.java)
             .awaitSingle()
-            .body
-            ?: error("Failed to load videos for tag \"${request.tags}\"")
+            .body ?: error("Failed to load videos for tag \"${request.tags}\"")
     }
 
     private fun <T : VideosByNndTagsRequestBase> buildApiRequestUri(request: T) =

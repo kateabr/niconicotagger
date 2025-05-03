@@ -16,7 +16,9 @@ class TagTypeHolder {
     }
 
     fun get(tag: String): NndTagType {
-        return requireNotNull(tagStates[kata2hiraAndLowercase(tag).lowercase()]) { "Tag type for \"$tag\" is undefined" }
+        return requireNotNull(tagStates[kata2hiraAndLowercase(tag).lowercase()]) {
+            "Tag type for \"$tag\" is undefined"
+        }
     }
 
     fun storeRequestTags(request: VideosByNndTagsRequestBase): TagTypeHolder {

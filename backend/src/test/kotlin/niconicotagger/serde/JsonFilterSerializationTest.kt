@@ -1,30 +1,32 @@
 package niconicotagger.serde
 
-import Utils.jsonMapper
+import java.time.Instant
 import net.javacrumbs.jsonunit.assertj.assertThatJson
+import niconicotagger.Utils.jsonMapper
 import niconicotagger.dto.inner.nnd.AndFilter
 import niconicotagger.dto.inner.nnd.EqualFilter
 import niconicotagger.dto.inner.nnd.OrFilter
 import niconicotagger.dto.inner.nnd.RangeFilter
 import org.instancio.Instancio
 import org.junit.jupiter.api.Test
-import java.time.Instant
 
 class JsonFilterSerializationTest {
     @Test
     fun `json filter serialization test`() {
-        val orFilters = listOf(
-            EqualFilter(Instancio.create(String::class.java), Instancio.create(String::class.java)),
-            EqualFilter(Instancio.create(String::class.java), Instancio.create(Long::class.java)),
-            EqualFilter(Instancio.create(String::class.java), Instancio.create(Instant::class.java))
-        )
-        val rangeFilter = RangeFilter(
-            Instancio.create(String::class.java),
-            Instancio.create(Instant::class.java),
-            Instancio.create(Instant::class.java),
-            Instancio.create(Boolean::class.java),
-            Instancio.create(Boolean::class.java)
-        )
+        val orFilters =
+            listOf(
+                EqualFilter(Instancio.create(String::class.java), Instancio.create(String::class.java)),
+                EqualFilter(Instancio.create(String::class.java), Instancio.create(Long::class.java)),
+                EqualFilter(Instancio.create(String::class.java), Instancio.create(Instant::class.java)),
+            )
+        val rangeFilter =
+            RangeFilter(
+                Instancio.create(String::class.java),
+                Instancio.create(Instant::class.java),
+                Instancio.create(Instant::class.java),
+                Instancio.create(Boolean::class.java),
+                Instancio.create(Boolean::class.java),
+            )
 
         assertThatJson(jsonMapper.writeValueAsString(AndFilter(listOf(OrFilter(orFilters), rangeFilter))))
             .isEqualTo(
@@ -62,7 +64,8 @@ class JsonFilterSerializationTest {
                   ],
                   "type": "and"
                 }
-                """.trimIndent()
+                """
+                    .trimIndent()
             )
     }
 }

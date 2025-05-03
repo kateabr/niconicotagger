@@ -1,5 +1,6 @@
 package niconicotagger.mapper
 
+import java.net.URLDecoder
 import niconicotagger.dto.api.response.ReleaseEventWithVocaDbTagsResponse
 import niconicotagger.dto.api.response.ReleaseEventWitnNndTagsResponse
 import niconicotagger.dto.inner.misc.ReleaseEventCategory
@@ -10,8 +11,6 @@ import org.mapstruct.Context
 import org.mapstruct.Mapper
 import org.mapstruct.Mapping
 import org.mapstruct.MappingConstants.ComponentModel.SPRING
-import java.net.URLDecoder
-
 
 @Mapper(componentModel = SPRING)
 abstract class ReleaseEventMapper {
@@ -21,14 +20,14 @@ abstract class ReleaseEventMapper {
     @Mapping(target = "suggestFiltering", expression = "java(mapFilteringSuggestionFlag(series))")
     abstract fun mapWithLinks(
         event: VocaDbReleaseEvent,
-        @Context series: VocaDbReleaseEventSeries?
+        @Context series: VocaDbReleaseEventSeries?,
     ): ReleaseEventWitnNndTagsResponse
 
     @Mapping(target = "category", expression = "java(mapCategory(event, series))")
     @Mapping(target = "vocaDbTags", source = "tags")
     abstract fun mapWithTags(
         event: VocaDbReleaseEvent,
-        @Context series: VocaDbReleaseEventSeries?
+        @Context series: VocaDbReleaseEventSeries?,
     ): ReleaseEventWithVocaDbTagsResponse
 
     protected fun mapNndTags(event: VocaDbReleaseEvent, series: VocaDbReleaseEventSeries?): List<String> =

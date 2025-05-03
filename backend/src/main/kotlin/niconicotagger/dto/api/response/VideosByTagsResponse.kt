@@ -29,7 +29,7 @@ data class VideosByNndTagsResponseForTagging(
     override val totalCount: Long,
     override val cleanScope: String,
     override val songTypeStats: Map<SongType, Int>,
-    val tagMappings: Collection<VocaDbTag>
+    val tagMappings: Collection<VocaDbTag>,
 ) : VideosByTagsResponseForTagging
 
 data class VideosByVocaDbTagResponse(
@@ -38,7 +38,7 @@ data class VideosByVocaDbTagResponse(
     override val cleanScope: String,
     override val songTypeStats: Map<SongType, Int>,
     val tag: VocaDbTag,
-    val tagMappings: Collection<String>
+    val tagMappings: Collection<String>,
 ) : VideosByTagsResponseForTagging
 
 data class VideosByNndTagsResponseForEvent(

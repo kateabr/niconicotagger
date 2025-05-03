@@ -7,9 +7,10 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo.Id.NAME
 
 @JsonTypeInfo(use = NAME, include = PROPERTY, property = "status")
 @JsonSubTypes(
-    value = [
-        JsonSubTypes.Type(name = "ok", value = NndThumbnailOk::class),
-        JsonSubTypes.Type(name = "fail", value = NndThumbnailError::class)
-    ]
+    value =
+        [
+            JsonSubTypes.Type(name = "ok", value = NndThumbnailOk::class),
+            JsonSubTypes.Type(name = "fail", value = NndThumbnailError::class),
+        ]
 )
 sealed interface NndThumbnail

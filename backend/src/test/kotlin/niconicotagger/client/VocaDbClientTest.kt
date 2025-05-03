@@ -1,7 +1,5 @@
 package niconicotagger.client
 
-import Utils.jsonMapper
-import Utils.loadResource
 import com.github.tomakehurst.wiremock.client.WireMock.delete
 import com.github.tomakehurst.wiremock.client.WireMock.equalTo
 import com.github.tomakehurst.wiremock.client.WireMock.equalToJson
@@ -14,7 +12,11 @@ import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathTemplate
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo
 import com.github.tomakehurst.wiremock.junit5.WireMockTest
+import java.time.Instant
+import java.time.OffsetDateTime
 import kotlinx.coroutines.runBlocking
+import niconicotagger.Utils.jsonMapper
+import niconicotagger.Utils.loadResource
 import niconicotagger.constants.Constants.COOKIE_HEADER_KEY
 import niconicotagger.constants.Constants.DEFAULT_USER_AGENT
 import niconicotagger.dto.api.misc.ApiType
@@ -80,8 +82,6 @@ import org.springframework.http.HttpHeaders.CONTENT_TYPE
 import org.springframework.http.HttpHeaders.SET_COOKIE
 import org.springframework.http.HttpHeaders.USER_AGENT
 import org.springframework.http.MediaType.APPLICATION_JSON_VALUE
-import java.time.Instant
-import java.time.OffsetDateTime
 
 @WireMockTest
 @ExtendWith(InstancioExtension::class)
@@ -94,7 +94,7 @@ class VocaDbClientTest {
         wm: WireMockRuntimeInfo,
         @Given username: String,
         @Given password: String,
-        @Given cookieValue: String
+        @Given cookieValue: String,
     ): Unit = runBlocking {
         stubFor(
             post(urlPathEqualTo("/api/users/login"))
@@ -106,7 +106,8 @@ class VocaDbClientTest {
                   "userName": "$username",
                   "password": "$password"
                 }
-            """.trimIndent()
+            """
+                            .trimIndent()
                     )
                 )
                 .withHeader(CONTENT_TYPE, equalTo(APPLICATION_JSON_VALUE))
@@ -124,7 +125,8 @@ class VocaDbClientTest {
                             "active": true,
                             "groupId": "$groupId"
                         }
-                        """.trimIndent()
+                        """
+                            .trimIndent()
                     )
                 )
         )
@@ -136,7 +138,6 @@ class VocaDbClientTest {
             .hasSize(1)
             .first()
             .isEqualTo(cookieValue)
-
     }
 
     @ParameterizedTest
@@ -146,7 +147,7 @@ class VocaDbClientTest {
         wm: WireMockRuntimeInfo,
         @Given username: String,
         @Given password: String,
-        @Given cookieValue: String
+        @Given cookieValue: String,
     ) {
         stubFor(
             post(urlPathEqualTo("/api/users/login"))
@@ -158,7 +159,8 @@ class VocaDbClientTest {
                   "userName": "$username",
                   "password": "$password"
                 }
-            """.trimIndent()
+            """
+                            .trimIndent()
                     )
                 )
                 .withHeader(CONTENT_TYPE, equalTo(APPLICATION_JSON_VALUE))
@@ -175,91 +177,73 @@ class VocaDbClientTest {
                             "active": ${user.active},
                             "groupId": "${user.groupId}"
                         }
-                        """.trimIndent()
+                        """
+                            .trimIndent()
                     )
                 )
         )
 
         assertThatExceptionOfType(IllegalStateException::class.java).isThrownBy {
-            runBlocking {
-                VocaDbClient(wm.httpBaseUrl, jsonMapper).login(username, password)
-            }
+            runBlocking { VocaDbClient(wm.httpBaseUrl, jsonMapper).login(username, password) }
         }
-
     }
 
     @Test
     fun `get tag by name test (success)`(wm: WireMockRuntimeInfo): Unit = runBlocking {
         stubFor(
             get(urlPathEqualTo("/api/tags"))
-                .withQueryParams(
-                    mapOf(
-                        "query" to equalTo("shoegaze"),
-                        "maxResults" to equalTo("1")
-                    )
-                )
+                .withQueryParams(mapOf("query" to equalTo("shoegaze"), "maxResults" to equalTo("1")))
                 .withHeader(USER_AGENT, equalTo(DEFAULT_USER_AGENT))
                 .willReturn(
-                    ok().withBody(
-                        loadResource("responses/vocadb/tag_lookup_result.json")
-                    ).withHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
+                    ok()
+                        .withBody(loadResource("responses/vocadb/tag_lookup_result.json"))
+                        .withHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
                 )
         )
 
         assertThat(VocaDbClient(wm.httpBaseUrl, jsonMapper).getTagByName("shoegaze"))
             .usingRecursiveComparison()
             .isEqualTo(VocaDbTag(395, "shoegaze"))
-
     }
 
     @Test
     fun `get tag by name test (too many tags)`(wm: WireMockRuntimeInfo) {
         stubFor(
             get(urlPathEqualTo("/api/tags"))
-                .withQueryParams(
-                    mapOf(
-                        "query" to equalTo("shoegaze"),
-                        "maxResults" to equalTo("1")
-                    )
-                )
+                .withQueryParams(mapOf("query" to equalTo("shoegaze"), "maxResults" to equalTo("1")))
                 .withHeader(USER_AGENT, equalTo(DEFAULT_USER_AGENT))
                 .willReturn(
-                    ok().withBody(
-                        loadResource("responses/vocadb/tag_lookup_result_too_many_suggestions.json")
-                    ).withHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
+                    ok()
+                        .withBody(loadResource("responses/vocadb/tag_lookup_result_too_many_suggestions.json"))
+                        .withHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
                 )
         )
 
         assertThatExceptionOfType(IllegalStateException::class.java).isThrownBy {
-            runBlocking {
-                VocaDbClient(wm.httpBaseUrl, jsonMapper).getTagByName("shoegaze")
-            }
+            runBlocking { VocaDbClient(wm.httpBaseUrl, jsonMapper).getTagByName("shoegaze") }
         }
     }
 
     @Test
-    fun `get song for edit test`(
-        wm: WireMockRuntimeInfo,
-        @Given songId: Long,
-        @Given cookie: String
-    ): Unit = runBlocking {
-        stubFor(
-            get(urlPathTemplate("/api/songs/{id}/for-edit"))
-                .withPathParam("id", equalTo(songId.toString()))
-                .withCookie(COOKIE_HEADER_KEY, equalTo(cookie))
-                .withHeader(USER_AGENT, equalTo(DEFAULT_USER_AGENT))
-                .willReturn(
-                    ok().withBody(
-                        loadResource("responses/vocadb/song_for_edit.json")
-                    ).withHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
-                )
-        )
+    fun `get song for edit test`(wm: WireMockRuntimeInfo, @Given songId: Long, @Given cookie: String): Unit =
+        runBlocking {
+            stubFor(
+                get(urlPathTemplate("/api/songs/{id}/for-edit"))
+                    .withPathParam("id", equalTo(songId.toString()))
+                    .withCookie(COOKIE_HEADER_KEY, equalTo(cookie))
+                    .withHeader(USER_AGENT, equalTo(DEFAULT_USER_AGENT))
+                    .willReturn(
+                        ok()
+                            .withBody(loadResource("responses/vocadb/song_for_edit.json"))
+                            .withHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
+                    )
+            )
 
-        assertThat(VocaDbClient(wm.httpBaseUrl, jsonMapper).getSongForEdit(songId, cookie))
-            .asInstanceOf(map(String::class.java, Any::class.java))
-            .extractingByKey("id")
-            .isEqualTo(657775)
-    }
+            assertThat(VocaDbClient(wm.httpBaseUrl, jsonMapper).getSongForEdit(songId, cookie))
+                .asInstanceOf(map(String::class.java, Any::class.java))
+                .extractingByKey("id")
+                .isEqualTo(657_775)
+        }
 
     @ParameterizedTest
     @ValueSource(longs = [63L])
@@ -274,17 +258,17 @@ class VocaDbClientTest {
                         "fields" to equalTo("WebLinks,Tags"),
                         "nameMatchMode" to equalTo("Exact"),
                         "maxResults" to equalTo("1"),
-                        "getTotalCount" to equalTo("true")
+                        "getTotalCount" to equalTo("true"),
                     )
                 )
                 .withHeader(USER_AGENT, equalTo(DEFAULT_USER_AGENT))
                 .willReturn(
-                    ok().withBody(
-                        if (seriesId == null)
-                            loadResource("responses/vocadb/event_lookup_result.json")
-                        else
-                            loadResource("responses/vocadb/event_lookup_result_with_series.json")
-                    ).withHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
+                    ok()
+                        .withBody(
+                            if (seriesId == null) loadResource("responses/vocadb/event_lookup_result.json")
+                            else loadResource("responses/vocadb/event_lookup_result_with_series.json")
+                        )
+                        .withHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
                 )
         )
 
@@ -299,11 +283,13 @@ class VocaDbClientTest {
                     "重音テト誕生祭 2023",
                     Unspecified,
                     listOf(
-                        WebLink("http://www.nicovideo.jp/tag/%E9%87%8D%E9%9F%B3%E3%83%86%E3%83%88%E8%AA%95%E7%94%9F%E7%A5%AD2023"),
-                        WebLink("https://blog.nicovideo.jp/niconews/190156.html")
+                        WebLink(
+                            "http://www.nicovideo.jp/tag/%E9%87%8D%E9%9F%B3%E3%83%86%E3%83%88%E8%AA%95%E7%94%9F%E7%A5%AD2023"
+                        ),
+                        WebLink("https://blog.nicovideo.jp/niconews/190156.html"),
                     ),
                     listOf(VocaDbTag(2987, "birthday"), VocaDbTag(9325, "15th birthday")),
-                    seriesId
+                    seriesId,
                 )
             )
     }
@@ -316,9 +302,9 @@ class VocaDbClientTest {
                 .withQueryParams(mapOf("fields" to equalTo("None")))
                 .withHeader(USER_AGENT, equalTo(DEFAULT_USER_AGENT))
                 .willReturn(
-                    ok().withBody(
-                        loadResource("responses/vocadb/event_series_lookup_result.json")
-                    ).withHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
+                    ok()
+                        .withBody(loadResource("responses/vocadb/event_series_lookup_result.json"))
+                        .withHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
                 )
         )
 
@@ -333,17 +319,13 @@ class VocaDbClientTest {
         stubFor(
             get(urlPathEqualTo("/api/tags/mappings"))
                 .withQueryParams(
-                    mapOf(
-                        "start" to equalTo("0"),
-                        "maxEntries" to equalTo("10000"),
-                        "getTotalCount" to equalTo("true")
-                    )
+                    mapOf("start" to equalTo("0"), "maxEntries" to equalTo("10000"), "getTotalCount" to equalTo("true"))
                 )
                 .withHeader(USER_AGENT, equalTo(DEFAULT_USER_AGENT))
                 .willReturn(
-                    ok().withBody(
-                        loadResource("responses/vocadb/tag_mappings_lookup_result.json")
-                    ).withHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
+                    ok()
+                        .withBody(loadResource("responses/vocadb/tag_mappings_lookup_result.json"))
+                        .withHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
                 )
         )
 
@@ -355,7 +337,7 @@ class VocaDbClientTest {
                     VocaDbTagMapping("三拍子", VocaDbTag(8224, "triple metre")),
                     VocaDbTagMapping("3拍子", VocaDbTag(8224, "triple metre")),
                     VocaDbTagMapping("Tropical_House", VocaDbTag(1582, "tropical house")),
-                    VocaDbTagMapping("トロピカルハウス", VocaDbTag(1582, "tropical house"))
+                    VocaDbTagMapping("トロピカルハウス", VocaDbTag(1582, "tropical house")),
                 )
             )
     }
@@ -368,81 +350,68 @@ class VocaDbClientTest {
                     mapOf(
                         "pvId" to equalTo("sm42029727"),
                         "pvService" to equalTo("NicoNicoDouga"),
-                        "fields" to equalTo("Tags,Artists")
+                        "fields" to equalTo("Tags,Artists"),
                     )
                 )
                 .withHeader(USER_AGENT, equalTo(DEFAULT_USER_AGENT))
                 .willReturn(
-                    ok().withBody(
-                        loadResource("responses/vocadb/song_by_nnd_pv_lookup_result.json")
-                    ).withHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
+                    ok()
+                        .withBody(loadResource("responses/vocadb/song_by_nnd_pv_lookup_result.json"))
+                        .withHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
                 )
         )
 
         assertThat(
-            VocaDbClient(wm.httpBaseUrl, jsonMapper).getSongByNndPv(
-                "sm42029727",
-                "Tags,Artists",
-                VocaDbSongEntryWithTags::class.java
+                VocaDbClient(wm.httpBaseUrl, jsonMapper)
+                    .getSongByNndPv("sm42029727", "Tags,Artists", VocaDbSongEntryWithTags::class.java)
             )
-        )
             .usingRecursiveComparison()
             .isEqualTo(
                 VocaDbSongEntryWithTags(
-                    489536,
+                    489_536,
                     "Alive",
                     Remaster,
                     listOf(
                         VocaDbEntryArtist(
                             false,
-                            VocaDbArtistEntryData(118397, "重音テトSV", SynthesizerV),
-                            listOf(Default)
+                            VocaDbArtistEntryData(118_397, "重音テトSV", SynthesizerV),
+                            listOf(Default),
                         ),
                         VocaDbEntryArtist(
                             false,
-                            VocaDbArtistEntryData(1053, "デスおはぎ", Producer),
-                            listOf(Composer, Arranger)
-                        ),
-                        VocaDbEntryArtist(
-                            false, VocaDbArtistEntryData(118399, "坂内 若", ArtistType.Illustrator), listOf(Default)
+                            VocaDbArtistEntryData(1_053, "デスおはぎ", Producer),
+                            listOf(Composer, Arranger),
                         ),
                         VocaDbEntryArtist(
                             false,
-                            VocaDbArtistEntryData(119530, "ツインドリル", Circle),
-                            listOf(Default)
-                        )
+                            VocaDbArtistEntryData(118_399, "坂内 若", ArtistType.Illustrator),
+                            listOf(Default),
+                        ),
+                        VocaDbEntryArtist(false, VocaDbArtistEntryData(119_530, "ツインドリル", Circle), listOf(Default)),
                     ),
                     "デスおはぎ, ツインドリル feat. 重音テトSV",
                     OffsetDateTime.parse("2023-04-03T00:00:00Z").toInstant(),
-                    listOf(
-                        VocaDbTag(74, "cover"),
-                        VocaDbTag(89, "voicebank demo")
-                    )
+                    listOf(VocaDbTag(74, "cover"), VocaDbTag(89, "voicebank demo")),
                 )
             )
-
     }
 
     @Test
     fun `get artist by NND id test`(wm: WireMockRuntimeInfo): Unit = runBlocking {
         stubFor(
             get(urlPathEqualTo("/api/artists"))
-                .withQueryParams(
-                    mapOf(
-                        "query" to equalTo("user/34514369")
-                    )
-                )
+                .withQueryParams(mapOf("query" to equalTo("user/34514369")))
                 .withHeader(USER_AGENT, equalTo(DEFAULT_USER_AGENT))
                 .willReturn(
-                    ok().withBody(
-                        loadResource("responses/vocadb/artist_lookup_result.json")
-                    ).withHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
+                    ok()
+                        .withBody(loadResource("responses/vocadb/artist_lookup_result.json"))
+                        .withHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
                 )
         )
 
         assertThat(VocaDbClient(wm.httpBaseUrl, jsonMapper).getArtistByQuery("user/34514369"))
             .usingRecursiveComparison()
-            .isEqualTo(VocaDbArtist(21260, "おゆう"))
+            .isEqualTo(VocaDbArtist(21_260, "おゆう"))
     }
 
     @Test
@@ -455,20 +424,18 @@ class VocaDbClientTest {
                 .withFormParam("linkUrl", equalTo("https://ch.nicovideo.jp/channel/ch2648319"))
                 .withHeader(USER_AGENT, equalTo(DEFAULT_USER_AGENT))
                 .willReturn(
-                    ok().withBody(
-                        loadResource("responses/vocadb/artist_duplicate_search_result.json")
-                    ).withHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
+                    ok()
+                        .withBody(loadResource("responses/vocadb/artist_duplicate_search_result.json"))
+                        .withHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
                 )
         )
 
         assertThat(
-            VocaDbClient(
-                wm.httpBaseUrl,
-                jsonMapper
-            ).findArtistDuplicate("https://ch.nicovideo.jp/channel/ch2648319")
-        )
+                VocaDbClient(wm.httpBaseUrl, jsonMapper)
+                    .findArtistDuplicate("https://ch.nicovideo.jp/channel/ch2648319")
+            )
             .usingRecursiveComparison()
-            .isEqualTo(VocaDbArtist(106476, "無色透名祭"))
+            .isEqualTo(VocaDbArtist(106_476, "無色透名祭"))
     }
 
     @ParameterizedTest
@@ -476,7 +443,7 @@ class VocaDbClientTest {
     fun `artist has songs before date test`(
         filenameSuffix: String,
         expectedResult: Boolean,
-        wm: WireMockRuntimeInfo
+        wm: WireMockRuntimeInfo,
     ): Unit = runBlocking {
         stubFor(
             get(urlPathEqualTo("/api/songs"))
@@ -485,14 +452,18 @@ class VocaDbClientTest {
                         "artistId[]" to equalTo("123"),
                         "beforeDate" to equalTo("beforeDate"),
                         "maxResults" to equalTo("1"),
-                        "getTotalCount" to equalTo("true")
+                        "getTotalCount" to equalTo("true"),
                     )
                 )
                 .withHeader(USER_AGENT, equalTo(DEFAULT_USER_AGENT))
                 .willReturn(
-                    ok().withBody(
-                        loadResource("responses/vocadb/previously_published_songs_lookup_result_$filenameSuffix.json")
-                    ).withHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
+                    ok()
+                        .withBody(
+                            loadResource(
+                                "responses/vocadb/previously_published_songs_lookup_result_$filenameSuffix.json"
+                            )
+                        )
+                        .withHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
                 )
         )
 
@@ -508,16 +479,16 @@ class VocaDbClientTest {
                 .withHeader(USER_AGENT, equalTo(DEFAULT_USER_AGENT))
                 .withCookie(COOKIE_HEADER_KEY, equalTo(cookie))
                 .willReturn(
-                    ok().withBody(
-                        loadResource("responses/vocadb/song_tags_lookup_result.json")
-                    ).withHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
+                    ok()
+                        .withBody(loadResource("responses/vocadb/song_tags_lookup_result.json"))
+                        .withHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
                 )
         )
 
-        assertThat(VocaDbClient(wm.httpBaseUrl, jsonMapper).getSongTags(63276, cookie))
+        assertThat(VocaDbClient(wm.httpBaseUrl, jsonMapper).getSongTags(63_276, cookie))
             .containsExactlyInAnyOrder(
                 VocaDbTagSelectable(VocaDbTag(8087, "karaoke available (DAM&JOY)"), true),
-                VocaDbTagSelectable(VocaDbTag(8909, "blue"), false)
+                VocaDbTagSelectable(VocaDbTag(8909, "blue"), false),
             )
     }
 
@@ -529,22 +500,22 @@ class VocaDbClientTest {
                 .withHeader(USER_AGENT, equalTo(DEFAULT_USER_AGENT))
                 .withCookie(COOKIE_HEADER_KEY, equalTo(cookie))
                 .willReturn(
-                    ok().withBody(
-                        loadResource("responses/vocadb/song_tag_usages_response.json")
-                    ).withHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
+                    ok()
+                        .withBody(loadResource("responses/vocadb/song_tag_usages_response.json"))
+                        .withHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
                 )
         )
 
-        assertThat(VocaDbClient(wm.httpBaseUrl, jsonMapper).getTagUsages(SONGS, 657775, cookie))
+        assertThat(VocaDbClient(wm.httpBaseUrl, jsonMapper).getTagUsages(SONGS, 657_775, cookie))
             .usingRecursiveComparison()
             .isEqualTo(
                 VocaDbTagUsages(
                     true,
                     listOf(
-                        VocaDbTagUsage(1746998, VocaDbTag(158, "first work")),
-                        VocaDbTagUsage(1746996, VocaDbTag(7323, "プロセカ")),
-                        VocaDbTagUsage(1572957, VocaDbTag(10162, "小樽組"))
-                    )
+                        VocaDbTagUsage(1_746_998, VocaDbTag(158, "first work")),
+                        VocaDbTagUsage(1_746_996, VocaDbTag(7323, "プロセカ")),
+                        VocaDbTagUsage(1_572_957, VocaDbTag(10_162, "小樽組")),
+                    ),
                 )
             )
     }
@@ -554,7 +525,7 @@ class VocaDbClientTest {
     fun `get data with tags by custom query test`(
         apiType: ApiType,
         expectedObject: VocaDbCustomQuerySearchResult<VocaDbCustomQueryData>,
-        wm: WireMockRuntimeInfo
+        wm: WireMockRuntimeInfo,
     ): Unit = runBlocking {
         stubFor(
             get(urlPathTemplate("/api/{apiType}"))
@@ -567,24 +538,24 @@ class VocaDbClientTest {
                         "tagId[]" to equalTo("158"),
                         "tagId[]" to equalTo("3353"),
                         "advancedFilters[0][filterType]" to equalTo("HasMedia"),
-                        "advancedFilters[0][negate]" to equalTo("true")
+                        "advancedFilters[0][negate]" to equalTo("true"),
                     )
                 )
                 .withHeader(USER_AGENT, equalTo(DEFAULT_USER_AGENT))
                 .willReturn(
-                    ok().withBody(
-                        loadResource("responses/vocadb/custom_query_${apiType}_response.json")
-                    ).withHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
+                    ok()
+                        .withBody(loadResource("responses/vocadb/custom_query_${apiType}_response.json"))
+                        .withHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
                 )
         )
 
         assertThat(
-            VocaDbClient(wm.httpBaseUrl, jsonMapper)
-                .getDataWithTagsByCustomQuery(
-                    apiType,
-                    "maxResults=1&tagId[]=158&tagId[]=3353&advancedFilters[0][filterType]=HasMedia&advancedFilters[0][negate]=true"
-                )
-        )
+                VocaDbClient(wm.httpBaseUrl, jsonMapper)
+                    .getDataWithTagsByCustomQuery(
+                        apiType,
+                        "maxResults=1&tagId[]=158&tagId[]=3353&advancedFilters[0][filterType]=HasMedia&advancedFilters[0][negate]=true",
+                    )
+            )
             .usingRecursiveComparison()
             .isEqualTo(expectedObject)
     }
@@ -595,7 +566,7 @@ class VocaDbClientTest {
         apiType: ApiType,
         @Given tagUsageId: Long,
         @Given cookie: String,
-        wm: WireMockRuntimeInfo
+        wm: WireMockRuntimeInfo,
     ) {
         stubFor(
             delete(urlPathTemplate("/api/users/current/{tagType}/{tagUsageId}"))
@@ -607,10 +578,7 @@ class VocaDbClientTest {
         )
 
         assertThatNoException().isThrownBy {
-            runBlocking {
-                VocaDbClient(wm.httpBaseUrl, jsonMapper)
-                    .deleteTagUsage(apiType, tagUsageId, cookie)
-            }
+            runBlocking { VocaDbClient(wm.httpBaseUrl, jsonMapper).deleteTagUsage(apiType, tagUsageId, cookie) }
         }
     }
 
@@ -619,7 +587,7 @@ class VocaDbClientTest {
         @Given startOffset: Long,
         @Given maxResults: Long,
         @Given orderBy: VocaDbSortOrder,
-        wm: WireMockRuntimeInfo
+        wm: WireMockRuntimeInfo,
     ): Unit = runBlocking {
         stubFor(
             get(urlPathEqualTo("/api/songs"))
@@ -628,88 +596,87 @@ class VocaDbClientTest {
                         "start" to equalTo(startOffset.toString()),
                         "maxResults" to equalTo(maxResults.toString()),
                         "sort" to equalTo(orderBy.toString()),
-                        "getTotalCount" to equalTo("true")
+                        "getTotalCount" to equalTo("true"),
                     )
                 )
                 .withHeader(USER_AGENT, equalTo(DEFAULT_USER_AGENT))
                 .willReturn(
-                    ok().withBody(
-                        loadResource("responses/vocadb/songs_with_pvs_for_tagging_response.json")
-                    ).withHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
+                    ok()
+                        .withBody(loadResource("responses/vocadb/songs_with_pvs_for_tagging_response.json"))
+                        .withHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
                 )
         )
 
-        assertThat(
-            VocaDbClient(wm.httpBaseUrl, jsonMapper).getSongs(
-                startOffset,
-                maxResults,
-                orderBy,
-                emptyMap()
-            )
-        )
+        assertThat(VocaDbClient(wm.httpBaseUrl, jsonMapper).getSongs(startOffset, maxResults, orderBy, emptyMap()))
             .usingRecursiveComparison()
             .ignoringCollectionOrder()
             .isEqualTo(
                 VocaDbSongEntryWithNndPvsAndTagsSearchResult(
                     listOf(
                         VocaDbSongEntryWithNndPvsAndTags(
-                            743185,
+                            743_185,
                             "オッドライアー",
                             Original,
                             emptyList(),
                             "佐伯れん feat. 鏡音リン",
                             Instant.parse("2025-01-25T00:00:00Z"),
                             emptyList(),
-                            emptyList()
+                            emptyList(),
                         )
                     ),
-                    373865
+                    373_865,
                 )
             )
     }
 
     companion object {
-        val queryConsoleResponseDeserializationTestData = VocaDbCustomQueryData::class.sealedSubclasses.map {
-            when (it) {
-                VocaDbCustomQueryArtistData::class -> arguments(
-                    ARTISTS,
-                    VocaDbCustomQuerySearchResult(
-                        listOf(
-                            VocaDbCustomQueryArtistData(
-                                85276,
-                                "Anji-Melody",
-                                listOf(VocaDbTag(204, "illustrator")),
-                                Producer
-                            )
-                        ), 121082
-                    )
-                )
+        val queryConsoleResponseDeserializationTestData =
+            VocaDbCustomQueryData::class.sealedSubclasses.map {
+                when (it) {
+                    VocaDbCustomQueryArtistData::class ->
+                        arguments(
+                            ARTISTS,
+                            VocaDbCustomQuerySearchResult(
+                                listOf(
+                                    VocaDbCustomQueryArtistData(
+                                        85_276,
+                                        "Anji-Melody",
+                                        listOf(VocaDbTag(204, "illustrator")),
+                                        Producer,
+                                    )
+                                ),
+                                121_082,
+                            ),
+                        )
 
-                VocaDbCustomQuerySongData::class -> arguments(
-                    SONGS,
-                    VocaDbCustomQuerySearchResult(
-                        listOf(
-                            VocaDbCustomQuerySongData(
-                                717140,
-                                "『わっれっちゃう。』",
-                                listOf(VocaDbTag(4582, "good tuning")),
-                                Cover,
-                                "Soto feat. 留音ロッカ"
-                            )
-                        ), 707091
-                    )
-                )
+                    VocaDbCustomQuerySongData::class ->
+                        arguments(
+                            SONGS,
+                            VocaDbCustomQuerySearchResult(
+                                listOf(
+                                    VocaDbCustomQuerySongData(
+                                        717_140,
+                                        "『わっれっちゃう。』",
+                                        listOf(VocaDbTag(4582, "good tuning")),
+                                        Cover,
+                                        "Soto feat. 留音ロッカ",
+                                    )
+                                ),
+                                707_091,
+                            ),
+                        )
 
-                else -> error("No argument set for subclass ${it.simpleName}")
+                    else -> error("No argument set for subclass ${it.simpleName}")
+                }
             }
-        }
 
-        val loginFailureTestData = Instancio.ofCartesianProduct(VocaDbUser::class.java)
-            .ignore(field(VocaDbUser::class.java, "allowedGroups"))
-            .with(field(VocaDbUser::class.java, "active"), true, false)
-            .with(field(VocaDbUser::class.java, "groupId"), *UserGroup.entries.toTypedArray())
-            .create()
-            .filter { !it.active || !setOf(Trusted, Moderator, Admin).contains(it.groupId) }
-            .map { Arguments.of(it) }
+        val loginFailureTestData =
+            Instancio.ofCartesianProduct(VocaDbUser::class.java)
+                .ignore(field(VocaDbUser::class.java, "allowedGroups"))
+                .with(field(VocaDbUser::class.java, "active"), true, false)
+                .with(field(VocaDbUser::class.java, "groupId"), *UserGroup.entries.toTypedArray())
+                .create()
+                .filter { !it.active || !setOf(Trusted, Moderator, Admin).contains(it.groupId) }
+                .map { Arguments.of(it) }
     }
 }

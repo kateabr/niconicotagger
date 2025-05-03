@@ -7,6 +7,5 @@ enum class NndSortOrder(private val value: String) {
     PUBLISH_TIME("startTime"),
     LIKE_COUNT("likeCounter");
 
-    @JsonValue
-    override fun toString() = value
+    @JsonValue override fun toString() = value
 }

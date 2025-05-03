@@ -1,7 +1,5 @@
 package niconicotagger.service
 
-import Utils.jsonMapper
-import Utils.loadResource
 import com.fasterxml.jackson.core.type.TypeReference
 import io.mockk.coEvery
 import io.mockk.coVerifyAll
@@ -10,8 +8,11 @@ import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.spyk
 import io.mockk.verifyAll
+import java.util.stream.Stream
 import kotlinx.coroutines.runBlocking
 import net.javacrumbs.jsonunit.assertj.assertThatJson
+import niconicotagger.Utils.jsonMapper
+import niconicotagger.Utils.loadResource
 import niconicotagger.client.DbClientHolder
 import niconicotagger.client.VocaDbClient
 import niconicotagger.dto.api.misc.ApiType
@@ -45,7 +46,6 @@ import org.junit.jupiter.params.provider.Arguments.argumentSet
 import org.junit.jupiter.params.provider.ArgumentsProvider
 import org.junit.jupiter.params.provider.ArgumentsSource
 import org.junit.jupiter.params.provider.EnumSource
-import java.util.stream.Stream
 
 @ExtendWith(InstancioExtension::class)
 class UpdatingServiceTest {
@@ -68,24 +68,21 @@ class UpdatingServiceTest {
     @Test
     fun `disable song PVs test`(@Given clientType: ClientType, @Given cookie: String): Unit = runBlocking {
         val updatedSongData = slot<MutableMap<String, Any>>()
-        coEvery {
-            client.getSongForEdit(
-                eq(657775),
-                eq(cookie)
+        coEvery { client.getSongForEdit(eq(657_775), eq(cookie)) } returns
+            jsonMapper.readValue(
+                loadResource("responses/vocadb/song_for_edit.json"),
+                object : TypeReference<MutableMap<String, Any>>() {},
             )
-        } returns jsonMapper.readValue(
-            loadResource("responses/vocadb/song_for_edit.json"),
-            object : TypeReference<MutableMap<String, Any>>() {})
-        coEvery { client.saveSong(eq(657775), capture(updatedSongData), eq(cookie)) } returns Unit
+        coEvery { client.saveSong(eq(657_775), capture(updatedSongData), eq(cookie)) } returns Unit
 
         service.disablePvs(
             SongTagsAndPvsUpdateRequest(
-                657775,
+                657_775,
                 emptyList(),
                 setOf(PvToDisable("sm43909677", "DELETED"), PvToDisable("sm43909678", "DELETED")),
             ),
             clientType,
-            cookie
+            cookie,
         )
 
         assertThatJson(jsonMapper.writeValueAsString(updatedSongData.captured))
@@ -100,31 +97,17 @@ class UpdatingServiceTest {
     @Test
     fun `assign tags test`(@Given clientType: ClientType, @Given cookie: String): Unit = runBlocking {
         val tags = slot<List<VocaDbTag>>()
-        coEvery {
-            client.getSongTags(
-                eq(657775),
-                eq(cookie)
+        coEvery { client.getSongTags(eq(657_775), eq(cookie)) } returns
+            jsonMapper.readValue(
+                loadResource("responses/vocadb/song_tags_lookup_result.json"),
+                object : TypeReference<List<VocaDbTagSelectable>>() {},
             )
-        } returns jsonMapper.readValue(
-            loadResource("responses/vocadb/song_tags_lookup_result.json"),
-            object : TypeReference<List<VocaDbTagSelectable>>() {})
-        coEvery { client.assignSongTags(eq(657775), capture(tags), eq(cookie)) } returns Unit
+        coEvery { client.assignSongTags(eq(657_775), capture(tags), eq(cookie)) } returns Unit
 
-        service.assignSongTags(
-            SongTagsAndPvsUpdateRequest(
-                657775,
-                listOf(158),
-                emptySet()
-            ),
-            clientType,
-            cookie
-        )
+        service.assignSongTags(SongTagsAndPvsUpdateRequest(657_775, listOf(158), emptySet()), clientType, cookie)
 
         assertThat(tags.captured)
-            .containsExactlyInAnyOrder(
-                VocaDbTag(158, ""),
-                VocaDbTag(8087, "karaoke available (DAM&JOY)")
-            )
+            .containsExactlyInAnyOrder(VocaDbTag(158, ""), VocaDbTag(8087, "karaoke available (DAM&JOY)"))
 
         coVerifyAll {
             client.getSongTags(any(), any())
@@ -135,23 +118,17 @@ class UpdatingServiceTest {
     @Test
     fun `add release event test`(@Given clientType: ClientType, @Given cookie: String): Unit = runBlocking {
         val updatedSongData = slot<MutableMap<String, Any>>()
-        coEvery {
-            client.getSongForEdit(
-                eq(657775),
-                eq(cookie)
+        coEvery { client.getSongForEdit(eq(657_775), eq(cookie)) } returns
+            jsonMapper.readValue(
+                loadResource("responses/vocadb/song_for_edit.json"),
+                object : TypeReference<MutableMap<String, Any>>() {},
             )
-        } returns jsonMapper.readValue(
-            loadResource("responses/vocadb/song_for_edit.json"),
-            object : TypeReference<MutableMap<String, Any>>() {})
-        coEvery { client.saveSong(eq(657775), capture(updatedSongData), eq(cookie)) } returns Unit
+        coEvery { client.saveSong(eq(657_775), capture(updatedSongData), eq(cookie)) } returns Unit
 
         service.addReleaseEvent(
-            AddReleaseEventRequest(
-                657775,
-                ReleaseEvent(6645, "0Mix vol.10", null)
-            ),
+            AddReleaseEventRequest(657_775, ReleaseEvent(6645, "0Mix vol.10", null)),
             clientType,
-            cookie
+            cookie,
         )
 
         assertThatJson(jsonMapper.writeValueAsString(updatedSongData.captured))
@@ -169,13 +146,11 @@ class UpdatingServiceTest {
         @Given event: ReleaseEvent,
         @Given tagUsage: VocaDbTagUsage,
         @Given clientType: ClientType,
-        @Given cookie: String
+        @Given cookie: String,
     ): Unit = runBlocking {
         val request = DeleteTagsRequest(SONGS, entryId, listOf(tagUsage.tag))
-        coEvery { client.getTagUsages(eq(SONGS), eq(entryId), eq(cookie)) } returns VocaDbTagUsages(
-            true,
-            listOf(tagUsage)
-        )
+        coEvery { client.getTagUsages(eq(SONGS), eq(entryId), eq(cookie)) } returns
+            VocaDbTagUsages(true, listOf(tagUsage))
         coEvery { client.deleteTagUsage(eq(SONGS), eq(tagUsage.id), eq(cookie)) } returns Unit
 
         service.deleteTags(request, clientType, cookie)
@@ -194,15 +169,12 @@ class UpdatingServiceTest {
         request: DeleteTagsRequest,
         tagUsageResponse: VocaDbTagUsages,
         @Given clientType: ClientType,
-        @Given cookie: String
+        @Given cookie: String,
     ) {
         coEvery { client.getTagUsages(eq(request.apiType), eq(request.entryId), eq(cookie)) } returns tagUsageResponse
 
-        assertThatExceptionOfType(IllegalStateException::class.java).isThrownBy {
-            runBlocking {
-                service.deleteTags(request, clientType, cookie)
-            }
-        }
+        assertThatExceptionOfType(IllegalStateException::class.java)
+            .isThrownBy { runBlocking { service.deleteTags(request, clientType, cookie) } }
             .withMessage(message)
     }
 
@@ -212,17 +184,15 @@ class UpdatingServiceTest {
         apiType: ApiType,
         @Given entryId: Long,
         @Given tags: List<VocaDbTag>,
-        @Given cookie: String
+        @Given cookie: String,
     ): Unit = runBlocking {
         val vocaDbTagUsages = VocaDbTagUsages(true, tags.map { VocaDbTagUsage(Instancio.create(Long::class.java), it) })
-        coEvery {
-            client.getTagUsages(eq(apiType), eq(entryId), eq(cookie))
-        } returns vocaDbTagUsages
+        coEvery { client.getTagUsages(eq(apiType), eq(entryId), eq(cookie)) } returns vocaDbTagUsages
         coEvery {
             client.deleteTagUsage(
                 eq(apiType),
                 match { vocaDbTagUsages.tagUsages.any { usage -> usage.id == it } },
-                eq(cookie)
+                eq(cookie),
             )
         } returns Unit
 
@@ -237,40 +207,39 @@ class UpdatingServiceTest {
     companion object {
         class DeleteTagsTestData : ArgumentsProvider {
             private fun cannotRemoveTagUsages(apiType: ApiType): Arguments {
-                val request = Instancio.of(DeleteTagsRequest::class.java)
-                    .set(field("apiType"), apiType)
-                    .create()
+                val request = Instancio.of(DeleteTagsRequest::class.java).set(field("apiType"), apiType).create()
                 val tagUsagesResponse = VocaDbTagUsages(false, Instancio.createList(VocaDbTagUsage::class.java))
                 return argumentSet(
                     "apiType=$apiType, user not allowed to remove tags",
                     "User lacks permission to remove tags",
                     request,
-                    tagUsagesResponse
+                    tagUsagesResponse,
                 )
             }
 
             private fun notTaggedWithTargetTag(apiType: ApiType): Arguments {
                 val tagUsagesResponse = VocaDbTagUsages(true, Instancio.createList(VocaDbTagUsage::class.java))
-                val request = Instancio.of(DeleteTagsRequest::class.java)
-                    .set(field("apiType"), apiType)
-                    .generate(field("tags")) { gen -> gen.collection<VocaDbTag>().size(2) }
-                    .filter<Long>(field(VocaDbTag::class.java, "id").within(field("tags").toScope())) { tagId ->
-                        !tagUsagesResponse.tagUsages.any { tagUsage -> tagUsage.tag.id == tagId }
-                    }
-                    .create()
+                val request =
+                    Instancio.of(DeleteTagsRequest::class.java)
+                        .set(field("apiType"), apiType)
+                        .generate(field("tags")) { gen -> gen.collection<VocaDbTag>().size(2) }
+                        .filter<Long>(field(VocaDbTag::class.java, "id").within(field("tags").toScope())) { tagId ->
+                            !tagUsagesResponse.tagUsages.any { tagUsage -> tagUsage.tag.id == tagId }
+                        }
+                        .create()
                 return argumentSet(
                     "apiType=$apiType, tags not present on the entry",
                     "Following tags were not found on the entry: T/${request.tags[0].id} \"${request.tags[0].name}\", T/${request.tags[1].id} \"${request.tags[1].name}\"",
                     request,
-                    tagUsagesResponse
+                    tagUsagesResponse,
                 )
             }
 
             override fun provideArguments(context: ExtensionContext?): Stream<out Arguments> {
-                return Stream.of(*ApiType.entries.toTypedArray())
-                    .flatMap { Stream.of(cannotRemoveTagUsages(it), notTaggedWithTargetTag(it)) }
+                return Stream.of(*ApiType.entries.toTypedArray()).flatMap {
+                    Stream.of(cannotRemoveTagUsages(it), notTaggedWithTargetTag(it))
+                }
             }
-
         }
     }
 }

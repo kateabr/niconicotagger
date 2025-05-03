@@ -13,18 +13,17 @@ import org.mapstruct.MappingConstants.ComponentModel.SPRING
 @Mapper(componentModel = SPRING)
 abstract class QueryResponseMapper {
 
-    fun <T : QueryConsoleData> map(
-        response: VocaDbCustomQuerySearchResult<*>
-    ): QueryConsoleResponse<T> {
+    fun <T : QueryConsoleData> map(response: VocaDbCustomQuerySearchResult<*>): QueryConsoleResponse<T> {
         return QueryConsoleResponse(
             response.items.map {
                 when (it) {
                     is VocaDbCustomQueryArtistData -> mapArtist(it)
                     is VocaDbCustomQuerySongData -> mapSong(it)
-                } as T
+                }
+                    as T
             },
             response.items.flatMap { it.tags }.distinctBy { it.id },
-            response.totalCount
+            response.totalCount,
         )
     }
 

@@ -18,15 +18,12 @@ data class RangeFilter<T>(
     val from: T,
     val to: T,
     val includeLower: Boolean,
-    val includeUpper: Boolean
+    val includeUpper: Boolean,
 ) : SearchFilter {
     override val type = RANGE
 }
 
-data class EqualFilter<T>(
-    val field: String,
-    val value: T?
-) : SearchFilter {
+data class EqualFilter<T>(val field: String, val value: T?) : SearchFilter {
     override val type = EQUAL
 }
 
@@ -39,8 +36,10 @@ data class OrFilter(val filters: List<SearchFilter>) : SearchFilter {
 }
 
 enum class SearchFilterType {
-    EQUAL, RANGE, OR, AND;
+    EQUAL,
+    RANGE,
+    OR,
+    AND;
 
-    @JsonValue
-    override fun toString() = name.lowercase()
+    @JsonValue override fun toString() = name.lowercase()
 }

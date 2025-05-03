@@ -30,5 +30,5 @@ enum class ArtistType {
     Designer,
     VOICEVOX,
     ACEVirtualSinger,
-    AIVOICE
+    AIVOICE,
 }

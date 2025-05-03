@@ -1,0 +1,105 @@
+# Default detekt configuration:
+# https://github.com/detekt/detekt/blob/main/detekt-core/src/main/resources/default-detekt-config.yml
+# Schema: https://json.schemastore.org/detekt-1.22.0.json
+
+comments:
+  DeprecatedBlockTag:
+    active: true
+  OutdatedDocumentation:
+    active: true
+
+complexity:
+  CognitiveComplexMethod:
+    active: true
+  CyclomaticComplexMethod:
+    active: false
+  LargeClass:
+    active: false
+  LongMethod:
+    active: false
+  LongParameterList:
+    active: false
+  NestedBlockDepth:
+    active: false
+  NestedScopeFunctions:
+    active: true
+  TooManyFunctions:
+    active: false
+
+coroutines:
+  GlobalCoroutineUsage:
+    active: true
+
+performance:
+  SpreadOperator:
+    active: false
+  UnnecessaryPartOfBinaryExpression:
+    active: true
+
+style:
+  active: true
+  AlsoCouldBeApply:
+    active: true
+  CanBeNonNullable:
+    active: true
+  ClassOrdering:
+    active: true
+  CollapsibleIfStatements:
+    active: true
+  DestructuringDeclarationWithTooManyEntries:
+    active: true
+    maxDestructuringEntries: 6
+  DoubleNegativeLambda:
+    active: true
+  ForbiddenComment:
+    active: true
+    allowedPatterns: 'https://jira.tcsbank.ru/browse/\w+-\d+'
+    comments: [ 'FIXME', 'TODO', 'fixme', 'todo' ]
+  ForbiddenMethodCall:
+    active: true
+  ForbiddenVoid:
+    active: false
+  LoopWithTooManyJumpStatements:
+    active: false
+  MagicNumber:
+    active: false
+  MaxLineLength:
+    active: false
+  MultilineLambdaItParameter:
+    active: true
+  MultilineRawStringIndentation:
+    active: false
+  NoTabs:
+    active: true
+  ReturnCount:
+    active: false
+  StringShouldBeRawString:
+    active: false
+  ThrowsCount:
+    active: false
+  TrailingWhitespace:
+    active: true
+  TrimMultilineRawString:
+    active: false
+  UnderscoresInNumericLiterals:
+    active: true
+  UnnecessaryAnnotationUseSiteTarget:
+    active: true
+  UnnecessaryBackticks:
+    active: true
+  UnnecessaryBracesAroundTrailingLambda:
+    active: true
+  UnnecessaryInnerClass:
+    active: true
+  UnnecessaryLet:
+    active: true
+  UnnecessaryParentheses:
+    active: false
+  UseEmptyCounterpart:
+    active: true
+  UseIfInsteadOfWhen:
+    active: false
+  UseLet:
+    active: false
+  UseSumOfInsteadOfFlatMapSize:
+    active: true

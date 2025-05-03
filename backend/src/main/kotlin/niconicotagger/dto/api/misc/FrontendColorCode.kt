@@ -11,6 +11,5 @@ enum class FrontendColorCode {
     DARK,
     SECONDARY;
 
-    @JsonValue
-    override fun toString() = name.lowercase()
+    @JsonValue override fun toString() = name.lowercase()
 }

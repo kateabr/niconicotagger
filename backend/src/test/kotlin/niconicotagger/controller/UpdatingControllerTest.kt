@@ -1,6 +1,5 @@
 package niconicotagger.controller
 
-import Utils.loadResource
 import com.github.tomakehurst.wiremock.client.WireMock.delete
 import com.github.tomakehurst.wiremock.client.WireMock.equalTo
 import com.github.tomakehurst.wiremock.client.WireMock.equalToJson
@@ -11,6 +10,8 @@ import com.github.tomakehurst.wiremock.client.WireMock.post
 import com.github.tomakehurst.wiremock.client.WireMock.put
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathTemplate
 import jakarta.servlet.http.Cookie
+import java.util.stream.Stream
+import niconicotagger.Utils.loadResource
 import niconicotagger.constants.Constants.COOKIE_HEADER_KEY
 import niconicotagger.constants.Constants.DEFAULT_USER_AGENT
 import niconicotagger.dto.api.misc.ApiType
@@ -35,7 +36,6 @@ import org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED_VALUE
 import org.springframework.http.MediaType.APPLICATION_JSON
 import org.springframework.http.MediaType.APPLICATION_JSON_VALUE
 import org.springframework.test.web.servlet.post
-import java.util.stream.Stream
 
 class UpdatingControllerTest : AbstractControllerTest() {
 
@@ -59,7 +59,7 @@ class UpdatingControllerTest : AbstractControllerTest() {
                     .withPathParam("id", equalTo("743185"))
                     .withFormParam(
                         "contract",
-                        equalToJson(loadResource("$dataFolder/$case/updated_song_data.json").decodeToString())
+                        equalToJson(loadResource("$dataFolder/$case/updated_song_data.json").decodeToString()),
                     )
                     .withHeader(CONTENT_TYPE, equalTo(APPLICATION_FORM_URLENCODED_VALUE))
                     .withHeader(USER_AGENT, equalTo(DEFAULT_USER_AGENT))
@@ -67,9 +67,11 @@ class UpdatingControllerTest : AbstractControllerTest() {
                     .willReturn(ok())
             )
 
-            mockMvc.post("/api/update/songs/add_release_event") {
-                contentType = APPLICATION_JSON
-                content = """
+            mockMvc
+                .post("/api/update/songs/add_release_event") {
+                    contentType = APPLICATION_JSON
+                    content =
+                        """
                 {
                     "subRequests": [
                         {
@@ -82,12 +84,12 @@ class UpdatingControllerTest : AbstractControllerTest() {
                     ],
                     "clientType": "$VOCADB_BETA"
                 }
-                """.trimIndent()
-                cookie(Cookie(COOKIE_HEADER_KEY, cookie))
-            }.asyncDispatch()
-                .andExpect {
-                    status { isOk() }
+                """
+                            .trimIndent()
+                    cookie(Cookie(COOKIE_HEADER_KEY, cookie))
                 }
+                .asyncDispatch()
+                .andExpect { status { isOk() } }
         }
 
         @Test
@@ -106,7 +108,8 @@ class UpdatingControllerTest : AbstractControllerTest() {
                     ],
                     "clientType": "$VOCADB_BETA"
                 }
-                """.trimIndent(),
+                """
+                    .trimIndent(),
                 """
                 {
                   "type": "https://zalando.github.io/problem/constraint-violation",
@@ -119,9 +122,10 @@ class UpdatingControllerTest : AbstractControllerTest() {
                   ],
                   "title": "Constraint Violation"
                 }
-                """.trimIndent(),
+                """
+                    .trimIndent(),
                 "/update/songs/add_release_event",
-                Cookie(COOKIE_HEADER_KEY, cookie)
+                Cookie(COOKIE_HEADER_KEY, cookie),
             )
         }
     }
@@ -135,7 +139,7 @@ class UpdatingControllerTest : AbstractControllerTest() {
             @Given entryId: Long,
             @Given tagUsage1: VocaDbTagUsage,
             @Given tagUsage2: VocaDbTagUsage,
-            @Given cookie: String
+            @Given cookie: String,
         ) {
             wireMockExtension.stubFor(
                 get(urlPathTemplate("/api/{apiType}/{id}/tagUsages"))
@@ -167,7 +171,8 @@ class UpdatingControllerTest : AbstractControllerTest() {
                             }
                           ]
                         }
-                        """.trimIndent()
+                        """
+                                .trimIndent()
                         )
                     )
             )
@@ -183,9 +188,11 @@ class UpdatingControllerTest : AbstractControllerTest() {
                 )
             }
 
-            mockMvc.post("/api/update/tags/delete") {
-                contentType = APPLICATION_JSON
-                content = """
+            mockMvc
+                .post("/api/update/tags/delete") {
+                    contentType = APPLICATION_JSON
+                    content =
+                        """
                 {
                     "subRequests": [
                         {
@@ -205,23 +212,18 @@ class UpdatingControllerTest : AbstractControllerTest() {
                     ],
                     "clientType": "$VOCADB_BETA"
                 }
-                """.trimIndent()
-                cookie(Cookie(COOKIE_HEADER_KEY, cookie))
-            }.asyncDispatch()
-                .andExpect {
-                    status { isOk() }
+                """
+                            .trimIndent()
+                    cookie(Cookie(COOKIE_HEADER_KEY, cookie))
                 }
+                .asyncDispatch()
+                .andExpect { status { isOk() } }
         }
 
         @ParameterizedTest
         @ArgumentsSource(DeleteTagsInvalidRequestData::class)
         fun `delete tags test (invalid request)`(request: String, expectedMessage: String, @Given cookie: String) {
-            testInvalidRequest(
-                request,
-                expectedMessage,
-                "/update/tags/delete",
-                Cookie(COOKIE_HEADER_KEY, cookie)
-            )
+            testInvalidRequest(request, expectedMessage, "/update/tags/delete", Cookie(COOKIE_HEADER_KEY, cookie))
         }
     }
 
@@ -254,7 +256,7 @@ class UpdatingControllerTest : AbstractControllerTest() {
                     .withPathParam("id", equalTo("743185"))
                     .withFormParam(
                         "contract",
-                        equalToJson(loadResource("$dataFolder/$case/updated_song_data.json").decodeToString())
+                        equalToJson(loadResource("$dataFolder/$case/updated_song_data.json").decodeToString()),
                     )
                     .withHeader(CONTENT_TYPE, equalTo(APPLICATION_FORM_URLENCODED_VALUE))
                     .withHeader(USER_AGENT, equalTo(DEFAULT_USER_AGENT))
@@ -271,9 +273,11 @@ class UpdatingControllerTest : AbstractControllerTest() {
                     .willReturn(ok())
             )
 
-            mockMvc.post("/api/update/songs/replace_tag_with_event") {
-                contentType = APPLICATION_JSON
-                content = """
+            mockMvc
+                .post("/api/update/songs/replace_tag_with_event") {
+                    contentType = APPLICATION_JSON
+                    content =
+                        """
                 {
                     "subRequests": [
                         {
@@ -292,12 +296,12 @@ class UpdatingControllerTest : AbstractControllerTest() {
                     ],
                     "clientType": "$VOCADB_BETA"
                 }
-                """.trimIndent()
-                cookie(Cookie(COOKIE_HEADER_KEY, cookie))
-            }.asyncDispatch()
-                .andExpect {
-                    status { isOk() }
+                """
+                            .trimIndent()
+                    cookie(Cookie(COOKIE_HEADER_KEY, cookie))
                 }
+                .asyncDispatch()
+                .andExpect { status { isOk() } }
         }
 
         @ParameterizedTest
@@ -305,13 +309,13 @@ class UpdatingControllerTest : AbstractControllerTest() {
         fun `replace tag with event test (invalid request)`(
             request: String,
             expectedMessage: String,
-            @Given cookie: String
+            @Given cookie: String,
         ) {
             testInvalidRequest(
                 request,
                 expectedMessage,
                 "/update/songs/replace_tag_with_event",
-                Cookie(COOKIE_HEADER_KEY, cookie)
+                Cookie(COOKIE_HEADER_KEY, cookie),
             )
         }
     }
@@ -328,7 +332,9 @@ class UpdatingControllerTest : AbstractControllerTest() {
                     .withHeader(CONTENT_TYPE, equalTo(APPLICATION_JSON_VALUE))
                     .withHeader(USER_AGENT, equalTo(DEFAULT_USER_AGENT))
                     .withCookie(COOKIE_HEADER_KEY, equalTo(cookie))
-                    .willReturn(okJson(loadResource("$dataFolder/tag_selection_by_current_user_response.json").decodeToString()))
+                    .willReturn(
+                        okJson(loadResource("$dataFolder/tag_selection_by_current_user_response.json").decodeToString())
+                    )
             )
             wireMockExtension.stubFor(
                 put(urlPathTemplate("/api/users/current/songTags/{id}"))
@@ -340,10 +346,12 @@ class UpdatingControllerTest : AbstractControllerTest() {
                         equalToJson(
                             loadResource("$dataFolder/tag_update_request_body.json").decodeToString(),
                             true,
-                            false
+                            false,
                         )
                     )
-                    .willReturn(okJson(loadResource("$dataFolder/tag_selection_by_current_user_response.json").decodeToString()))
+                    .willReturn(
+                        okJson(loadResource("$dataFolder/tag_selection_by_current_user_response.json").decodeToString())
+                    )
             )
             wireMockExtension.stubFor(
                 get(urlPathTemplate("/api/songs/{id}/for-edit"))
@@ -358,7 +366,7 @@ class UpdatingControllerTest : AbstractControllerTest() {
                     .withPathParam("id", equalTo("657775"))
                     .withFormParam(
                         "contract",
-                        equalToJson(loadResource("$dataFolder/updated_song_data.json").decodeToString())
+                        equalToJson(loadResource("$dataFolder/updated_song_data.json").decodeToString()),
                     )
                     .withHeader(CONTENT_TYPE, equalTo(APPLICATION_FORM_URLENCODED_VALUE))
                     .withHeader(USER_AGENT, equalTo(DEFAULT_USER_AGENT))
@@ -366,9 +374,11 @@ class UpdatingControllerTest : AbstractControllerTest() {
                     .willReturn(ok())
             )
 
-            mockMvc.post("/api/update/songs/update_tags_and_pvs") {
-                contentType = APPLICATION_JSON
-                content = """
+            mockMvc
+                .post("/api/update/songs/update_tags_and_pvs") {
+                    contentType = APPLICATION_JSON
+                    content =
+                        """
                 {
                     "subRequests": [
                         {
@@ -394,12 +404,12 @@ class UpdatingControllerTest : AbstractControllerTest() {
                     ],
                     "clientType": "$VOCADB_BETA"
                 }
-                """.trimIndent()
-                cookie(Cookie(COOKIE_HEADER_KEY, cookie))
-            }.asyncDispatch()
-                .andExpect {
-                    status { isOk() }
+                """
+                            .trimIndent()
+                    cookie(Cookie(COOKIE_HEADER_KEY, cookie))
                 }
+                .asyncDispatch()
+                .andExpect { status { isOk() } }
         }
 
         @Test
@@ -423,7 +433,8 @@ class UpdatingControllerTest : AbstractControllerTest() {
                     ],
                     "clientType": "$VOCADB_BETA"
                 }
-                """.trimIndent(),
+                """
+                    .trimIndent(),
                 """
                 {
                   "type": "https://zalando.github.io/problem/constraint-violation",
@@ -440,9 +451,10 @@ class UpdatingControllerTest : AbstractControllerTest() {
                   ],
                   "title": "Constraint Violation"
                 }
-                """.trimIndent(),
+                """
+                    .trimIndent(),
                 "/update/songs/update_tags_and_pvs",
-                Cookie(COOKIE_HEADER_KEY, cookie)
+                Cookie(COOKIE_HEADER_KEY, cookie),
             )
         }
     }
@@ -464,7 +476,8 @@ class UpdatingControllerTest : AbstractControllerTest() {
                             ],
                             "clientType": "$VOCADB_BETA"
                         }
-                        """.trimIndent(),
+                        """
+                            .trimIndent(),
                         """
                         {
                           "type": "https://zalando.github.io/problem/constraint-violation",
@@ -477,7 +490,8 @@ class UpdatingControllerTest : AbstractControllerTest() {
                           ],
                           "title": "Constraint Violation"
                         }
-                        """.trimIndent()
+                        """
+                            .trimIndent(),
                     ),
                     argumentSet(
                         "apiType=$apiType, empty tag name",
@@ -497,7 +511,8 @@ class UpdatingControllerTest : AbstractControllerTest() {
                             ],
                             "clientType": "$VOCADB_BETA"
                         }
-                        """.trimIndent(),
+                        """
+                            .trimIndent(),
                         """
                         {
                           "type": "https://zalando.github.io/problem/constraint-violation",
@@ -510,16 +525,17 @@ class UpdatingControllerTest : AbstractControllerTest() {
                           ],
                           "title": "Constraint Violation"
                         }
-                        """.trimIndent()
+                        """
+                            .trimIndent(),
                     ),
                 )
             }
 
             override fun provideArguments(context: ExtensionContext?): Stream<out Arguments> {
-                return ApiType.entries.map { buildArgs(it) }
+                return ApiType.entries
+                    .map { buildArgs(it) }
                     .fold(Stream.empty()) { acc, stream -> Stream.concat(acc, stream) }
             }
-
         }
 
         class ReplaceTagWithEventInvalidRequestData : ArgumentsProvider {
@@ -541,7 +557,8 @@ class UpdatingControllerTest : AbstractControllerTest() {
                             ],
                             "clientType": "$VOCADB_BETA"
                         }
-                        """.trimIndent(),
+                        """
+                            .trimIndent(),
                         """
                         {
                           "type": "https://zalando.github.io/problem/constraint-violation",
@@ -558,7 +575,8 @@ class UpdatingControllerTest : AbstractControllerTest() {
                           ],
                           "title": "Constraint Violation"
                         }
-                        """.trimIndent()
+                        """
+                            .trimIndent(),
                     ),
                     argumentSet(
                         "empty tag name",
@@ -581,7 +599,8 @@ class UpdatingControllerTest : AbstractControllerTest() {
                             ],
                             "clientType": "$VOCADB_BETA"
                         }
-                        """.trimIndent(),
+                        """
+                            .trimIndent(),
                         """
                         {
                           "type": "https://zalando.github.io/problem/constraint-violation",
@@ -594,7 +613,8 @@ class UpdatingControllerTest : AbstractControllerTest() {
                           ],
                           "title": "Constraint Violation"
                         }
-                        """.trimIndent()
+                        """
+                            .trimIndent(),
                     ),
                     argumentSet(
                         "too many tags specified",
@@ -621,7 +641,8 @@ class UpdatingControllerTest : AbstractControllerTest() {
                             ],
                             "clientType": "$VOCADB_BETA"
                         }
-                        """.trimIndent(),
+                        """
+                            .trimIndent(),
                         """
                         {
                           "type": "https://zalando.github.io/problem/constraint-violation",
@@ -634,11 +655,11 @@ class UpdatingControllerTest : AbstractControllerTest() {
                           ],
                           "title": "Constraint Violation"
                         }
-                        """.trimIndent()
+                        """
+                            .trimIndent(),
                     ),
                 )
             }
-
         }
     }
 }

@@ -1,6 +1,6 @@
 package niconicotagger.serde
 
-import Utils.jsonMapper
+import niconicotagger.Utils.jsonMapper
 import niconicotagger.dto.inner.vocadb.VocaDbTagMapping
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
@@ -9,8 +9,8 @@ class MiscDeserializationTest {
     @Test
     fun `VocaDbTagMapping$sourceTag normalization test`() {
         assertThat(
-            jsonMapper.readValue(
-                """
+                jsonMapper.readValue(
+                    """
                 {
                   "sourceTag": "ｱアあＡA１1",
                   "tag": {
@@ -18,10 +18,12 @@ class MiscDeserializationTest {
                     "name": "name"
                   }
                 }
-                """.trimIndent(),
-                VocaDbTagMapping::class.java
+                """
+                        .trimIndent(),
+                    VocaDbTagMapping::class.java,
+                )
             )
-        ).extracting { it.sourceTag }
+            .extracting { it.sourceTag }
             .isEqualTo("アアあAA11")
     }
 }
