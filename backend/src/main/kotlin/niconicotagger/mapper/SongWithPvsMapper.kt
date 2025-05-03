@@ -20,7 +20,7 @@ import niconicotagger.dto.inner.vocadb.VocaDbSongWithReleaseEvents
 import niconicotagger.dto.inner.vocadb.VocaDbTagMapping
 import niconicotagger.dto.inner.vocadb.VocaDbTagSelectable
 import niconicotagger.dto.inner.vocadb.search.result.SearchResult
-import niconicotagger.mapper.Utils.Companion.calculateSongStats
+import niconicotagger.mapper.Utils.calculateSongStats
 import niconicotagger.serde.Utils.kata2hiraAndLowercase
 import org.mapstruct.Context
 import org.mapstruct.Mapper

@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.json.JsonMapper
 import com.fasterxml.jackson.dataformat.xml.XmlMapper
 import com.github.benmanes.caffeine.cache.Caffeine
 import com.sksamuel.aedile.core.asCache
-import java.util.regex.Pattern
 import kotlinx.coroutines.reactor.awaitSingle
 import niconicotagger.client.Utils.createNndFilters
 import niconicotagger.constants.Constants.API_SEARCH_FIELDS
@@ -47,11 +46,11 @@ class NndClient(
             )
             .build()
     private val thumbCache = Caffeine.newBuilder()
-        .expireAfterWrite(6, HOURS)
+        .expireAfterWrite(1, HOURS)
         .maximumSize(100)
         .asCache<String, NndThumbnail>()
     private val formattedDescriptionCache = Caffeine.newBuilder()
-        .expireAfterWrite(6, HOURS)
+        .expireAfterWrite(1, HOURS)
         .maximumSize(100)
         .asCache<String, String?>()
 

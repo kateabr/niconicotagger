@@ -2,8 +2,6 @@ package niconicotagger.service
 
 import com.github.benmanes.caffeine.cache.Caffeine
 import com.sksamuel.aedile.core.asCache
-import java.time.ZoneOffset.UTC
-import java.time.format.DateTimeFormatter.ISO_DATE_TIME
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -55,7 +53,7 @@ import niconicotagger.mapper.QueryResponseMapper
 import niconicotagger.mapper.ReleaseEventMapper
 import niconicotagger.mapper.RequestMapper
 import niconicotagger.mapper.SongWithPvsMapper
-import niconicotagger.mapper.Utils.Companion.calculateSongStats
+import niconicotagger.mapper.Utils.calculateSongStats
 import niconicotagger.serde.Utils.kata2hiraAndLowercase
 import niconicotagger.serde.Utils.normalizeToken
 import org.springframework.stereotype.Service
@@ -75,7 +73,7 @@ class AggregatingService(
     private val publisherLinkConfig: PublisherLinkConfig,
 ) {
     private val publisherCache = Caffeine.newBuilder()
-        .expireAfterWrite(6, HOURS)
+        .expireAfterWrite(1, HOURS)
         .maximumSize(100)
         .asCache<String, PublisherInfo>()
 

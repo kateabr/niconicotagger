@@ -7,8 +7,6 @@ import io.netty.channel.ChannelOption.CONNECT_TIMEOUT_MILLIS
 import io.netty.handler.logging.LogLevel.INFO
 import io.netty.handler.timeout.ReadTimeoutHandler
 import io.netty.handler.timeout.WriteTimeoutHandler
-import java.time.Duration
-import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import niconicotagger.constants.Constants.COOKIE_HEADER_KEY
