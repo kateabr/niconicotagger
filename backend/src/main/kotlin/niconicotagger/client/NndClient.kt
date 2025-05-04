@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.json.JsonMapper
 import com.fasterxml.jackson.dataformat.xml.XmlMapper
 import com.github.benmanes.caffeine.cache.Caffeine
 import com.sksamuel.aedile.core.asCache
+import io.netty.handler.logging.LogLevel.INFO
 import java.util.concurrent.TimeUnit.HOURS
 import java.util.regex.Pattern
 import kotlinx.coroutines.reactor.awaitSingle
@@ -21,12 +22,16 @@ import org.springframework.http.HttpHeaders.USER_AGENT
 import org.springframework.http.MediaType.APPLICATION_JSON_VALUE
 import org.springframework.http.MediaType.APPLICATION_XML_VALUE
 import org.springframework.http.MediaType.TEXT_HTML_VALUE
+import org.springframework.http.client.reactive.ReactorClientHttpConnector
 import org.springframework.http.codec.xml.Jaxb2XmlDecoder
+import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.util.MimeTypeUtils.APPLICATION_XML
 import org.springframework.web.reactive.function.client.ExchangeStrategies
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.awaitBody
 import org.springframework.web.util.UriComponentsBuilder
+import reactor.netty.http.client.HttpClient
+import reactor.netty.transport.logging.AdvancedByteBufFormat.TEXTUAL
 
 /** Api docs: https://site.nicovideo.jp/search-api-docs/snapshot */
 class NndClient(
@@ -39,6 +44,11 @@ class NndClient(
     private val client: WebClient =
         WebClient.builder()
             .defaultHeader(USER_AGENT, DEFAULT_USER_AGENT)
+            .clientConnector(
+                ReactorClientHttpConnector(
+                    HttpClient.create().wiretap(this::class.java.getCanonicalName(), INFO, TEXTUAL)
+                )
+            )
             .exchangeStrategies(
                 ExchangeStrategies.builder()
                     .codecs { configurer -> configurer.defaultCodecs().jaxb2Decoder(Jaxb2XmlDecoder(APPLICATION_XML)) }
@@ -49,6 +59,8 @@ class NndClient(
         Caffeine.newBuilder().expireAfterWrite(1, HOURS).maximumSize(100).asCache<String, NndThumbnail>()
     private val formattedDescriptionCache =
         Caffeine.newBuilder().expireAfterWrite(1, HOURS).maximumSize(100).asCache<String, String?>()
+    private val videosByTagsCache =
+        Caffeine.newBuilder().expireAfterWrite(1, HOURS).maximumSize(20).asCache<Int, NndApiSearchResult>()
 
     suspend fun getThumbInfo(id: String): NndThumbnail {
         return thumbCache.get(id) {
@@ -91,14 +103,21 @@ class NndClient(
     }
 
     suspend fun <T : VideosByNndTagsRequestBase> getVideosByTags(request: T): NndApiSearchResult {
-        return client
-            .get()
-            .uri(buildApiRequestUri(request))
-            .header(CONTENT_TYPE, APPLICATION_JSON_VALUE)
-            .retrieve()
-            .toEntity(NndApiSearchResult::class.java)
-            .awaitSingle()
-            .body ?: error("Failed to load videos for tag \"${request.tags}\"")
+        return videosByTagsCache.getOrNull(request.hashCode()) {
+            client
+                .get()
+                .uri(buildApiRequestUri(request))
+                .header(CONTENT_TYPE, APPLICATION_JSON_VALUE)
+                .retrieve()
+                .toEntity(NndApiSearchResult::class.java)
+                .awaitSingle()
+                .body
+        } ?: error("Failed to load videos for tag \"${request.tags}\"")
+    }
+
+    @Scheduled(cron = "0 0 15 * * *")
+    private fun invalidateVideosByTagsCache() {
+        videosByTagsCache.invalidateAll()
     }
 
     private fun <T : VideosByNndTagsRequestBase> buildApiRequestUri(request: T) =
