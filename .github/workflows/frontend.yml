@@ -17,6 +17,8 @@ jobs:
     defaults:
       run:
         working-directory: frontend
+    env:
+      NODE_OPTIONS: --openssl-legacy-provider
 
     steps:
       - uses: actions/checkout@v4
