@@ -9,6 +9,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import niconicotagger.client.DbClientHolder
+import niconicotagger.client.NicologClient
 import niconicotagger.client.NndClient
 import niconicotagger.configuration.PublisherLinkConfig
 import niconicotagger.constants.Constants.FIRST_WORK_TAG_ID
@@ -65,6 +66,7 @@ import org.springframework.stereotype.Service
 class AggregatingService(
     private val dbClientHolder: DbClientHolder,
     private val nndClient: NndClient,
+    private val nicologClient: NicologClient,
     private val eventMapper: ReleaseEventMapper,
     private val videoWithAssociatedEntryMapper: NndVideoWithAssociatedVocaDbEntryMapper,
     private val requestMapper: RequestMapper,
@@ -259,24 +261,62 @@ class AggregatingService(
                     return it
                 }
         }
-        return nndClient.getThumbInfo(video.id).let { thumbnail ->
-            when (thumbnail) {
-                is NndThumbnailOk -> {
-                    thumbnail.data.userId?.let { userId ->
-                        publisherCache.getOrNull("${userId}_${NND_USER}") {
-                            createPublisher(userId, thumbnail.data.publisherName, NND_USER)
-                        }
-                    }
-                        ?: thumbnail.data.channelId?.let { channelId ->
-                            publisherCache.getOrNull("ch${channelId}_${NND_USER}") {
-                                createPublisher(channelId, thumbnail.data.publisherName, NND_CHANNEL)
+        nndClient
+            .getThumbInfo(video.id)
+            .let { thumbnail ->
+                when (thumbnail) {
+                    is NndThumbnailOk -> {
+                        thumbnail.data.userId?.let { userId ->
+                            publisherCache.getOrNull("${userId}_${NND_USER}") {
+                                createPublisher(userId, thumbnail.data.publisherName, NND_USER)
                             }
                         }
-                }
+                            ?: thumbnail.data.channelId?.let { channelId ->
+                                publisherCache.getOrNull("ch${channelId}_${NND_USER}") {
+                                    createPublisher(channelId, thumbnail.data.publisherName, NND_CHANNEL)
+                                }
+                            }
+                    }
 
-                else -> null
+                    else -> null
+                }
             }
+            ?.let {
+                return it
+            }
+
+        // if everything else fails, try to extract publisher's name from nicolog
+        if (video.userId != null) {
+            publisherCache
+                .getOrNull("${video.userId}_${NND_USER}") {
+                    nicologClient.getUserName(video.userId)?.let { createPublisher(video.userId, it, NND_USER) }
+                }
+                ?.let {
+                    return it
+                }
         }
+        if (video.channelId != null) {
+            publisherCache
+                .getOrNull("ch${video.channelId}_${NND_CHANNEL}") {
+                    nicologClient.getChannelName(video.channelId)?.let {
+                        createPublisher(video.channelId, it, NND_CHANNEL)
+                    }
+                }
+                ?.let {
+                    return it
+                }
+        }
+
+        // if that failed too
+        if (video.userId != null) {
+            return createPublisher(video.userId, null, NND_USER)
+        }
+        if (video.channelId != null) {
+            return createPublisher(video.channelId, null, NND_CHANNEL)
+        }
+
+        // normally should not get here
+        return null
     }
 
     internal suspend fun likelyEarliestWork(clientType: ClientType, songEntry: VocaDbSongEntryWithTagsBase): Boolean {

@@ -59,7 +59,7 @@ import reactor.netty.transport.logging.AdvancedByteBufFormat.TEXTUAL
 import reactor.util.retry.Retry
 
 /** Swagger: https://vocadb.net/swagger/index.html */
-open class VocaDbClient(private val baseUrl: String, private val jsonMapper: JsonMapper) {
+open class VocaDbClient(baseUrl: String, private val jsonMapper: JsonMapper) {
     private val timeoutSeconds: Int = 45
 
     private val client: WebClient =

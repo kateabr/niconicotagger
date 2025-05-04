@@ -547,7 +547,6 @@ import TitleDisplayer from "@/components/TitleDisplayer.vue";
 import { AxiosResponse } from "axios";
 import {
   QueryConsoleArtistItem,
-  QueryConsoleItem,
   QueryConsoleSongItem
 } from "@/backend/dto/response/queryConsoleResponse";
 import EntryErrorReport from "@/components/EntryErrorReport.vue";
@@ -616,7 +615,7 @@ export default class extends Vue {
     }
   }
 
-  private getShortenedType(entry: QueryConsoleItem): string {
+  private getShortenedType(entry: QueryConsoleSongItem | QueryConsoleArtistItem): string {
     if (this.apiType == "songs") {
       let typeString = (entry as QueryConsoleSongItem).type;
       return getShortenedSongType(typeString);
@@ -638,7 +637,7 @@ export default class extends Vue {
     }
   }
 
-  private getTypeColorForDisplay(entry: QueryConsoleItem): string {
+  private getTypeColorForDisplay(entry: QueryConsoleSongItem | QueryConsoleArtistItem): string {
     if (this.apiType == "songs") {
       return getSongTypeColorForDisplay((entry as QueryConsoleSongItem).type);
     } else if (this.apiType == "artists") {

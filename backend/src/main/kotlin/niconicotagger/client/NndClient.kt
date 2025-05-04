@@ -76,10 +76,10 @@ class NndClient(
     suspend fun getFormattedDescription(id: String): String? {
         return formattedDescriptionCache.getOrNull(id) {
             var html = getEmbedResponse(id)
-            val matcher = redirectionPattern.matcher(html)
+            val redirectionMatcher = redirectionPattern.matcher(html)
 
-            if (matcher.matches()) {
-                html = getEmbedResponse(matcher.group(1))
+            if (redirectionMatcher.matches()) {
+                html = getEmbedResponse(redirectionMatcher.group(1))
             }
 
             val dataProps = Jsoup.parse(html).body().getElementById("ext-player")?.attr("data-props")

@@ -6,6 +6,7 @@ import io.mockk.junit5.MockKExtension
 import java.util.Comparator.comparing
 import java.util.stream.Stream
 import niconicotagger.client.DbClientHolder
+import niconicotagger.client.NicologClient
 import niconicotagger.client.NndClient
 import niconicotagger.configuration.PublisherLinkConfig
 import niconicotagger.dto.api.misc.NndSortOrder
@@ -36,6 +37,8 @@ class VideoSortingTest {
     @MockK lateinit var dbClientHolder: DbClientHolder
 
     @MockK lateinit var nndClient: NndClient
+
+    @MockK lateinit var nicologClient: NicologClient
 
     @MockK lateinit var releaseEventMapper: ReleaseEventMapper
 

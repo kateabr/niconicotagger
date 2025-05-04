@@ -20,6 +20,7 @@ import niconicotagger.Utils.createSampleSongTypeStats
 import niconicotagger.Utils.jsonMapper
 import niconicotagger.Utils.loadResource
 import niconicotagger.client.DbClientHolder
+import niconicotagger.client.NicologClient
 import niconicotagger.client.NndClient
 import niconicotagger.client.VocaDbClient
 import niconicotagger.configuration.PublisherLinkConfig
@@ -111,6 +112,7 @@ class AggregatingServiceTest {
     val dbClient = mockk<VocaDbClient>()
     val dbClientHolder = mockk<DbClientHolder>()
     val nndClient = mockk<NndClient>()
+    val nicologClient = mockk<NicologClient>()
     val eventMapper = mockk<ReleaseEventMapper>()
     val songMapper = mockk<NndVideoWithAssociatedVocaDbEntryMapper>()
     val requestMapper = mockk<RequestMapper>()
@@ -122,6 +124,7 @@ class AggregatingServiceTest {
             AggregatingService(
                 dbClientHolder,
                 nndClient,
+                nicologClient,
                 eventMapper,
                 songMapper,
                 requestMapper,
@@ -202,10 +205,9 @@ class AggregatingServiceTest {
             }
             coVerifyCount {
                 (if (song == null) 1 else 0) * { aggregatingService.getPublisher(any(), any()) }
-                (if (song != null && song.tags.none { it.id == FIRST_WORK_TAG_ID }) 1 else 0) *
-                    {
-                        aggregatingService.likelyEarliestWork(any(), any())
-                    }
+                (if (song != null && song.tags.none { it.id == FIRST_WORK_TAG_ID }) 1 else 0).times {
+                    aggregatingService.likelyEarliestWork(any(), any())
+                }
                 (if (priorSongsCheckResult != null) 1 else 0) * { dbClient.artistHasSongsBeforeDate(any(), any()) }
             }
             confirmVerified(dbClient, aggregatingService)
