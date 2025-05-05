@@ -115,7 +115,7 @@ class NndClient(
         } ?: error("Failed to load videos for tag \"${request.tags}\"")
     }
 
-    @Scheduled(cron = "0 0 15 * * *")
+    @Scheduled(cron = "0 0 22 * * *")
     private fun invalidateVideosByTagsCache() {
         videosByTagsCache.invalidateAll()
     }
