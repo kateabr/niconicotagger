@@ -12,7 +12,11 @@ import niconicotagger.dto.api.misc.FrontendColorCode.DANGER
 import niconicotagger.dto.api.misc.FrontendColorCode.SUCCESS
 import niconicotagger.dto.api.misc.FrontendColorCode.WARNING
 import niconicotagger.dto.api.misc.SongEntryBase
+import niconicotagger.dto.inner.misc.ReleaseEventCategory
+import niconicotagger.dto.inner.misc.ReleaseEventCategory.Unspecified
 import niconicotagger.dto.inner.misc.SongType
+import niconicotagger.dto.inner.vocadb.VocaDbReleaseEvent
+import niconicotagger.dto.inner.vocadb.VocaDbReleaseEventSeries
 
 object Utils {
     @JvmStatic
@@ -33,4 +37,8 @@ object Utils {
             DispositionRelativelyToDate(LATE, -daysToEnd, if (-daysToEnd > 7) DANGER else WARNING)
         }
     }
+
+    @JvmStatic
+    fun mapCategory(event: VocaDbReleaseEvent, series: VocaDbReleaseEventSeries?): ReleaseEventCategory =
+        if (event.category == Unspecified && series != null) series.category else event.category
 }

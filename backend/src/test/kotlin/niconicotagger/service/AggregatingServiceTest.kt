@@ -510,6 +510,7 @@ class AggregatingServiceTest {
         fun `get event by name test`(seriesId: Long?, @Given eventName: String, @Given clientType: ClientType): Unit =
             runBlocking {
                 val resultPlaceholder = mockkClass(ReleaseEventWitnNndTagsResponse::class)
+                every { resultPlaceholder.nndTags } returns Instancio.createList(String::class.java)
                 coEvery { dbClient.getEventByName(eq(eventName), eq("WebLinks")) } returns
                     Instancio.of(VocaDbReleaseEvent::class.java).set(field("seriesId"), seriesId).create()
                 if (seriesId != null) {

@@ -17,6 +17,15 @@
           >
             Replace an event tag (VocaDB)
           </b-nav-item>
+          <b-nav-item
+            :to="{
+              name: 'events-mode',
+              params: { browseMode: 'event-schedule' }
+            }"
+            :active="browseMode === 'event-schedule'"
+          >
+            Event schedule
+          </b-nav-item>
         </b-nav>
         <div class="tab-content">
           <div :class="['tab-pane', { active: browseMode === 'nicovideo' }]">
@@ -28,6 +37,11 @@
           </div>
           <div :class="['tab-pane', { active: browseMode === 'vocadb' }]">
             <event-by-voca-db-tag-tab :mode="browseMode" this-mode="vocadb" />
+          </div>
+          <div
+            :class="['tab-pane', { active: browseMode === 'event-schedule' }]"
+          >
+            <event-schedule-tab :mode="browseMode" this-mode="event-schedule" />
           </div>
         </div>
       </b-container>
@@ -44,15 +58,23 @@ import EventByVocaDbTagTab from "@/components/pages/EventByVocaDbTagTab.vue";
 import EventByNndTagTab from "@/components/pages/EventByNndTagTab.vue";
 import { getClientType } from "@/utils";
 import { ClientType } from "@/backend/dto/enumeration";
+import ErrorMessage from "@/components/ErrorMessage.vue";
+import EventScheduleTab from "@/components/pages/EventScheduleTab.vue";
 
 Vue.use(VueClipboard);
 
 @Component({
-  components: { NavBarMenu, EventByVocaDbTagTab, EventByNndTagTab }
+  components: {
+    EventScheduleTab,
+    ErrorMessage,
+    NavBarMenu,
+    EventByVocaDbTagTab,
+    EventByNndTagTab
+  }
 })
 export default class extends Vue {
   @Prop()
-  private readonly browseMode!: "vocadb" | "nicovideo";
+  private readonly browseMode!: "vocadb" | "nicovideo" | "event-schedule";
 
   @Prop()
   private readonly targName: string | undefined;
