@@ -206,7 +206,8 @@
                       <span class="text-monospace">false</span>.
                       <div class="alert-dark rounded p-2 my-1">
                         <b-icon-arrow-right-circle class="mr-1" />
-                        Will only work for derivatives that have an artist entry.
+                        Will only work for derivatives that have an artist
+                        entry.
                       </div>
                     </td>
                   </tr>
@@ -615,7 +616,9 @@ export default class extends Vue {
     }
   }
 
-  private getShortenedType(entry: QueryConsoleSongItem | QueryConsoleArtistItem): string {
+  private getShortenedType(
+    entry: QueryConsoleSongItem | QueryConsoleArtistItem
+  ): string {
     if (this.apiType == "songs") {
       let typeString = (entry as QueryConsoleSongItem).type;
       return getShortenedSongType(typeString);
@@ -637,7 +640,9 @@ export default class extends Vue {
     }
   }
 
-  private getTypeColorForDisplay(entry: QueryConsoleSongItem | QueryConsoleArtistItem): string {
+  private getTypeColorForDisplay(
+    entry: QueryConsoleSongItem | QueryConsoleArtistItem
+  ): string {
     if (this.apiType == "songs") {
       return getSongTypeColorForDisplay((entry as QueryConsoleSongItem).type);
     } else if (this.apiType == "artists") {

@@ -8,6 +8,7 @@ import io.netty.handler.logging.LogLevel.INFO
 import io.netty.handler.timeout.ReadTimeoutHandler
 import io.netty.handler.timeout.WriteTimeoutHandler
 import java.time.Duration
+import java.time.LocalDate
 import java.util.concurrent.TimeUnit.HOURS
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
@@ -24,6 +25,7 @@ import niconicotagger.dto.inner.vocadb.VocaDbArtist
 import niconicotagger.dto.inner.vocadb.VocaDbCustomQueryArtistData
 import niconicotagger.dto.inner.vocadb.VocaDbCustomQueryData
 import niconicotagger.dto.inner.vocadb.VocaDbCustomQuerySongData
+import niconicotagger.dto.inner.vocadb.VocaDbFrontPageData
 import niconicotagger.dto.inner.vocadb.VocaDbReleaseEvent
 import niconicotagger.dto.inner.vocadb.VocaDbReleaseEventSeries
 import niconicotagger.dto.inner.vocadb.VocaDbSongEntryBase
@@ -87,8 +89,11 @@ open class VocaDbClient(baseUrl: String, private val jsonMapper: JsonMapper) {
             }
             .build()
     private var maxTagMappingsToLoad = 10_000
+    private var maxEventsToLoad = 1_000
     private val tagMappingsCache =
         Caffeine.newBuilder().expireAfterWrite(1, HOURS).asCache<String, List<VocaDbTagMapping>>()
+    private val eventPreviewCache =
+        Caffeine.newBuilder().expireAfterWrite(24, HOURS).asCache<String, List<VocaDbReleaseEvent>>()
 
     suspend fun login(username: String, password: String): MultiValueMap<String, String> {
         val loginPayload = mapOf("keepLoggedIn" to true, "userName" to username, "password" to password)
@@ -379,6 +384,51 @@ open class VocaDbClient(baseUrl: String, private val jsonMapper: JsonMapper) {
             .toEntity(VocaDbSongEntryWithNndPvsAndTagsSearchResult::class.java)
             .awaitSingle()
             ?.body ?: error("Could not load songs"))
+    }
+
+    suspend fun getAllEventsForYear(): List<VocaDbReleaseEvent> {
+        return eventPreviewCache.get("eventPreviews") {
+            while (true) {
+                val response =
+                    client
+                        .get()
+                        .uri {
+                            it.path("/api/releaseEvents")
+                                .queryParam("afterDate", LocalDate.now().minusYears(1).withMonth(12).withDayOfMonth(31))
+                                .queryParam("beforeDate", LocalDate.now().plusYears(1).withMonth(1).withDayOfMonth(31))
+                                .queryParam("start", 0)
+                                .queryParam("maxResults", maxEventsToLoad)
+                                .queryParam("getTotalCount", true)
+                                .queryParam("fields", "Series,MainPicture")
+                                .queryParam("sort", "Date")
+                                .queryParam("sortDirection", "Ascending")
+                                .build()
+                        }
+                        .retrieve()
+                        .toEntity(VocaDbReleaseEventSearchResult::class.java)
+                        .awaitSingle()
+                        ?.body ?: error("Could not load event previews")
+
+                if (response.totalCount > response.items.size) {
+                    maxEventsToLoad += 500
+                    continue
+                }
+
+                return@get response.items
+            }
+
+            error("Could not load event previews")
+        }
+    }
+
+    suspend fun getFrontPageData(): VocaDbFrontPageData {
+        return client
+            .get()
+            .uri("https://vocadb.net/api/frontpage")
+            .retrieve()
+            .toEntity(VocaDbFrontPageData::class.java)
+            .awaitSingle()
+            ?.body ?: error("Could not load event previews")
     }
 
     companion object {

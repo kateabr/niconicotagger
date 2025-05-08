@@ -13,6 +13,7 @@ import niconicotagger.client.NicologClient
 import niconicotagger.client.NndClient
 import niconicotagger.configuration.PublisherLinkConfig
 import niconicotagger.constants.Constants.FIRST_WORK_TAG_ID
+import niconicotagger.constants.Constants.OFFLINE_EVENTS
 import niconicotagger.dto.api.misc.ClientType
 import niconicotagger.dto.api.misc.NndSortOrder
 import niconicotagger.dto.api.misc.NndSortOrder.LIKE_COUNT
@@ -29,6 +30,7 @@ import niconicotagger.dto.api.request.VideosByNndEventTagsRequest
 import niconicotagger.dto.api.request.VideosByNndTagsRequest
 import niconicotagger.dto.api.request.VideosByVocaDbTagRequest
 import niconicotagger.dto.api.response.QueryConsoleResponse
+import niconicotagger.dto.api.response.ReleaseEventPreviewResponse
 import niconicotagger.dto.api.response.ReleaseEventWithVocaDbTagsResponse
 import niconicotagger.dto.api.response.ReleaseEventWitnNndTagsResponse
 import niconicotagger.dto.api.response.SongsWithPvsResponse
@@ -57,6 +59,7 @@ import niconicotagger.mapper.QueryResponseMapper
 import niconicotagger.mapper.ReleaseEventMapper
 import niconicotagger.mapper.RequestMapper
 import niconicotagger.mapper.SongWithPvsMapper
+import niconicotagger.mapper.Utils
 import niconicotagger.mapper.Utils.calculateSongStats
 import niconicotagger.serde.Utils.kata2hiraAndLowercase
 import niconicotagger.serde.Utils.normalizeToken
@@ -102,7 +105,9 @@ class AggregatingService(
         val event = getClient(request.clientType).getEventByName(request.eventName, "WebLinks")
         val series =
             event.seriesId?.let { getClient(request.clientType).getEventSeriesById(event.seriesId, "WebLinks") }
-        return eventMapper.mapWithLinks(event, series)
+        val mappedEvent = eventMapper.mapWithLinks(event, series)
+        require(mappedEvent.nndTags.isNotEmpty()) { "Event has no linked NND tags" }
+        return mappedEvent
     }
 
     suspend fun getVideosByEventNndTags(request: VideosByNndEventTagsRequest): VideosByNndTagsResponseForEvent {
@@ -413,5 +418,14 @@ class AggregatingService(
                 .filterNotNull()
 
         return songWithPvsMapper.map(songEntries, pvs, tagMappings, likelyFirstWorks)
+    }
+
+    suspend fun getRecentEvents(clientType: ClientType): List<ReleaseEventPreviewResponse> {
+        return (dbClientHolder.getClient(clientType).getAllEventsForYear() +
+                dbClientHolder.getClient(clientType).getFrontPageData().newEvents)
+            .distinctBy { it.id }
+            .filterNot { it.date == null || OFFLINE_EVENTS.contains(Utils.mapCategory(it, it.series)) }
+            .mapNotNull { eventMapper.mapForPreview(it) }
+            .sortedWith(compareBy({ it.status.priority }, { it.date }))
     }
 }
