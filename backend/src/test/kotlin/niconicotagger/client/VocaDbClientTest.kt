@@ -290,6 +290,8 @@ class VocaDbClientTest {
                     ),
                     listOf(VocaDbTag(2987, "birthday"), VocaDbTag(9325, "15th birthday")),
                     seriesId,
+                    null,
+                    null
                 )
             )
     }
