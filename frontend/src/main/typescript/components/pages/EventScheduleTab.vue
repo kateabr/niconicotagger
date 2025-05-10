@@ -96,7 +96,6 @@ import Component from "vue-class-component";
 import { Prop } from "vue-property-decorator";
 import {
   getErrorData,
-  formatDate,
   formatDateString,
   getNicoVideoUrl,
   getShortenedSongType,
@@ -178,8 +177,8 @@ export default class extends Vue {
           id: eventPreview.id,
           name: eventPreview.name,
           category: eventPreview.category,
-          date: formatDate(eventPreview.date, this.locale),
-          endDate: formatDate(eventPreview.endDate, this.locale),
+          date: eventPreview.date,
+          endDate: eventPreview.endDate,
           dateString: formatDateString(
             eventPreview.date,
             eventPreview.endDate,

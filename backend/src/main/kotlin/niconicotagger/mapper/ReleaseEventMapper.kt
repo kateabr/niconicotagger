@@ -2,18 +2,11 @@ package niconicotagger.mapper
 
 import java.net.URLDecoder
 import java.nio.charset.Charset
-import java.time.Duration
-import java.time.LocalDate
-import java.time.ZoneOffset.UTC
-import java.util.Objects.requireNonNullElse
 import niconicotagger.dto.api.response.ReleaseEventPreviewResponse
 import niconicotagger.dto.api.response.ReleaseEventWithVocaDbTagsResponse
 import niconicotagger.dto.api.response.ReleaseEventWitnNndTagsResponse
 import niconicotagger.dto.inner.misc.EventStatus
-import niconicotagger.dto.inner.misc.EventStatus.ENDED
-import niconicotagger.dto.inner.misc.EventStatus.ONGOING
 import niconicotagger.dto.inner.misc.EventStatus.OUT_OF_RECENT_SCOPE
-import niconicotagger.dto.inner.misc.EventStatus.UPCOMING
 import niconicotagger.dto.inner.vocadb.VocaDbReleaseEvent
 import niconicotagger.dto.inner.vocadb.VocaDbReleaseEventSeries
 import org.mapstruct.Context
@@ -25,7 +18,7 @@ import org.mapstruct.MappingConstants.ComponentModel.SPRING
 abstract class ReleaseEventMapper {
 
     fun mapForPreview(event: VocaDbReleaseEvent): ReleaseEventPreviewResponse? {
-        val eventStatus = getEventStatus(event)
+        val eventStatus = Utils.getEventStatus(event)
         return if (eventStatus == OUT_OF_RECENT_SCOPE) null else mapEventPreview(event, eventStatus)
     }
 
@@ -33,20 +26,6 @@ abstract class ReleaseEventMapper {
     @Mapping(target = "status", expression = "java(status)")
     @Mapping(target = "pictureUrl", source = "event.mainPicture.urlOriginal")
     abstract fun mapEventPreview(event: VocaDbReleaseEvent, @Context status: EventStatus): ReleaseEventPreviewResponse
-
-    internal fun getEventStatus(event: VocaDbReleaseEvent): EventStatus {
-        val today = LocalDate.now().atStartOfDay().toInstant(UTC)
-        if (!today.isBefore(event.date) && !today.isAfter(requireNonNullElse(event.endDate, event.date))) {
-            return ONGOING
-        }
-        if (Duration.between(requireNonNullElse(event.endDate, event.date), today).toDays() in 0..14) {
-            return ENDED
-        }
-        if (Duration.between(today, event.date).toDays() in 0..14) {
-            return UPCOMING
-        }
-        return OUT_OF_RECENT_SCOPE
-    }
 
     @Mapping(target = "nndTags", expression = "java(mapNndTags(event, series))")
     @Mapping(target = "category", expression = "java(Utils.mapCategory(event, series))")

@@ -43,7 +43,9 @@
             >
             <div class="text-muted mb-1">{{ eventPreview.category }}</div>
             <div>
-              {{ eventPreview.dateString }}
+              <font-awesome-icon icon="fa-solid fa-calendar" class="mr-1" />{{
+                eventPreview.dateString
+              }}
             </div>
           </b-card-text>
         </b-col>
