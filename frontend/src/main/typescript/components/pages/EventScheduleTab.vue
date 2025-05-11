@@ -86,6 +86,17 @@
         </div>
       </b-col>
     </b-row>
+    <b-button
+      class="mt-3"
+      size="sm"
+      block
+      variant="link"
+      @click="loadEventPreviews(false)"
+      ><font-awesome-icon
+        icon="fa-solid fa-arrow-rotate-right"
+        class="mr-1"
+      />Reload</b-button
+    >
   </div>
 </template>
 
@@ -159,19 +170,13 @@ export default class extends Vue {
   private alertMessage = "";
   private alertStatusText = "";
 
-  private getStatusColor(eventPreview: ReleaseEventPreview): string {
-    if (eventPreview.status == "ONGOING") {
-      return "success";
-    } else if (eventPreview.status == "ENDED") {
-      return "dark";
-    } else {
-      return "light";
-    }
-  }
-
-  private async loadEventPreviews(): Promise<void> {
+  private async loadEventPreviews(useCached: boolean): Promise<void> {
+    this.eventPreviews = [];
     try {
-      const response = await api.loadEventPreviews(this.clientType);
+      const response = await api.loadEventPreviews({
+        clientType: this.clientType,
+        useCached: useCached
+      });
       this.eventPreviews = response.map(eventPreview => {
         return {
           id: eventPreview.id,
@@ -205,7 +210,7 @@ export default class extends Vue {
   created(): void {
     this.clientType = getClientType();
     this.locale = navigator.language;
-    this.loadEventPreviews();
+    this.loadEventPreviews(true);
   }
 }
 </script>

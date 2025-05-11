@@ -23,6 +23,7 @@ import niconicotagger.dto.api.misc.NndTagType.NONE
 import niconicotagger.dto.api.misc.NndVideoWithAssociatedVocaDbEntry
 import niconicotagger.dto.api.misc.QueryConsoleData
 import niconicotagger.dto.api.misc.SongEntryBase
+import niconicotagger.dto.api.request.EventScheduleRequest
 import niconicotagger.dto.api.request.GetReleaseEventRequest
 import niconicotagger.dto.api.request.QueryConsoleRequest
 import niconicotagger.dto.api.request.SongsWithPvsRequest
@@ -414,9 +415,9 @@ class AggregatingService(
         return songWithPvsMapper.map(songEntries, pvs, tagMappings, likelyFirstWorks)
     }
 
-    suspend fun getRecentEvents(clientType: ClientType): List<ReleaseEventPreviewResponse> {
-        return (dbClientHolder.getClient(clientType).getAllEventsForYear() +
-                dbClientHolder.getClient(clientType).getFrontPageData().newEvents)
+    suspend fun getRecentEvents(request: EventScheduleRequest): List<ReleaseEventPreviewResponse> {
+        return (dbClientHolder.getClient(request.clientType).getAllEventsForYear(request.useCached) +
+                dbClientHolder.getClient(request.clientType).getFrontPageData().newEvents)
             .distinctBy { it.id }
             .filterNot { it.date == null || OFFLINE_EVENTS.contains(Utils.mapCategory(it, it.series)) }
             .mapNotNull { eventMapper.mapForPreview(it) }

@@ -390,38 +390,39 @@ open class VocaDbClient(baseUrl: String, private val jsonMapper: JsonMapper) {
             ?.body ?: error("Could not load songs"))
     }
 
-    suspend fun getAllEventsForYear(): List<VocaDbReleaseEvent> {
-        return eventPreviewCache.get("eventPreviews") {
-            while (true) {
-                val response =
-                    client
-                        .get()
-                        .uri {
-                            it.path("/api/releaseEvents")
-                                .queryParam("afterDate", LocalDate.now().minusYears(1).withMonth(12).withDayOfMonth(31))
-                                .queryParam("beforeDate", LocalDate.now().plusYears(1).withMonth(1).withDayOfMonth(31))
-                                .queryParam("start", 0)
-                                .queryParam("maxResults", maxEventsToLoad)
-                                .queryParam("getTotalCount", true)
-                                .queryParam("fields", "Series,MainPicture")
-                                .queryParam("sort", "Date")
-                                .queryParam("sortDirection", "Ascending")
-                                .build()
-                        }
-                        .retrieve()
-                        .toEntity(VocaDbReleaseEventSearchResult::class.java)
-                        .awaitSingle()
-                        ?.body ?: error("Could not load event previews")
+    suspend fun getAllEventsForYear(useCached: Boolean): List<VocaDbReleaseEvent> {
+        if (useCached) {
+            val cached = eventPreviewCache.getOrNull("eventPreviews")
+            if (cached != null) return cached
+        }
+        while (true) {
+            val response =
+                client
+                    .get()
+                    .uri {
+                        it.path("/api/releaseEvents")
+                            .queryParam("afterDate", LocalDate.now().minusYears(1).withMonth(12).withDayOfMonth(31))
+                            .queryParam("beforeDate", LocalDate.now().plusYears(1).withMonth(1).withDayOfMonth(31))
+                            .queryParam("start", 0)
+                            .queryParam("maxResults", maxEventsToLoad)
+                            .queryParam("getTotalCount", true)
+                            .queryParam("fields", "Series,MainPicture")
+                            .queryParam("sort", "Date")
+                            .queryParam("sortDirection", "Ascending")
+                            .build()
+                    }
+                    .retrieve()
+                    .toEntity(VocaDbReleaseEventSearchResult::class.java)
+                    .awaitSingle()
+                    ?.body ?: error("Could not load event previews")
 
-                if (response.totalCount > response.items.size) {
-                    maxEventsToLoad += 500
-                    continue
-                }
-
-                return@get response.items
+            if (response.totalCount > response.items.size) {
+                maxEventsToLoad += 500
+                continue
             }
 
-            error("Could not load event previews")
+            eventPreviewCache.put("eventPreviews", response.items)
+            return response.items
         }
     }
 

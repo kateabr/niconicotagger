@@ -1,8 +1,8 @@
 package niconicotagger.controller
 
 import jakarta.validation.Valid
-import niconicotagger.dto.api.misc.ClientType
 import niconicotagger.dto.api.misc.QueryConsoleData
+import niconicotagger.dto.api.request.EventScheduleRequest
 import niconicotagger.dto.api.request.GetReleaseEventRequest
 import niconicotagger.dto.api.request.QueryConsoleRequest
 import niconicotagger.dto.api.request.SongsWithPvsRequest
@@ -18,8 +18,6 @@ import niconicotagger.dto.api.response.VideosByNndTagsResponseForEvent
 import niconicotagger.dto.api.response.VideosByNndTagsResponseForTagging
 import niconicotagger.dto.api.response.VideosByVocaDbTagResponse
 import niconicotagger.service.AggregatingService
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -74,8 +72,8 @@ class AggregatingController(private val service: AggregatingService) {
         return service.getSongsWithPvsForTagging(request)
     }
 
-    @GetMapping(value = ["/recent_events/{clientType}"])
-    suspend fun getRecentEvents(@PathVariable clientType: String): List<ReleaseEventPreviewResponse> {
-        return service.getRecentEvents(ClientType.valueOf(clientType.uppercase()))
+    @PostMapping(value = ["/recent_events"])
+    suspend fun getRecentEvents(@Valid @RequestBody request: EventScheduleRequest): List<ReleaseEventPreviewResponse> {
+        return service.getRecentEvents(request)
     }
 }

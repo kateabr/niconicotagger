@@ -22,6 +22,7 @@ import { SongsByVocaDbEventTagRequest } from "@/backend/dto/request/songsByVocaD
 import { SongTagsAndEventsMassUpdateRequest } from "@/backend/dto/request/songTagsAndEventsUpdateRequest";
 import { ClientType } from "@/backend/dto/enumeration";
 import { ReleaseEventPreview } from "@/backend/dto/response/releaseEventPreview";
+import { EventScheduleRequest } from "@/backend/dto/request/eventScheduleRequest";
 
 export const api = {
   async authorize(payload: LoginRequest): Promise<void> {
@@ -81,7 +82,7 @@ export const api = {
   async removeTagUsages(payload: MassDeleteTagUsagesRequest): Promise<UpdateErrorReport[]> {
     return axios.post("/api/update/tags/delete", payload).then(value => value.data);
   },
-  async loadEventPreviews(clientType: ClientType): Promise<ReleaseEventPreview[]> {
-    return axios.get("/api/get/recent_events/" + clientType).then(value => value.data);
+  async loadEventPreviews(request: EventScheduleRequest): Promise<ReleaseEventPreview[]> {
+    return axios.post("/api/get/recent_events", request).then(value => value.data);
   }
 };
