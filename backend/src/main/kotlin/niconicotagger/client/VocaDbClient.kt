@@ -91,9 +91,9 @@ open class VocaDbClient(baseUrl: String, private val jsonMapper: JsonMapper) {
     private var maxTagMappingsToLoad = 10_000
     private var maxEventsToLoad = 1_000
     private val tagMappingsCache =
-        Caffeine.newBuilder().expireAfterAccess(12, HOURS).asCache<String, List<VocaDbTagMapping>>()
+        Caffeine.newBuilder().expireAfterAccess(12, HOURS).maximumSize(1).asCache<String, List<VocaDbTagMapping>>()
     private val eventPreviewCache =
-        Caffeine.newBuilder().expireAfterAccess(12, HOURS).asCache<String, List<VocaDbReleaseEvent>>()
+        Caffeine.newBuilder().expireAfterAccess(12, HOURS).maximumSize(1).asCache<String, List<VocaDbReleaseEvent>>()
     private val songsByNndPvCache =
         Caffeine.newBuilder().expireAfterWrite(12, HOURS).maximumSize(10000).asCache<String, VocaDbSongEntryBase>()
 
