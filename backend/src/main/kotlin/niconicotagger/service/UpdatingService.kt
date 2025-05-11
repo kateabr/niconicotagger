@@ -55,6 +55,9 @@ class UpdatingService(private val dbClientHolder: DbClientHolder) {
         }
         releaseEvents.add(mapOf("id" to event.id))
         songData["updateNotes"] = "Added event ${formatEntity(event)} (via $DEFAULT_USER_AGENT)"
+        (songData["pvs"] as List<Map<String, Any>>)
+            .map { it["pvId"] as String }
+            .forEach { removeSongsByPvFromCache(clientType, it) }
         getClient(clientType).saveSong(request.entryId, songData, cookie)
     }
 
@@ -96,5 +99,9 @@ class UpdatingService(private val dbClientHolder: DbClientHolder) {
 
     private fun formatEntity(entity: DatabaseEntity): String {
         return "${entity.getPathSegment()}/${entity.id} \"${entity.name}\""
+    }
+
+    suspend fun removeSongsByPvFromCache(clientType: ClientType, pvId: String) {
+        getClient(clientType).removeSongsByPvCache(pvId)
     }
 }

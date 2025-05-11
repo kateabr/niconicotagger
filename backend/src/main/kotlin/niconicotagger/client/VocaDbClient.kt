@@ -94,6 +94,8 @@ open class VocaDbClient(baseUrl: String, private val jsonMapper: JsonMapper) {
         Caffeine.newBuilder().expireAfterWrite(1, HOURS).asCache<String, List<VocaDbTagMapping>>()
     private val eventPreviewCache =
         Caffeine.newBuilder().expireAfterWrite(24, HOURS).asCache<String, List<VocaDbReleaseEvent>>()
+    private val songsByNndPvCache =
+        Caffeine.newBuilder().expireAfterWrite(1, HOURS).maximumSize(100).asCache<String, VocaDbSongEntryBase>()
 
     suspend fun login(username: String, password: String): MultiValueMap<String, String> {
         val loginPayload = mapOf("keepLoggedIn" to true, "userName" to username, "password" to password)
@@ -259,13 +261,15 @@ open class VocaDbClient(baseUrl: String, private val jsonMapper: JsonMapper) {
     }
 
     suspend fun <T : VocaDbSongEntryBase> getSongByNndPv(pvId: String, fields: String, responseClass: Class<T>): T? {
-        return client
-            .get()
-            .uri("/api/songs/byPv?pvId=$pvId&pvService=NicoNicoDouga&fields=$fields")
-            .retrieve()
-            .toEntity(responseClass)
-            .awaitSingle()
-            .body
+        return songsByNndPvCache.getOrNull("${pvId}_$fields") {
+            client
+                .get()
+                .uri("/api/songs/byPv?pvId=$pvId&pvService=NicoNicoDouga&fields=$fields")
+                .retrieve()
+                .toEntity(responseClass)
+                .awaitSingle()
+                .body
+        } as T?
     }
 
     suspend fun getArtistByQuery(query: String): VocaDbArtist? {
@@ -429,6 +433,10 @@ open class VocaDbClient(baseUrl: String, private val jsonMapper: JsonMapper) {
             .toEntity(VocaDbFrontPageData::class.java)
             .awaitSingle()
             ?.body ?: error("Could not load event previews")
+    }
+
+    suspend fun removeSongsByPvCache(pvId: String) {
+        songsByNndPvCache.asMap().keys.filter { it.startsWith(pvId) }.forEach { songsByNndPvCache.invalidate(it) }
     }
 
     companion object {

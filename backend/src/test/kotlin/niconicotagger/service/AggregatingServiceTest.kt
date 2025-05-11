@@ -160,7 +160,7 @@ class AggregatingServiceTest {
             val request =
                 Instancio.of(VideosByNndTagsRequest::class.java)
                     .set(field("startOffset"), 0)
-                    .set(field("tags"), tagMappings.map { it.sourceTag }.toSet())
+                    .set(field("tags"), tagMappings.map { it.sourceTag.lowercase() }.toSet())
                     .create()
             val resultPlaceholder = mockkClass(NndVideoWithAssociatedVocaDbEntryForTag::class)
             coEvery { dbClient.getAllVocaDbTagMappings(eq(false)) } returns tagMappings

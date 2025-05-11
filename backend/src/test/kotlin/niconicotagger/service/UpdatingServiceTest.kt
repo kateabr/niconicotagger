@@ -3,6 +3,7 @@ package niconicotagger.service
 import com.fasterxml.jackson.core.type.TypeReference
 import io.mockk.coEvery
 import io.mockk.coVerifyAll
+import io.mockk.coVerifyCount
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
@@ -76,6 +77,7 @@ class UpdatingServiceTest {
         service.disablePvs(
             SongTagsAndPvsUpdateRequest(
                 657_775,
+                null,
                 emptyList(),
                 setOf(PvToDisable("sm43909677", "DELETED"), PvToDisable("sm43909678", "DELETED")),
             ),
@@ -102,7 +104,7 @@ class UpdatingServiceTest {
             )
         coEvery { client.assignSongTags(eq(657_775), capture(tags), eq(cookie)) } returns Unit
 
-        service.assignSongTags(SongTagsAndPvsUpdateRequest(657_775, listOf(158), emptySet()), clientType, cookie)
+        service.assignSongTags(SongTagsAndPvsUpdateRequest(657_775, null, listOf(158), emptySet()), clientType, cookie)
 
         assertThat(tags.captured)
             .containsExactlyInAnyOrder(VocaDbTag(158, ""), VocaDbTag(8087, "karaoke available (DAM&JOY)"))
@@ -115,6 +117,7 @@ class UpdatingServiceTest {
 
     @Test
     fun `add release event test`(@Given clientType: ClientType, @Given cookie: String): Unit = runBlocking {
+        val songPvIds = listOf("sm43909677", "1mXudbqPgPQ", "sm43909678", "sm43909677", "sm43909678", "1mXudbqPgPQ")
         val updatedSongData = slot<MutableMap<String, Any>>()
         coEvery { client.getSongForEdit(eq(657_775), eq(cookie)) } returns
             jsonMapper.readValue(
@@ -122,6 +125,7 @@ class UpdatingServiceTest {
                 object : TypeReference<MutableMap<String, Any>>() {},
             )
         coEvery { client.saveSong(eq(657_775), capture(updatedSongData), eq(cookie)) } returns Unit
+        songPvIds.forEach { coEvery { service.removeSongsByPvFromCache(eq(clientType), eq(it)) } returns Unit }
 
         service.addReleaseEvent(
             AddReleaseEventRequest(657_775, ReleaseEvent(6645, "0Mix vol.10", null)),
@@ -132,6 +136,7 @@ class UpdatingServiceTest {
         assertThatJson(jsonMapper.writeValueAsString(updatedSongData.captured))
             .isEqualTo(loadResource("responses/vocadb/song_with_added_event.json").decodeToString())
 
+        coVerifyCount { songPvIds.size * { service.removeSongsByPvFromCache(any(), any()) } }
         coVerifyAll {
             client.getSongForEdit(any(), any())
             client.saveSong(any(), any(), any())

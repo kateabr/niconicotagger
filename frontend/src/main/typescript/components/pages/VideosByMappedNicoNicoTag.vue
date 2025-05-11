@@ -853,6 +853,7 @@ export default class extends Vue {
       subRequests: videos.map(video => {
         return {
           songId: video.entry?.id as number,
+          pvId: video.video.id,
           tags: video.entry?.mappedTags
             .filter(tagSelection => !tagSelection.selected)
             .map(tagSelection => tagSelection.tag.id) as number[],

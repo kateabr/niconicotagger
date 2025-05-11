@@ -62,7 +62,6 @@ import niconicotagger.mapper.SongWithPvsMapper
 import niconicotagger.mapper.Utils
 import niconicotagger.mapper.Utils.calculateSongStats
 import niconicotagger.serde.Utils.kata2hiraAndLowercase
-import niconicotagger.serde.Utils.normalizeToken
 import org.springframework.stereotype.Service
 
 @Service
@@ -157,7 +156,8 @@ class AggregatingService(
         val tagStyleHolder = TagTypeHolder().storeRequestTags(request)
 
         val mappedTags = getClient(request.clientType).getAllVocaDbTagMappings(request.startOffset != 0L)
-        val correspondingVocaDbTags = mappedTags.filter { request.tags.contains(it.sourceTag) }.map { it.tag }.toSet()
+        val correspondingVocaDbTags =
+            mappedTags.filter { request.tags.contains(kata2hiraAndLowercase(it.sourceTag)) }.map { it.tag }.toSet()
         if (correspondingVocaDbTags.isEmpty()) error("None of the tags in ${request.tags} is mapped")
         tagStyleHolder.storeTagMappings(mappedTags)
 
@@ -204,13 +204,7 @@ class AggregatingService(
             val mappedTags = async { getClient(request.clientType).getAllVocaDbTagMappings(false) }
             val tag = async { getClient(request.clientType).getTagByName(request.tag) }.await()
 
-            val tagMappings =
-                mappedTags
-                    .await()
-                    .filter { it.tag.id == tag.id }
-                    .map { it.sourceTag }
-                    .map { normalizeToken(it).trim() }
-                    .toSet()
+            val tagMappings = mappedTags.await().filter { it.tag.id == tag.id }.map { it.sourceTag }.toSet()
             require(tagMappings.isNotEmpty()) { "Tag \"${request.tag}\" is not mapped" }
 
             val newRequest = requestMapper.map(request, tagMappings)

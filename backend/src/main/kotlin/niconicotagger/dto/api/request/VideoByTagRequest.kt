@@ -11,6 +11,7 @@ import niconicotagger.dto.api.misc.EventDateBounds
 import niconicotagger.dto.api.misc.NndSortOrder
 import niconicotagger.serde.NndScopeNormalizingDeserializer
 import niconicotagger.serde.StringNormalizingDeserializer
+import niconicotagger.serde.StringUnifyingDeserializer
 
 sealed interface VideoByTagRequest {
     val scope: String
@@ -33,9 +34,8 @@ sealed interface VideosByNndTagsRequestBase : VideoByTagRequest {
 
 @JsonIgnoreProperties(ignoreUnknown = false)
 data class VideosByNndTagsRequest(
-    @JsonDeserialize(contentUsing = StringNormalizingDeserializer::class)
-    @field:NotEmpty
-    override val tags: Set<String>,
+    // lower-case and hiragana, for easier comparison
+    @JsonDeserialize(contentUsing = StringUnifyingDeserializer::class) @field:NotEmpty override val tags: Set<String>,
     @JsonDeserialize(using = NndScopeNormalizingDeserializer::class) override val scope: String,
     @field:Min(0) override val startOffset: Long,
     @field:Min(10) @field:Max(100) override val maxResults: Long,

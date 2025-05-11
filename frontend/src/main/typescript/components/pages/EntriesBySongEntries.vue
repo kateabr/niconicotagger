@@ -700,6 +700,7 @@ export default class extends Vue {
         subRequests: songsToUpdate.map(song => {
           return {
             songId: song.entry.id,
+            pvId: null,
             tags: song.tagIdsToAssign,
             nndPvsToDisable: song.unavailablePvs
               .filter(unavailablePv => unavailablePv.toDisable)

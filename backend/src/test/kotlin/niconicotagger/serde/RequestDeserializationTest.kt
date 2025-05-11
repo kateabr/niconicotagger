@@ -128,6 +128,7 @@ class RequestDeserializationTest {
                     "subRequests": [
                         {
                             "songId": 1,
+                            "pvId": "1",
                             "tags": [
                                 1
                             ],
@@ -144,7 +145,7 @@ class RequestDeserializationTest {
                 """
                         .trimIndent(),
                     SongTagsAndPvsMassUpdateRequest(
-                        listOf(SongTagsAndPvsUpdateRequest(1, listOf(1), setOf(PvToDisable("id", "DELETED")))),
+                        listOf(SongTagsAndPvsUpdateRequest(1, "1", listOf(1), setOf(PvToDisable("id", "DELETED")))),
                         VOCADB,
                     ),
                 ),
@@ -165,7 +166,7 @@ class RequestDeserializationTest {
                 """
                         .trimIndent(),
                     VideosByNndTagsRequest(
-                        setOf("アアあAAaa11", "tag"),
+                        setOf("あああaaaa11", "tag"),
                         "イイいIIii11 ウウうUUuu11 OR エエえEEee11",
                         0,
                         100,
