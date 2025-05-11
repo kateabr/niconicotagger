@@ -77,7 +77,7 @@ class AggregatingService(
     private val publisherLinkConfig: PublisherLinkConfig,
 ) {
     private val publisherCache =
-        Caffeine.newBuilder().expireAfterWrite(1, HOURS).maximumSize(100).asCache<String, PublisherInfo>()
+        Caffeine.newBuilder().expireAfterAccess(12, HOURS).maximumSize(10000).asCache<String, PublisherInfo>()
 
     private fun getClient(clientType: ClientType) = dbClientHolder.getClient(clientType)
 

@@ -91,11 +91,11 @@ open class VocaDbClient(baseUrl: String, private val jsonMapper: JsonMapper) {
     private var maxTagMappingsToLoad = 10_000
     private var maxEventsToLoad = 1_000
     private val tagMappingsCache =
-        Caffeine.newBuilder().expireAfterWrite(1, HOURS).asCache<String, List<VocaDbTagMapping>>()
+        Caffeine.newBuilder().expireAfterAccess(12, HOURS).asCache<String, List<VocaDbTagMapping>>()
     private val eventPreviewCache =
-        Caffeine.newBuilder().expireAfterWrite(24, HOURS).asCache<String, List<VocaDbReleaseEvent>>()
+        Caffeine.newBuilder().expireAfterAccess(12, HOURS).asCache<String, List<VocaDbReleaseEvent>>()
     private val songsByNndPvCache =
-        Caffeine.newBuilder().expireAfterWrite(1, HOURS).maximumSize(100).asCache<String, VocaDbSongEntryBase>()
+        Caffeine.newBuilder().expireAfterWrite(12, HOURS).maximumSize(10000).asCache<String, VocaDbSongEntryBase>()
 
     suspend fun login(username: String, password: String): MultiValueMap<String, String> {
         val loginPayload = mapOf("keepLoggedIn" to true, "userName" to username, "password" to password)
