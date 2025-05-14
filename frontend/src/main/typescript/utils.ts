@@ -158,6 +158,18 @@ export function getShortenedArtistType(typeString: ArtistType): string {
     return "?";
   } else if (typeString == "SynthesizerV") {
     return "SV";
+  } else if (typeString == "VoiSona") {
+    return "VS";
+  } else if (typeString == "NewType") {
+    return "NT";
+  } else if (typeString == "Voiceroid") {
+    return "VR";
+  } else if (typeString == "VOICEVOX") {
+    return "VV";
+  } else if (typeString == "AIVOICE") {
+    return "AIV";
+  } else if (typeString == "ACEVirtualSinger") {
+    return "ACE";
   } else if (
     typeString == "Vocaloid" ||
     typeString == "UTAU" ||
@@ -244,14 +256,10 @@ export function getArtistTypeColorForDisplay(typeString: ArtistType): string {
     return "danger";
   } else if (typeString == "CeVIO") {
     return "success";
-  } else if (typeString == "SynthesizerV") {
-    return "secondary";
   } else if (typeString == "OtherVoiceSynthesizer") {
     return "dark";
-  } else if (typeString == "OtherVocalist") {
-    return "secondary";
   } else {
-    return "";
+    return "secondary";
   }
 }
 
