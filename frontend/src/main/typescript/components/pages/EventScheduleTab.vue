@@ -25,26 +25,8 @@
                 accordion="my-accordion"
                 role="tabpanel"
               >
-                <b-card-body>
-                  <b-row v-for="rows in 3">
-                    <b-col v-for="cols in 3" class="my-2">
-                      <b-skeleton-wrapper :loading="eventPreviews.length == 0">
-                        <template #loading>
-                          <b-card no-body img-left>
-                            <b-skeleton-img
-                              card-img="left"
-                              :width="imageWidth"
-                            ></b-skeleton-img>
-                            <b-card-body>
-                              <b-skeleton width="100%"></b-skeleton>
-                              <b-skeleton width="20%"></b-skeleton>
-                              <b-skeleton width="60%"></b-skeleton>
-                            </b-card-body>
-                          </b-card>
-                        </template>
-                      </b-skeleton-wrapper>
-                    </b-col>
-                  </b-row>
+                <b-card-body class="text-center text-muted">
+                  <b-spinner></b-spinner>
                 </b-card-body>
               </b-collapse>
             </b-card>

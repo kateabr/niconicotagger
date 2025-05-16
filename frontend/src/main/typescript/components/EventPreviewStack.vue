@@ -7,19 +7,6 @@
       no-body
       class="overflow-hidden"
     >
-      <template #footer>
-        <b-button
-          block
-          variant="link"
-          :to="{
-            name: 'events-full',
-            params: { browseMode: 'nicovideo', targName: eventPreview.name }
-          }"
-          target="_blank"
-        >
-          Browse
-        </b-button>
-      </template>
       <b-row no-gutters>
         <b-col
           v-if="eventPreview.pictureUrl != null"
@@ -48,6 +35,21 @@
               }}
             </div>
           </b-card-text>
+        </b-col>
+        <b-col md="1">
+          <b-button
+            block
+            variant="link"
+            class="p-3"
+            style="height: 100%"
+            :to="{
+              name: 'events-full',
+              params: { browseMode: 'nicovideo', targName: eventPreview.name }
+            }"
+            target="_blank"
+          >
+            <font-awesome-icon icon="fas fa-angles-right" />
+          </b-button>
         </b-col>
       </b-row>
     </b-card>
