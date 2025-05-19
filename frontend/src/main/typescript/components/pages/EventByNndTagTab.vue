@@ -607,7 +607,6 @@ import { Prop } from "vue-property-decorator";
 import {
   allVideosInvisible,
   getErrorData,
-  formatDate,
   formatDateString,
   getClientType,
   getEventColorVariant,
@@ -691,7 +690,6 @@ export default class extends Vue {
   private eventName: string = "";
   private scopeTagString: string = "";
   private scopeTagStringFrozen: string = "";
-  private locale = "";
 
   // api variables
   private pageToJump: number = 1;
@@ -881,11 +879,7 @@ export default class extends Vue {
         id: response.id,
         name: response.name,
         category: response.category,
-        dateString: formatDateString(
-          response.date,
-          response.endDate,
-          this.locale
-        ),
+        dateString: formatDateString(response.date, response.endDate),
         date: response.date,
         endDate: response.endDate,
         nndTags: response.nndTags,
@@ -934,7 +928,7 @@ export default class extends Vue {
             tags: item.video.tags,
             visible: false
           },
-          publishedOn: formatDate(item.publishedOn, this.locale),
+          publishedOn: new Date(item.publishedOn).toLocaleDateString(),
           publisher: item.publisher,
           disposition: item.disposition,
           processed:
@@ -1046,7 +1040,6 @@ export default class extends Vue {
 
   // session
   created(): void {
-    this.locale = navigator.language;
     let max_results = localStorage.getItem(localStorageKeyMaxResults);
     if (max_results != null) {
       this.maxResults = parseInt(max_results);

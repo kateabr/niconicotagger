@@ -9,4 +9,5 @@ export interface ReleaseEventPreview {
   category: ReleaseEventCategory;
   status: EventStatus;
   pictureUrl: string | null;
+  isOffline: boolean;
 }

@@ -6,6 +6,9 @@ app:
     thumbnail: "https://ext.nicovideo.jp"
     embed: "https://embed.nicovideo.jp"
     api-base-address: "https://snapshot.search.nicovideo.jp"
+  service:
+    offline-events: AlbumRelease, Club, Concert, Convention, Other
+    event-scope: 14d
 
 publisher-link-config:
   nnd-user:

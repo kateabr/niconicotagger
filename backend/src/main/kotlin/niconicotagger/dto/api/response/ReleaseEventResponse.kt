@@ -24,6 +24,7 @@ data class ReleaseEventPreviewResponse(
     override val category: ReleaseEventCategory,
     val status: EventStatus,
     val pictureUrl: URI?,
+    val isOffline: Boolean,
 ) : ReleaseEventBaseResponse
 
 data class ReleaseEventWitnNndTagsResponse(

@@ -7,7 +7,14 @@
     />
     <b-row>
       <b-col>
-        <div v-if="clientType != ClientType.UNKNOWN" class="mt-3">
+        <div v-if="clientType != ClientType.UNKNOWN" class="mt-2">
+          <b-form-checkbox
+            v-model="hideOffline"
+            class="text-muted mb-3"
+            :disabled="eventPreviews.length == 0"
+          >
+            Hide offline events
+          </b-form-checkbox>
           <div
             v-if="eventPreviews.length == 0 && !failedToLoadPreviews"
             class="accordion"
@@ -60,7 +67,11 @@
           <event-preview-accordion
             v-else-if="!failedToLoadPreviews"
             :client-type="clientType"
-            :event-previews="eventPreviews"
+            :event-previews="
+              eventPreviews.filter(
+                preview => !hideOffline || !preview.isOffline
+              )
+            "
           />
           <div v-else>
             <h4 class="text-muted">Failed to load upcoming events</h4>
@@ -79,6 +90,9 @@
         class="mr-1"
       />Reload</b-button
     >
+    <div v-if="loadedAt != null" class="text-muted text-center small mt-3">
+      Loaded at {{ loadedAt }}
+    </div>
   </div>
 </template>
 
@@ -143,17 +157,18 @@ export default class extends Vue {
   private readonly targName: string | undefined;
 
   private clientType: ClientType = getClientType();
-  private locale = "";
   private eventPreviews: ReleaseEventPreview[] = [];
 
+  private loadedAt: string | null = null;
+  private hideOffline = true;
   private failedToLoadPreviews = false;
-  private readonly imageWidth = "225px";
 
   private alertMessage = "";
   private alertStatusText = "";
 
   private async loadEventPreviews(useCached: boolean): Promise<void> {
     this.eventPreviews = [];
+    this.loadedAt = null;
     try {
       const response = await api.loadEventPreviews({
         clientType: this.clientType,
@@ -166,15 +181,13 @@ export default class extends Vue {
           category: eventPreview.category,
           date: eventPreview.date,
           endDate: eventPreview.endDate,
-          dateString: formatDateString(
-            eventPreview.date,
-            eventPreview.endDate,
-            this.locale
-          ),
+          dateString: formatDateString(eventPreview.date, eventPreview.endDate),
           status: eventPreview.status,
-          pictureUrl: eventPreview.pictureUrl
+          pictureUrl: eventPreview.pictureUrl,
+          isOffline: eventPreview.isOffline
         };
       });
+      this.loadedAt = new Date().toLocaleString();
     } catch (err) {
       this.processError(err);
       this.failedToLoadPreviews = true;
@@ -191,7 +204,6 @@ export default class extends Vue {
 
   created(): void {
     this.clientType = getClientType();
-    this.locale = navigator.language;
     this.loadEventPreviews(true);
   }
 }

@@ -465,7 +465,6 @@ import Component from "vue-class-component";
 import { Prop } from "vue-property-decorator";
 import {
   getErrorData,
-  formatDate,
   formatDateString,
   getClientType,
   getEventColorVariant,
@@ -529,13 +528,10 @@ export default class extends Vue {
   private tempTags: VocaDbTag[] = [];
   private eventTag: VocaDbTag = { id: -1, name: "" };
   private eventName: string = "";
-  private locale = "";
-  private eventTagNameFrozen: string = "";
   private songTypeStats: SongTypeStatsRecord[] = [];
 
   // api variables
   private pageToJump: number = 1;
-  private startOffset: number = 0;
   private maxResults: number = 10;
   private orderingCondition: DbSortOrder = "PublishDate";
   private fetching: boolean = false;
@@ -696,11 +692,7 @@ export default class extends Vue {
         id: response.id,
         name: response.name,
         category: response.category,
-        dateString: formatDateString(
-          response.date,
-          response.endDate,
-          this.locale
-        ),
+        dateString: formatDateString(response.date, response.endDate),
         date: response.date,
         endDate: response.endDate,
         valid: false
@@ -737,7 +729,7 @@ export default class extends Vue {
           name: item.name,
           type: item.type,
           artistString: item.artistString,
-          publishedOn: formatDate(item.publishedOn, this.locale),
+          publishedOn: new Date(item.publishedOn).toLocaleDateString(),
           events: item.events,
           toAddEvent: !item.events.some(
             itemEvent => itemEvent.id == this.event.id
@@ -755,9 +747,7 @@ export default class extends Vue {
       );
       this.filterEntries();
       this.totalEntryCount = response.totalCount;
-      this.eventTagNameFrozen = this.event.name;
       this.numOfPages = this.totalEntryCount / this.maxResults + 1;
-      this.startOffset = newStartOffset;
       this.allChecked = false;
     } catch (err) {
       this.processError(err);
@@ -881,7 +871,6 @@ export default class extends Vue {
     if (event_tag_name != null) {
       this.eventName = event_tag_name;
     }
-    this.locale = navigator.language;
   }
 
   // fill event tag name from address params (override local storage)

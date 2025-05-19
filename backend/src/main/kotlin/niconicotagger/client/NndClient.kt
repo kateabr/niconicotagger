@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.json.JsonMapper
 import com.fasterxml.jackson.dataformat.xml.XmlMapper
 import com.github.benmanes.caffeine.cache.Caffeine
 import com.sksamuel.aedile.core.asCache
-import io.netty.handler.logging.LogLevel.INFO
+import io.netty.handler.logging.LogLevel.DEBUG
 import java.util.concurrent.TimeUnit.HOURS
 import java.util.regex.Pattern
 import kotlinx.coroutines.reactor.awaitSingle
@@ -46,7 +46,7 @@ class NndClient(
             .defaultHeader(USER_AGENT, DEFAULT_USER_AGENT)
             .clientConnector(
                 ReactorClientHttpConnector(
-                    HttpClient.create().wiretap(this::class.java.getCanonicalName(), INFO, TEXTUAL)
+                    HttpClient.create().wiretap(this::class.java.getCanonicalName(), DEBUG, TEXTUAL)
                 )
             )
             .exchangeStrategies(

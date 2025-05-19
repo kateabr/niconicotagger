@@ -203,29 +203,15 @@ export function mapSongTypeStats(
     });
 }
 
-export function formatDateString(
-  date: string | null,
-  endDate: string | null,
-  locale: string
-): string | null {
-  const formatter = new Intl.DateTimeFormat(locale);
+export function formatDateString(date: string | null, endDate: string | null): string | null {
   let result = "";
   if (date != null) {
-    result += formatter.format(new Date(date));
+    result += new Date(date).toLocaleDateString();
   }
   if (endDate != null) {
-    result += " - " + formatter.format(new Date(endDate));
+    result += " - " + new Date(endDate).toLocaleDateString();
   }
-  if (result.length > 0) return result;
-  return null;
-}
-
-export function formatDate(date: string | null, locale: string): string | null {
-  if (date != null) {
-    const formatter = new Intl.DateTimeFormat(locale);
-    return formatter.format(new Date(date));
-  }
-  return null;
+  return result.length > 0 ? result : null;
 }
 
 // common interface methods

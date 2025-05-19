@@ -50,17 +50,17 @@ object Utils {
         if (event.category == Unspecified && series != null) series.category else event.category
 
     @JvmStatic
-    internal fun getEventStatus(event: VocaDbReleaseEvent): EventStatus {
+    internal fun getEventStatus(event: VocaDbReleaseEvent, eventScope: Duration): EventStatus {
         val today = LocalDate.now().atStartOfDay().toInstant(UTC)
         if (
             !today.isBefore(requireNotNull(event.date)) && !today.isAfter(requireNotNull(event.endDate ?: event.date))
         ) {
             return ONGOING
         }
-        if (Duration.between(event.endDate ?: event.date, today).toDays() in 0..14) {
+        if (Duration.between(event.endDate ?: event.date, today).toDays() in 0..eventScope.toDays()) {
             return ENDED
         }
-        if (Duration.between(today, event.date).toDays() in 0..14) {
+        if (Duration.between(today, event.date).toDays() in 0..eventScope.toDays()) {
             return UPCOMING
         }
         return OUT_OF_RECENT_SCOPE

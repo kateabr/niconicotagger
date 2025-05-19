@@ -36,7 +36,7 @@
             </div>
           </b-card-text>
         </b-col>
-        <b-col md="1">
+        <b-col v-if="!eventPreview.isOffline" md="1">
           <b-button
             block
             variant="link"
@@ -50,6 +50,13 @@
           >
             <font-awesome-icon icon="fas fa-angles-right" />
           </b-button>
+        </b-col>
+        <b-col v-else md="2">
+          <div
+            class="badge-secondary rounded-left mt-2 small text-center font-weight-bold"
+          >
+            OFFLINE
+          </div>
         </b-col>
       </b-row>
     </b-card>

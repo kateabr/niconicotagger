@@ -2,6 +2,7 @@ package niconicotagger.service
 
 import com.github.benmanes.caffeine.cache.Caffeine
 import com.sksamuel.aedile.core.asCache
+import java.time.Duration
 import java.time.ZoneOffset.UTC
 import java.time.format.DateTimeFormatter.ISO_DATE_TIME
 import java.util.concurrent.TimeUnit.HOURS
@@ -13,7 +14,6 @@ import niconicotagger.client.NicologClient
 import niconicotagger.client.NndClient
 import niconicotagger.configuration.PublisherLinkConfig
 import niconicotagger.constants.Constants.FIRST_WORK_TAG_ID
-import niconicotagger.constants.Constants.OFFLINE_EVENTS
 import niconicotagger.dto.api.misc.ClientType
 import niconicotagger.dto.api.misc.NndSortOrder
 import niconicotagger.dto.api.misc.NndSortOrder.LIKE_COUNT
@@ -42,6 +42,7 @@ import niconicotagger.dto.inner.misc.ArtistRole.Composer
 import niconicotagger.dto.inner.misc.ArtistRole.Default
 import niconicotagger.dto.inner.misc.ArtistType.Producer
 import niconicotagger.dto.inner.misc.PvService.NicoNicoDouga
+import niconicotagger.dto.inner.misc.ReleaseEventCategory
 import niconicotagger.dto.inner.misc.TagTypeHolder
 import niconicotagger.dto.inner.nnd.NndThumbnailOk
 import niconicotagger.dto.inner.nnd.NndVideoData
@@ -60,9 +61,9 @@ import niconicotagger.mapper.QueryResponseMapper
 import niconicotagger.mapper.ReleaseEventMapper
 import niconicotagger.mapper.RequestMapper
 import niconicotagger.mapper.SongWithPvsMapper
-import niconicotagger.mapper.Utils
 import niconicotagger.mapper.Utils.calculateSongStats
 import niconicotagger.serde.Utils.kata2hiraAndLowercase
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 
 @Service
@@ -76,6 +77,8 @@ class AggregatingService(
     private val queryResponseMapper: QueryResponseMapper,
     private val songWithPvsMapper: SongWithPvsMapper,
     private val publisherLinkConfig: PublisherLinkConfig,
+    @Value("\${app.service.offline-events}") private val offlineEvents: Set<ReleaseEventCategory>,
+    @Value("\${app.service.event-scope}") private val eventScope: Duration,
 ) {
     private val publisherCache =
         Caffeine.newBuilder().expireAfterAccess(12, HOURS).maximumSize(10000).asCache<String, PublisherInfo>()
@@ -419,8 +422,8 @@ class AggregatingService(
         return (dbClientHolder.getClient(request.clientType).getAllEventsForYear(request.useCached) +
                 dbClientHolder.getClient(request.clientType).getFrontPageData().newEvents)
             .distinctBy { it.id }
-            .filterNot { it.date == null || OFFLINE_EVENTS.contains(Utils.mapCategory(it, it.series)) }
-            .mapNotNull { eventMapper.mapForPreview(it) }
+            .filterNot { it.date == null }
+            .mapNotNull { eventMapper.mapForPreview(it, eventScope, offlineEvents) }
             .sortedWith(compareBy({ it.status.priority }, { it.date }))
     }
 }

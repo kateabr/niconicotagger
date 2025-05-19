@@ -2,11 +2,13 @@ package niconicotagger.mapper
 
 import java.net.URLDecoder
 import java.nio.charset.Charset
+import java.time.Duration
 import niconicotagger.dto.api.response.ReleaseEventPreviewResponse
 import niconicotagger.dto.api.response.ReleaseEventWithVocaDbTagsResponse
 import niconicotagger.dto.api.response.ReleaseEventWitnNndTagsResponse
 import niconicotagger.dto.inner.misc.EventStatus
 import niconicotagger.dto.inner.misc.EventStatus.OUT_OF_RECENT_SCOPE
+import niconicotagger.dto.inner.misc.ReleaseEventCategory
 import niconicotagger.dto.inner.vocadb.VocaDbReleaseEvent
 import niconicotagger.dto.inner.vocadb.VocaDbReleaseEventSeries
 import org.mapstruct.Context
@@ -17,15 +19,24 @@ import org.mapstruct.MappingConstants.ComponentModel.SPRING
 @Mapper(componentModel = SPRING, imports = [Utils::class])
 abstract class ReleaseEventMapper {
 
-    fun mapForPreview(event: VocaDbReleaseEvent): ReleaseEventPreviewResponse? {
-        val eventStatus = Utils.getEventStatus(event)
-        return if (eventStatus == OUT_OF_RECENT_SCOPE) null else mapEventPreview(event, eventStatus)
+    fun mapForPreview(
+        event: VocaDbReleaseEvent,
+        eventScope: Duration,
+        offlineEvents: Set<ReleaseEventCategory>,
+    ): ReleaseEventPreviewResponse? {
+        val eventStatus = Utils.getEventStatus(event, eventScope)
+        return if (eventStatus == OUT_OF_RECENT_SCOPE) null else mapEventPreview(event, eventStatus, offlineEvents)
     }
 
     @Mapping(target = "category", expression = "java(Utils.mapCategory(event, event.getSeries()))")
+    @Mapping(target = "isOffline", expression = "java(offlineEvents.contains(category))", dependsOn = ["category"])
     @Mapping(target = "status", expression = "java(status)")
     @Mapping(target = "pictureUrl", source = "event.mainPicture.urlOriginal")
-    abstract fun mapEventPreview(event: VocaDbReleaseEvent, @Context status: EventStatus): ReleaseEventPreviewResponse
+    abstract fun mapEventPreview(
+        event: VocaDbReleaseEvent,
+        @Context status: EventStatus,
+        @Context offlineEvents: Set<ReleaseEventCategory>,
+    ): ReleaseEventPreviewResponse
 
     @Mapping(target = "nndTags", expression = "java(mapNndTags(event, series))")
     @Mapping(target = "category", expression = "java(Utils.mapCategory(event, series))")

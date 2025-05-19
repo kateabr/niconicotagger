@@ -20,7 +20,6 @@ import { VideosByVocaDbTagRequest } from "@/backend/dto/request/videosByVocaDbTa
 import { SongTagsAndPvsMassUpdateRequest } from "@/backend/dto/request/songTagsAndPvsUpdateRequest";
 import { SongsByVocaDbEventTagRequest } from "@/backend/dto/request/songsByVocaDbEventTagRequest";
 import { SongTagsAndEventsMassUpdateRequest } from "@/backend/dto/request/songTagsAndEventsUpdateRequest";
-import { ClientType } from "@/backend/dto/enumeration";
 import { ReleaseEventPreview } from "@/backend/dto/response/releaseEventPreview";
 import { EventScheduleRequest } from "@/backend/dto/request/eventScheduleRequest";
 
