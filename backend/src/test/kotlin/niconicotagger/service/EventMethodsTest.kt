@@ -9,7 +9,6 @@ import io.mockk.confirmVerified
 import io.mockk.every
 import io.mockk.impl.annotations.InjectMockKs
 import io.mockk.impl.annotations.MockK
-import io.mockk.junit5.MockKExtension
 import io.mockk.mockk
 import io.mockk.mockkClass
 import io.mockk.spyk
@@ -113,36 +112,67 @@ import org.junit.jupiter.params.provider.ValueSource
 import java.time.Duration
 
 @ExtendWith(InstancioExtension::class)
-open abstract class AggregatingServiceTest {
-    val dbClient = mockk<VocaDbClient>()
-    val dbClientHolder = mockk<DbClientHolder>()
-    val nndClient = mockk<NndClient>()
-    val nicologClient = mockk<NicologClient>()
-    val eventMapper = mockk<ReleaseEventMapper>()
-    val songMapper = mockk<NndVideoWithAssociatedVocaDbEntryMapper>()
-    val requestMapper = mockk<RequestMapper>()
-    val queryResponseMapper = mockk<QueryResponseMapper>()
-    val songWithPvsMapper = mockk<SongWithPvsMapper>()
-    val publisherLinkConfig = mockk<PublisherLinkConfig>()
-    val aggregatingService =
-        spyk(
-            AggregatingService(
-                dbClientHolder,
-                nndClient,
-                nicologClient,
-                eventMapper,
-                songMapper,
-                requestMapper,
-                queryResponseMapper,
-                songWithPvsMapper,
-                publisherLinkConfig,
-                mockk(),
-                mockk()
-            )
-        )
+class EventMethodsTest: AggregatingServiceTest() {
 
-    @BeforeEach
-    fun setup() {
-        every { dbClientHolder.getClient(any()) } returns dbClient
+    @AfterEach
+    fun confirm() {
+        verifyAll { dbClientHolder.getClient(any()) }
+    }
+
+    @ParameterizedTest
+    @ValueSource(longs = [1])
+    @NullSource
+    fun `get event by name test`(seriesId: Long?, @Given eventName: String, @Given clientType: ClientType): Unit =
+        runBlocking {
+            val resultPlaceholder = mockkClass(ReleaseEventWitnNndTagsResponse::class)
+            every { resultPlaceholder.nndTags } returns Instancio.createList(String::class.java)
+            coEvery { dbClient.getEventByName(eq(eventName), eq("WebLinks")) } returns
+                    Instancio.of(VocaDbReleaseEvent::class.java).set(field("seriesId"), seriesId).create()
+            if (seriesId != null) {
+                coEvery { dbClient.getEventSeriesById(eq(seriesId), eq("WebLinks")) } returns
+                        Instancio.create(VocaDbReleaseEventSeries::class.java)
+            }
+            every { eventMapper.mapWithLinks(any(), any(VocaDbReleaseEventSeries::class)) } returns
+                    resultPlaceholder
+
+            assertThat(aggregatingService.getReleaseEventByName(GetReleaseEventRequest(eventName, clientType)))
+                .isEqualTo(resultPlaceholder)
+
+            coVerify { dbClient.getEventByName(any(), any()) }
+            coVerifyCount { (if (seriesId == null) 0 else 1) * { dbClient.getEventSeriesById(any(), any()) } }
+            confirmVerified(dbClient)
+            verifyAll { eventMapper.mapWithLinks(any(), any(VocaDbReleaseEventSeries::class)) }
+        }
+
+    @ParameterizedTest
+    @ValueSource(longs = [1])
+    @NullSource
+    fun `get event with linked tag test`(
+        seriesId: Long?,
+        @Given eventName: String,
+        @Given eventSeries: VocaDbReleaseEventSeries,
+        @Given vocaDbTagId: Long,
+        @Given clientType: ClientType,
+    ): Unit = runBlocking {
+        val releaseEvent =
+            Instancio.of(VocaDbReleaseEvent::class.java)
+                .set(field("seriesId"), seriesId)
+                .set(field("webLinks"), listOf(WebLink("https://beta.vocadb.net/T/$vocaDbTagId")))
+                .create()
+        val resultPlaceholder = mockkClass(ReleaseEventWithVocaDbTagsResponse::class)
+        coEvery { dbClient.getEventByName(eq(eventName), eq("Tags")) } returns releaseEvent
+        if (seriesId != null) {
+            coEvery { dbClient.getEventSeriesById(eq(seriesId)) } returns eventSeries
+        }
+        every { eventMapper.mapWithTags(eq(releaseEvent), seriesId?.let { eq(eventSeries) } ?: isNull()) } returns
+                resultPlaceholder
+
+        assertThat(aggregatingService.getReleaseEventWithLinkedTags(GetReleaseEventRequest(eventName, clientType)))
+            .isEqualTo(resultPlaceholder)
+
+        coVerify { dbClient.getEventByName(any(), any()) }
+        coVerifyCount { (if (seriesId != null) 1 else 0) * { dbClient.getEventSeriesById(any()) } }
+        confirmVerified(dbClient)
+        verifyAll { eventMapper.mapWithTags(any(), any()) }
     }
 }

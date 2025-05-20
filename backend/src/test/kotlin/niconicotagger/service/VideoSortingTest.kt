@@ -16,6 +16,7 @@ import niconicotagger.dto.api.misc.NndSortOrder.VIEW_COUNT
 import niconicotagger.dto.api.misc.NndVideoWithAssociatedVocaDbEntry
 import niconicotagger.dto.api.misc.NndVideoWithAssociatedVocaDbEntryForEvent
 import niconicotagger.dto.api.misc.SongEntryBase
+import niconicotagger.dto.inner.misc.ReleaseEventCategory
 import niconicotagger.mapper.NndVideoWithAssociatedVocaDbEntryMapper
 import niconicotagger.mapper.QueryResponseMapper
 import niconicotagger.mapper.ReleaseEventMapper
@@ -31,28 +32,9 @@ import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.Arguments.argumentSet
 import org.junit.jupiter.params.provider.ArgumentsProvider
 import org.junit.jupiter.params.provider.ArgumentsSource
+import java.time.Duration
 
-@ExtendWith(MockKExtension::class)
-class VideoSortingTest {
-    @MockK lateinit var dbClientHolder: DbClientHolder
-
-    @MockK lateinit var nndClient: NndClient
-
-    @MockK lateinit var nicologClient: NicologClient
-
-    @MockK lateinit var releaseEventMapper: ReleaseEventMapper
-
-    @MockK lateinit var videoWithEntryMapper: NndVideoWithAssociatedVocaDbEntryMapper
-
-    @MockK lateinit var requestMapper: RequestMapper
-
-    @MockK lateinit var queryResponseMapper: QueryResponseMapper
-
-    @MockK lateinit var songWithPvsMapper: SongWithPvsMapper
-
-    @MockK lateinit var publisherLinkConfig: PublisherLinkConfig
-
-    @InjectMockKs lateinit var aggregatingService: AggregatingService
+class VideoSortingTest: AggregatingServiceTest() {
 
     @ParameterizedTest
     @ArgumentsSource(SortingTestData::class)

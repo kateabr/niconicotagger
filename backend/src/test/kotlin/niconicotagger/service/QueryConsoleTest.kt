@@ -9,7 +9,6 @@ import io.mockk.confirmVerified
 import io.mockk.every
 import io.mockk.impl.annotations.InjectMockKs
 import io.mockk.impl.annotations.MockK
-import io.mockk.junit5.MockKExtension
 import io.mockk.mockk
 import io.mockk.mockkClass
 import io.mockk.spyk
@@ -113,36 +112,58 @@ import org.junit.jupiter.params.provider.ValueSource
 import java.time.Duration
 
 @ExtendWith(InstancioExtension::class)
-open abstract class AggregatingServiceTest {
-    val dbClient = mockk<VocaDbClient>()
-    val dbClientHolder = mockk<DbClientHolder>()
-    val nndClient = mockk<NndClient>()
-    val nicologClient = mockk<NicologClient>()
-    val eventMapper = mockk<ReleaseEventMapper>()
-    val songMapper = mockk<NndVideoWithAssociatedVocaDbEntryMapper>()
-    val requestMapper = mockk<RequestMapper>()
-    val queryResponseMapper = mockk<QueryResponseMapper>()
-    val songWithPvsMapper = mockk<SongWithPvsMapper>()
-    val publisherLinkConfig = mockk<PublisherLinkConfig>()
-    val aggregatingService =
-        spyk(
-            AggregatingService(
-                dbClientHolder,
-                nndClient,
-                nicologClient,
-                eventMapper,
-                songMapper,
-                requestMapper,
-                queryResponseMapper,
-                songWithPvsMapper,
-                publisherLinkConfig,
-                mockk(),
-                mockk()
-            )
-        )
+class QueryConsoleTest: AggregatingServiceTest() {
 
-    @BeforeEach
-    fun setup() {
-        every { dbClientHolder.getClient(any()) } returns dbClient
+    @AfterEach
+    fun confirm() {
+        verifyAll { dbClientHolder.getClient(any()) }
+    }
+
+    @EnumSource(ApiType::class)
+    @ParameterizedTest
+    fun `get data with tags by custom query test`(
+        apiType: ApiType,
+        @Given query: String,
+        @Given clientType: ClientType,
+    ): Unit = runBlocking {
+        val response =
+            Instancio.of(
+                when (apiType) {
+                    ARTISTS -> object : TypeToken<VocaDbCustomQuerySearchResult<VocaDbCustomQueryArtistData>> {}
+                    SONGS -> object : TypeToken<VocaDbCustomQuerySearchResult<VocaDbCustomQuerySongData>> {}
+                }
+            )
+                .generate(types().of(List::class.java)) { gen -> gen.collection<Any>().size(1) }
+                .create()
+        coEvery { dbClient.getDataWithTagsByCustomQuery(eq(apiType), eq(query)) } returns response
+        coEvery { dbClient.getDataWithTagsByCustomQuery(eq(apiType), eq(query)) } returns response
+        when (apiType) {
+            ARTISTS ->
+                every {
+                    queryResponseMapper.map<QueryConsoleArtistData>(
+                        eq(response as VocaDbCustomQuerySearchResult<VocaDbCustomQueryArtistData>)
+                    )
+                } returns QueryConsoleResponse(mockk<List<QueryConsoleArtistData>>(), emptyList(), 1)
+
+            SONGS ->
+                every {
+                    queryResponseMapper.map<QueryConsoleSongData>(
+                        eq(response as VocaDbCustomQuerySearchResult<VocaDbCustomQuerySongData>)
+                    )
+                } returns QueryConsoleResponse(mockk<List<QueryConsoleSongData>>(), emptyList(), 1)
+        }
+
+        assertThat(aggregatingService.getDataWithTagsByCustomQuery(QueryConsoleRequest(apiType, query, clientType)))
+            .extracting { it.totalCount }
+            .isEqualTo(1L)
+
+        coVerifyAll { dbClient.getDataWithTagsByCustomQuery(any(), any()) }
+        verifyAll {
+            when (apiType) {
+                ARTISTS -> queryResponseMapper.map<QueryConsoleArtistData>(any())
+
+                SONGS -> queryResponseMapper.map<QueryConsoleSongData>(any())
+            }
+        }
     }
 }
