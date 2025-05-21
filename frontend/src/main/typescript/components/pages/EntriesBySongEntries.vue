@@ -477,7 +477,7 @@ export default class extends Vue {
   private assigning: boolean = false;
   private totalSongCount: number = 0;
   private maxPage: number = 0;
-  private numOfPages: number = 1;
+  private entriesWithNoPvsLeft: number = 0;
   private page: number = 1;
   private showEntriesWithNoTags: boolean = false;
   private showEntriesWithErrors: boolean = true;
@@ -634,7 +634,7 @@ export default class extends Vue {
     this.fetching = true;
     try {
       let response = await api.getVocaDbSongEntriesForTagging({
-        startOffset: newStartOffset,
+        startOffset: newStartOffset - this.entriesWithNoPvsLeft,
         maxResults: this.maxResults,
         orderBy: this.orderingCondition,
         clientType: this.clientType
@@ -667,8 +667,7 @@ export default class extends Vue {
         };
       });
       this.filterSongs();
-      this.numOfPages = this.totalSongCount / this.maxResults + 1;
-      this.startOffset = newStartOffset;
+      this.startOffset = newStartOffset - this.entriesWithNoPvsLeft;
       this.songTypeStats = mapSongTypeStats(
         response.songTypeStats,
         this.songTypeStats
@@ -682,9 +681,10 @@ export default class extends Vue {
       );
       localStorage.setItem(
         localStorageKeyStartOffset,
-        newStartOffset.toString()
+        this.startOffset.toString()
       );
       localStorage.setItem(localStorageKeyDbOrderBy, this.orderingCondition);
+      this.entriesWithNoPvsLeft = 0;
       this.pageToJump = newPage;
       this.maxPage = Math.ceil(this.totalSongCount / this.maxResults);
       this.fetching = false;
@@ -722,9 +722,16 @@ export default class extends Vue {
           )[0];
         } else {
           song.toUpdate = false;
-          song.unavailablePvs.forEach(
-            unavailablePv => (unavailablePv.toDisable = false)
-          );
+          if (
+            song.unavailablePvs.some(unavailablePv => unavailablePv.toDisable)
+          ) {
+            song.unavailablePvs.forEach(
+              unavailablePv => (unavailablePv.toDisable = false)
+            );
+            if (song.availablePvs.length == 0) {
+              this.entriesWithNoPvsLeft += 1;
+            }
+          }
           for (const pv of song.availablePvs) {
             for (const tag of pv.suggestedTags) {
               tag.selected =
