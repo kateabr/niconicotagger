@@ -12,7 +12,7 @@ export interface SongsByVocaDbEventTagResponse {
 export interface SongEntryByVocaDbTagForEvent {
   id: number;
   name: string;
-  type: SongType;
+  type: string;
   artistString: string;
   publishedOn: string;
   events: ReleaseEvent[];

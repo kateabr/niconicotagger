@@ -79,6 +79,7 @@ import NavBarMenu from "@/components/NavBarMenu.vue";
 import { getErrorData, getClientType } from "@/utils";
 import { ClientType } from "@/backend/dto/enumeration";
 import { localStorageKeyClientType } from "@/constants";
+import { AxiosError } from "axios";
 
 @Component({ components: { NavBarMenu } })
 export default class extends Vue {
@@ -116,7 +117,7 @@ export default class extends Vue {
       );
     } catch (err) {
       this.clientTypeLoggedIn = ClientType.UNKNOWN;
-      const errorData = getErrorData(err);
+      const errorData = getErrorData((err as AxiosError).response);
       this.$bvToast.toast(errorData.message, {
         title: errorData.statusText,
         toaster: "b-toaster-bottom-center",

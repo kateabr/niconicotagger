@@ -8,7 +8,7 @@
     "node_modules"
   ],
   "compilerOptions": {
-    "target": "ES2017",
+    "target": "ES2019",
     "module": "esnext",
     "types": ["webpack-env", "node"],
 

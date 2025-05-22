@@ -106,7 +106,6 @@ import {
   formatDateString,
   getNicoVideoUrl,
   getShortenedSongType,
-  getSongTypeColorForDisplay,
   getUniqueElementId,
   getVocaDBEventUrl,
   getClientType
@@ -114,7 +113,7 @@ import {
 import ErrorMessage from "@/components/ErrorMessage.vue";
 import NicoEmbed from "@/components/NicoEmbed.vue";
 import DateDisposition from "@/components/DateDisposition.vue";
-import { AxiosResponse } from "axios";
+import { AxiosError, AxiosResponse } from "axios";
 import Action from "@/components/Action.vue";
 import NicoDescription from "@/components/NicoDescription.vue";
 import EntryErrorReport from "@/components/EntryErrorReport.vue";
@@ -127,7 +126,6 @@ import EventPreviewAccordion from "@/components/EventPreviewAccordion.vue";
   methods: {
     getShortenedSongType,
     getNicoVideoUrl,
-    getSongTypeColorForDisplay,
     getVocaDBEventUrl
   },
   components: {
@@ -189,14 +187,14 @@ export default class extends Vue {
       });
       this.loadedAt = new Date().toLocaleString();
     } catch (err) {
-      this.processError(err);
+      this.processError((err as AxiosError).response);
       this.failedToLoadPreviews = true;
     }
   }
 
   // error handling
-  private processError(err: { response: AxiosResponse }): void {
-    const errorData = getErrorData(err);
+  private processError(response: AxiosResponse | undefined): void {
+    const errorData = getErrorData(response);
     this.alertMessage = errorData.message;
     this.alertStatusText = errorData.statusText;
     this.$bvToast.show(getUniqueElementId("error_", this.thisMode.toString()));

@@ -21,7 +21,7 @@ export interface VocaDbSongEntryWithPvs {
 export interface SongEntry {
   id: number;
   name: string;
-  type: SongType;
+  type: string;
   artistString: string;
   publishedOn: Date;
 }

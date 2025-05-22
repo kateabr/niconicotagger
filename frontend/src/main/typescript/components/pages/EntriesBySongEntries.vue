@@ -107,9 +107,9 @@
             block
             variant="success"
             :disabled="defaultDisableCondition()"
-            @click="fetch(startOffset, startOffset / maxResults + 1)"
+            @click="fetch(startOffset, ~~(startOffset / maxResults + 1))"
             ><span v-if="fetching"><b-spinner small /></span>
-            <span v-else>Restore page {{ startOffset / maxResults + 1 }}</span>
+            <span v-else>Restore page {{ ~~(startOffset / maxResults + 1) }}</span>
           </b-button>
           <b-button
             style="width: 80px"
@@ -427,7 +427,7 @@ import {
 import { api } from "@/backend";
 import NicoEmbed from "@/components/NicoEmbed.vue";
 import ErrorMessage from "@/components/ErrorMessage.vue";
-import { AxiosResponse } from "axios";
+import { AxiosError, AxiosResponse } from "axios";
 import NicoDescription from "@/components/NicoDescription.vue";
 import EntryErrorReport from "@/components/EntryErrorReport.vue";
 import { ClientType, SongType, DbSortOrder } from "@/backend/dto/enumeration";
@@ -576,8 +576,8 @@ export default class extends Vue {
     return pageStateIsValid(this.pageToJump, this.maxPage);
   }
 
-  private getSongTypeColorForDisplay(typeString: SongType): string {
-    return getSongTypeColorForDisplay(typeString);
+  private getSongTypeColorForDisplay(typeString: string): string {
+    return getSongTypeColorForDisplay(SongType[typeString]);
   }
 
   private getVocaDBEntryUrl(id: number): string {
@@ -673,7 +673,7 @@ export default class extends Vue {
         this.songTypeStats
       );
     } catch (err) {
-      this.processError(err);
+      this.processError((err as AxiosError).response);
     } finally {
       localStorage.setItem(
         localStorageKeyMaxResults,
@@ -743,7 +743,7 @@ export default class extends Vue {
         }
       }
     } catch (err) {
-      this.processError(err);
+      this.processError((err as AxiosError).response);
     } finally {
       this.assigning = false;
     }
@@ -754,8 +754,8 @@ export default class extends Vue {
   }
 
   // error handling
-  private processError(err: { response: AxiosResponse }): void {
-    const errorData = getErrorData(err);
+  private processError(response: AxiosResponse | undefined): void {
+    const errorData = getErrorData(response);
     this.alertMessage = errorData.message;
     this.alertStatusText = errorData.statusText;
     this.$bvToast.show(getUniqueElementId("error_", this.thisMode.toString()));

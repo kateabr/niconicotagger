@@ -464,9 +464,9 @@ import { api } from "@/backend";
 import Component from "vue-class-component";
 import { Prop } from "vue-property-decorator";
 import {
-  getErrorData,
   formatDateString,
   getClientType,
+  getErrorData,
   getEventColorVariant,
   getMaxResultsForDisplay,
   getOrderingConditionForDisplay,
@@ -481,14 +481,14 @@ import {
 } from "@/utils";
 import ErrorMessage from "@/components/ErrorMessage.vue";
 import DateDisposition from "@/components/DateDisposition.vue";
-import { AxiosResponse } from "axios";
+import { AxiosError, AxiosResponse } from "axios";
 import Action from "@/components/Action.vue";
 import EntryErrorReport from "@/components/EntryErrorReport.vue";
-import { ClientType, SongType, DbSortOrder } from "@/backend/dto/enumeration";
+import { ClientType, DbSortOrder, SongType } from "@/backend/dto/enumeration";
 import { SongTypeStatsRecord } from "@/backend/dto/songTypeStats";
 import { ReleaseEvent, VocaDbTag } from "@/backend/dto/lowerLevelStruct";
 import { SongTagsAndEventsMassUpdateRequest } from "@/backend/dto/request/songTagsAndEventsUpdateRequest";
-import { ReleaseEventDataWithVocaDbTag } from "@/backend/dto/higherLevelStruct";
+import { ReleaseEventData, ReleaseEventDataWithVocaDbTag } from "@/backend/dto/higherLevelStruct";
 import { SongEntryByVocaDbTagForEvent } from "@/backend/dto/response/songsByVocaDbEventTagResponse";
 import {
   localStorageKeyDbOrderBy,
@@ -514,14 +514,13 @@ export default class extends Vue {
   private readonly maxResultsOptions: number[] = maxResultsOptions;
 
   // main variables
-  private event: ReleaseEventDataWithVocaDbTag = {
+  private event: ReleaseEventData = {
     id: -1,
     name: "",
     category: "Unspecified",
     date: null,
     endDate: null,
     dateString: null,
-    tag: null,
     valid: false
   };
   private entries: SongEntryByVocaDbTagForEvent[] = [];
@@ -556,7 +555,7 @@ export default class extends Vue {
 
   // proxy methods
   private getShortenedSongType(songType: string): string {
-    return getShortenedSongType(songType);
+    return getShortenedSongType(SongType[songType]);
   }
 
   private getVocaDBEventUrl(id: number): string {
@@ -668,8 +667,8 @@ export default class extends Vue {
   }
 
   // error handling
-  private processError(err: { response: AxiosResponse }): void {
-    const errorData = getErrorData(err);
+  private processError(response: AxiosResponse | undefined): void {
+    const errorData = getErrorData(response);
     this.alertMessage = errorData.message;
     this.alertStatusText = errorData.statusText;
     this.$bvToast.show(getUniqueElementId("error_", this.thisMode.toString()));
@@ -699,7 +698,7 @@ export default class extends Vue {
       };
       this.tempTags = response.vocaDbTags;
     } catch (err) {
-      this.processError(err);
+      this.processError((err as AxiosError).response);
     } finally {
       localStorage.setItem(localStorageKeyEventByDbTagName, this.eventName);
       this.fetching = false;
@@ -750,7 +749,7 @@ export default class extends Vue {
       this.numOfPages = this.totalEntryCount / this.maxResults + 1;
       this.allChecked = false;
     } catch (err) {
-      this.processError(err);
+      this.processError((err as AxiosError).response);
     } finally {
       localStorage.setItem(localStorageKeyEventByDbTagName, this.eventName);
       localStorage.setItem(
@@ -772,7 +771,7 @@ export default class extends Vue {
     try {
       await this.update([song]);
     } catch (err) {
-      this.processError(err);
+      this.processError((err as AxiosError).response);
     } finally {
       this.assigning = false;
     }
@@ -783,7 +782,7 @@ export default class extends Vue {
     try {
       await this.update(this.entries.filter(entry => entry.checked));
     } catch (err) {
-      this.processError(err);
+      this.processError((err as AxiosError).response);
     } finally {
       this.massAssigning = false;
       this.allChecked = false;
@@ -839,7 +838,7 @@ export default class extends Vue {
 
   private loadInitialPage(): void {
     this.updateUrl();
-    this.fetchSongs(this.eventName, 0, 1);
+    this.fetchSongs(0, 1);
   }
 
   private confirmAndLoad(): void {
@@ -860,7 +859,9 @@ export default class extends Vue {
     if (max_results != null) {
       this.maxResults = parseInt(max_results);
     }
-    let order_by = localStorage.getItem(localStorageKeyDbOrderBy);
+    let order_by = localStorage.getItem(
+      localStorageKeyDbOrderBy
+    ) as DbSortOrder;
     if (order_by != null) {
       this.orderingCondition = order_by;
     }
