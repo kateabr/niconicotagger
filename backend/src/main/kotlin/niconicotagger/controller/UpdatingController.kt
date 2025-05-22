@@ -100,6 +100,7 @@ class UpdatingController(private val service: UpdatingService) {
                             try {
                                 service.assignSongTags(it, request.clientType, cookie)
                                 service.disablePvs(it, request.clientType, cookie)
+                                it.pvId?.let { pvId -> service.removeSongsByPvFromCache(request.clientType, pvId) }
                                 UpdateSuccess()
                             } catch (expected: Exception) {
                                 UpdateError(it.songId, expected.message)

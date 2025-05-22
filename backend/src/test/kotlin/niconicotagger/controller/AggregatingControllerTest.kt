@@ -1,6 +1,7 @@
 package niconicotagger.controller
 
 import com.github.tomakehurst.wiremock.client.WireMock.equalTo
+import com.github.tomakehurst.wiremock.client.WireMock.equalToDateTime
 import com.github.tomakehurst.wiremock.client.WireMock.equalToJson
 import com.github.tomakehurst.wiremock.client.WireMock.get
 import com.github.tomakehurst.wiremock.client.WireMock.ok
@@ -8,6 +9,7 @@ import com.github.tomakehurst.wiremock.client.WireMock.okJson
 import com.github.tomakehurst.wiremock.client.WireMock.post
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathTemplate
+import java.time.LocalDate
 import java.util.stream.Stream
 import kotlinx.coroutines.runBlocking
 import niconicotagger.Utils.jsonMapper
@@ -88,6 +90,59 @@ class AggregatingControllerTest : AbstractControllerTest() {
                     content { json(expectedResponse, STRICT) }
                 }
         }
+
+    @Test
+    fun `get event schedule test`() {
+        val basePath = "responses/integration/aggregate/event_schedule"
+        wireMockExtension.stubFor(
+            get(urlPathTemplate("/api/releaseEvents"))
+                .withQueryParams(
+                    mapOf(
+                        "afterDate" to
+                            equalToDateTime(
+                                LocalDate.now().minusYears(1).withMonth(12).withDayOfMonth(31).atStartOfDay()
+                            ),
+                        "beforeDate" to
+                            equalToDateTime(
+                                LocalDate.now().plusYears(1).withMonth(1).withDayOfMonth(31).atStartOfDay()
+                            ),
+                        "start" to equalTo("0"),
+                        "maxResults" to equalTo("1000"),
+                        "getTotalCount" to equalTo("true"),
+                        "fields" to equalTo("Series,MainPicture"),
+                        "sort" to equalTo("Date"),
+                        "sortDirection" to equalTo("Ascending"),
+                    )
+                )
+                .withHeader(CONTENT_TYPE, equalTo(APPLICATION_JSON_VALUE))
+                .withHeader(USER_AGENT, equalTo(DEFAULT_USER_AGENT))
+                .willReturn(okJson(loadResource("$basePath/all_events_for_year_response.json").decodeToString()))
+        )
+        wireMockExtension.stubFor(
+            get(urlPathTemplate("/api/frontpage"))
+                .withHeader(CONTENT_TYPE, equalTo(APPLICATION_JSON_VALUE))
+                .withHeader(USER_AGENT, equalTo(DEFAULT_USER_AGENT))
+                .willReturn(okJson(loadResource("$basePath/frontpage_response.json").decodeToString()))
+        )
+
+        mockMvc
+            .post("/api/get/recent_events") {
+                contentType = APPLICATION_JSON
+                content =
+                    """
+                    {
+                        "clientType": "$VOCADB_BETA",
+                        "useCached": false
+                    }
+                     """
+                        .trimIndent()
+            }
+            .asyncDispatch()
+            .andExpect {
+                status { isOk() }
+                content { json(loadResource("$basePath/expected_response.json").decodeToString(), STRICT) }
+            }
+    }
 
     @Nested
     inner class GetReleaseEventTest {

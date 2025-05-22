@@ -6,9 +6,11 @@ import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.time.ZoneOffset.UTC
 import java.time.format.DateTimeFormatter.ISO_DATE
+import java.time.temporal.ChronoUnit.DAYS
 import java.util.stream.Stream
 import net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson
 import niconicotagger.Utils.createSampleSongTypeStats
+import niconicotagger.Utils.eventPreviewMapperFixedClock
 import niconicotagger.Utils.jsonMapper
 import niconicotagger.dto.api.misc.ApiType.ARTISTS
 import niconicotagger.dto.api.misc.ApiType.SONGS
@@ -34,6 +36,7 @@ import niconicotagger.dto.api.misc.SongEntryWithTagAssignmentInfo
 import niconicotagger.dto.api.misc.UnavailableNndVideo
 import niconicotagger.dto.api.misc.VocaDbSongEntryWithPvs
 import niconicotagger.dto.api.response.QueryConsoleResponse
+import niconicotagger.dto.api.response.ReleaseEventPreviewResponse
 import niconicotagger.dto.api.response.ReleaseEventWithVocaDbTagsResponse
 import niconicotagger.dto.api.response.ReleaseEventWitnNndTagsResponse
 import niconicotagger.dto.api.response.SongsWithPvsResponse
@@ -98,6 +101,15 @@ class ResponseSerializationTest {
     @ParameterizedTest
     @ArgumentsSource(SongsWithPvsResponseTestData::class)
     fun `SongsWithPvsResponse serialization test`(responseObject: SongsWithPvsResponse, expectedJson: String) {
+        assertThatJson(jsonMapper.writeValueAsString(responseObject)).isEqualTo(expectedJson)
+    }
+
+    @ParameterizedTest
+    @ArgumentsSource(ReleaseEventPreviewResponseTestData::class)
+    fun `ReleaseEventPreviewResponse serialization test`(
+        responseObject: ReleaseEventPreviewResponse,
+        expectedJson: String,
+    ) {
         assertThatJson(jsonMapper.writeValueAsString(responseObject)).isEqualTo(expectedJson)
     }
 
@@ -895,6 +907,44 @@ class ResponseSerializationTest {
 
             override fun provideArguments(context: ExtensionContext?): Stream<out Arguments> {
                 return Stream.of(availablePvWithTags(), unavailablePvAndNoPublishDate())
+            }
+        }
+
+        class ReleaseEventPreviewResponseTestData : ArgumentsProvider {
+            private fun createPreview(setToNull: Boolean): ReleaseEventPreviewResponse {
+                return if (setToNull)
+                    Instancio.of(ReleaseEventPreviewResponse::class.java)
+                        .set(field("date"), eventPreviewMapperFixedClock.instant())
+                        .ignore(all(field("endDate"), field("pictureUrl")))
+                        .create()
+                else
+                    Instancio.of(ReleaseEventPreviewResponse::class.java)
+                        .set(field("date"), eventPreviewMapperFixedClock.instant())
+                        .set(field("endDate"), eventPreviewMapperFixedClock.instant().plus(1, DAYS))
+                        .create()
+            }
+
+            override fun provideArguments(context: ExtensionContext?): Stream<out Arguments> {
+                return Stream.of(true, false).map {
+                    val preview = createPreview(it)
+                    argumentSet(
+                        if (it) "one-day event without picture" else "several-day event with picture",
+                        preview,
+                        """
+                        {
+                            "id": ${preview.id},
+                            "date": "2025-05-22",
+                            "endDate": ${if (it) null else "\"2025-05-23\""},
+                            "name": "${preview.name}",
+                            "category": "${preview.category}",
+                            "status": "${preview.status}",
+                            "pictureUrl": ${if (it) null else "\"" + preview.pictureUrl + "\""},
+                            "isOffline": ${preview.isOffline}
+                        }
+                        """
+                            .trimIndent(),
+                    )
+                }
             }
         }
     }

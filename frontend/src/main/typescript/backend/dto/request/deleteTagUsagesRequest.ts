@@ -1,4 +1,5 @@
 import { QueryConsoleApiType } from "@/backend/dto/enumeration";
+import { VocaDbTag } from "@/backend/dto/lowerLevelStruct";
 
 export interface MassDeleteTagUsagesRequest {
   subRequests: DeleteTagUsagesRequest[];
@@ -8,5 +9,5 @@ export interface MassDeleteTagUsagesRequest {
 export interface DeleteTagUsagesRequest {
   apiType: QueryConsoleApiType;
   entryId: number;
-  tagIds: number[];
+  tags: VocaDbTag[];
 }

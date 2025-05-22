@@ -520,7 +520,7 @@ import {
 } from "@/utils";
 import NicoEmbed from "@/components/NicoEmbed.vue";
 import ErrorMessage from "@/components/ErrorMessage.vue";
-import { AxiosResponse } from "axios";
+import { AxiosError, AxiosResponse } from "axios";
 import NicoDescription from "@/components/NicoDescription.vue";
 import EntryErrorReport from "@/components/EntryErrorReport.vue";
 import { ClientType, NndSortOrder, SongType } from "@/backend/dto/enumeration";
@@ -786,7 +786,7 @@ export default class extends Vue {
       this.startOffset = newStartOffset;
       this.allChecked = false;
     } catch (err) {
-      this.processError(err);
+      this.processError((err as AxiosError).response);
     } finally {
       localStorage.setItem(localStorageKeyNndTag, targetTag);
       localStorage.setItem(localStorageKeyNndTagScope, scopeString);
@@ -812,7 +812,7 @@ export default class extends Vue {
     try {
       await this.update([video]);
     } catch (err) {
-      this.processError(err);
+      this.processError((err as AxiosError).response);
     } finally {
       this.assigning = false;
     }
@@ -823,7 +823,7 @@ export default class extends Vue {
     try {
       await this.update(this.videos.filter(video => video.selected));
     } catch (err) {
-      this.processError(err);
+      this.processError((err as AxiosError).response);
     } finally {
       this.massAssigning = false;
       this.allChecked = false;
@@ -853,6 +853,7 @@ export default class extends Vue {
       subRequests: videos.map(video => {
         return {
           songId: video.entry?.id as number,
+          pvId: video.video.id,
           tags: video.entry?.mappedTags
             .filter(tagSelection => !tagSelection.selected)
             .map(tagSelection => tagSelection.tag.id) as number[],
@@ -879,8 +880,8 @@ export default class extends Vue {
   }
 
   // error handling
-  private processError(err: { response: AxiosResponse }): void {
-    const errorData = getErrorData(err);
+  private processError(response: AxiosResponse | undefined): void {
+    const errorData = getErrorData(response);
     this.alertMessage = errorData.message;
     this.alertStatusText = errorData.statusText;
     this.$bvToast.show(getUniqueElementId("error_", this.mode.toString()));

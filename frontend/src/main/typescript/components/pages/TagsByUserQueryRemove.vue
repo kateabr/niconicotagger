@@ -206,7 +206,8 @@
                       <span class="text-monospace">false</span>.
                       <div class="alert-dark rounded p-2 my-1">
                         <b-icon-arrow-right-circle class="mr-1" />
-                        Will only work for derivatives that have an artist entry.
+                        Will only work for derivatives that have an artist
+                        entry.
                       </div>
                     </td>
                   </tr>
@@ -544,7 +545,7 @@ import { api } from "@/backend";
 import NicoEmbed from "@/components/NicoEmbed.vue";
 import ErrorMessage from "@/components/ErrorMessage.vue";
 import TitleDisplayer from "@/components/TitleDisplayer.vue";
-import { AxiosResponse } from "axios";
+import { AxiosError, AxiosResponse } from "axios";
 import {
   QueryConsoleArtistItem,
   QueryConsoleSongItem
@@ -572,7 +573,7 @@ export default class extends Vue {
   private readonly apiType!: QueryConsoleApiType;
 
   // main variables
-  private entries: QueryConsoleArtistItem[] | QueryConsoleSongItem[] = [];
+  private entries: (QueryConsoleArtistItem | QueryConsoleSongItem)[] = [];
   private tagPool: VocaDbTag[] = [];
   private tagIdsForRemoval: number[] = [];
   private tagsToMassRemove: VocaDbTag[] = [];
@@ -615,7 +616,9 @@ export default class extends Vue {
     }
   }
 
-  private getShortenedType(entry: QueryConsoleSongItem | QueryConsoleArtistItem): string {
+  private getShortenedType(
+    entry: QueryConsoleSongItem | QueryConsoleArtistItem
+  ): string {
     if (this.apiType == "songs") {
       let typeString = (entry as QueryConsoleSongItem).type;
       return getShortenedSongType(typeString);
@@ -637,7 +640,9 @@ export default class extends Vue {
     }
   }
 
-  private getTypeColorForDisplay(entry: QueryConsoleSongItem | QueryConsoleArtistItem): string {
+  private getTypeColorForDisplay(
+    entry: QueryConsoleSongItem | QueryConsoleArtistItem
+  ): string {
     if (this.apiType == "songs") {
       return getSongTypeColorForDisplay((entry as QueryConsoleSongItem).type);
     } else if (this.apiType == "artists") {
@@ -724,31 +729,32 @@ export default class extends Vue {
         clientType: this.clientType
       });
       this.entries = response.items.map(item => {
-        if (this.apiType == "songs") {
-          return {
-            id: item.id,
-            name: item.name,
-            tags: item.tags,
-            type: (item as QueryConsoleSongItem).type,
-            artistString: (item as QueryConsoleSongItem).artistString,
-            tagsToRemove: [],
-            errorReport: null
-          };
-        } else if (this.apiType == "artists") {
-          return {
-            id: item.id,
-            name: item.name,
-            tags: item.tags,
-            type: (item as QueryConsoleArtistItem).type,
-            tagsToRemove: [],
-            errorReport: null
-          };
+        switch (this.apiType) {
+          case "artists":
+            return {
+              id: item.id,
+              name: item.name,
+              tags: item.tags,
+              type: (item as QueryConsoleArtistItem).type,
+              tagsToRemove: [],
+              errorReport: null
+            };
+          case "songs":
+            return {
+              id: item.id,
+              name: item.name,
+              tags: item.tags,
+              type: (item as QueryConsoleSongItem).type,
+              artistString: (item as QueryConsoleSongItem).artistString,
+              tagsToRemove: [],
+              errorReport: null
+            };
         }
       });
       this.tagPool = response.tagPool;
       this.totalVideoCount = response.totalCount;
     } catch (err) {
-      this.processError(err);
+      this.processError((err as AxiosError).response);
     } finally {
       this.loaded = true;
       this.fetching = false;
@@ -795,15 +801,15 @@ export default class extends Vue {
       );
       this.tagsToMassRemove = [];
     } catch (err) {
-      this.processError(err);
+      this.processError((err as AxiosError).response);
     } finally {
       this.executing = false;
     }
   }
 
   // error handling
-  private processError(err: { response: AxiosResponse }): void {
-    const errorData = getErrorData(err);
+  private processError(response: AxiosResponse | undefined): void {
+    const errorData = getErrorData(response);
     this.alertMessage = errorData.message;
     this.alertStatusText = errorData.statusText;
     this.$bvToast.show(getUniqueElementId("error_", this.apiType.toString()));

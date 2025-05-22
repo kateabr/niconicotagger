@@ -607,7 +607,6 @@ import { Prop } from "vue-property-decorator";
 import {
   allVideosInvisible,
   getErrorData,
-  formatDate,
   formatDateString,
   getClientType,
   getEventColorVariant,
@@ -626,11 +625,11 @@ import {
 import ErrorMessage from "@/components/ErrorMessage.vue";
 import NicoEmbed from "@/components/NicoEmbed.vue";
 import DateDisposition from "@/components/DateDisposition.vue";
-import { AxiosResponse } from "axios";
+import { AxiosError, AxiosResponse } from "axios";
 import Action from "@/components/Action.vue";
 import NicoDescription from "@/components/NicoDescription.vue";
 import EntryErrorReport from "@/components/EntryErrorReport.vue";
-import { ClientType, NndSortOrder } from "@/backend/dto/enumeration";
+import { ClientType, NndSortOrder, SongType } from "@/backend/dto/enumeration";
 import { ReleaseEvent } from "@/backend/dto/lowerLevelStruct";
 import { MassAddReleaseEventRequest } from "@/backend/dto/request/addReleaseEventRequest";
 import {
@@ -650,8 +649,7 @@ import {
 @Component({
   methods: {
     getShortenedSongType,
-    getNicoVideoUrl,
-    getSongTypeColorForDisplay
+    getNicoVideoUrl
   },
   components: {
     EntryErrorReport,
@@ -691,7 +689,6 @@ export default class extends Vue {
   private eventName: string = "";
   private scopeTagString: string = "";
   private scopeTagStringFrozen: string = "";
-  private locale = "";
 
   // api variables
   private pageToJump: number = 1;
@@ -748,6 +745,10 @@ export default class extends Vue {
 
   private pageStateIsValid(): boolean {
     return pageStateIsValid(this.pageToJump, this.maxPage);
+  }
+
+  private getSongTypeColorForDisplay(typeString: string): string {
+    return getSongTypeColorForDisplay(SongType[typeString]);
   }
 
   private eventInfoLoaded(): boolean {
@@ -857,8 +858,8 @@ export default class extends Vue {
   }
 
   // error handling
-  private processError(err: { response: AxiosResponse }): void {
-    const errorData = getErrorData(err);
+  private processError(response: AxiosResponse | undefined): void {
+    const errorData = getErrorData(response);
     this.alertMessage = errorData.message;
     this.alertStatusText = errorData.statusText;
     this.$bvToast.show(getUniqueElementId("error_", this.thisMode.toString()));
@@ -881,11 +882,7 @@ export default class extends Vue {
         id: response.id,
         name: response.name,
         category: response.category,
-        dateString: formatDateString(
-          response.date,
-          response.endDate,
-          this.locale
-        ),
+        dateString: formatDateString(response.date, response.endDate),
         date: response.date,
         endDate: response.endDate,
         nndTags: response.nndTags,
@@ -895,7 +892,7 @@ export default class extends Vue {
       this.tagsLoaded = true;
       this.filterByEventDates = response.suggestFiltering;
     } catch (err) {
-      this.processError(err);
+      this.processError((err as AxiosError).response);
     } finally {
       localStorage.setItem(localStorageKeyEventByNndTagsName, eventName);
       this.fetching = false;
@@ -934,7 +931,7 @@ export default class extends Vue {
             tags: item.video.tags,
             visible: false
           },
-          publishedOn: formatDate(item.publishedOn, this.locale),
+          publishedOn: new Date(item.publishedOn).toLocaleDateString(),
           publisher: item.publisher,
           disposition: item.disposition,
           processed:
@@ -951,7 +948,7 @@ export default class extends Vue {
       this.numOfPages = this.totalVideoCount / this.maxResults + 1;
       this.allChecked = false;
     } catch (err) {
-      this.processError(err);
+      this.processError((err as AxiosError).response);
     } finally {
       localStorage.setItem(localStorageKeyEventByNndTagsName, this.eventName);
       localStorage.setItem(localStorageKeyNndOrderBy, this.sortingCondition);
@@ -975,7 +972,7 @@ export default class extends Vue {
     try {
       await this.update([song]);
     } catch (err) {
-      this.processError(err);
+      this.processError((err as AxiosError).response);
     } finally {
       this.assigning = false;
     }
@@ -986,7 +983,7 @@ export default class extends Vue {
     try {
       await this.update(this.entries.filter(entry => entry.toUpdate));
     } catch (err) {
-      this.processError(err);
+      this.processError((err as AxiosError).response);
     } finally {
       this.massAssigning = false;
       this.allChecked = false;
@@ -997,14 +994,15 @@ export default class extends Vue {
     entries: NndVideoWithAssociatedVocaDbEntryForEvent[]
   ): Promise<void> {
     const errors = await api.addReleaseEvent(
-      this.buildRequest(entries.map(entry => entry.entry))
+      this.buildRequest(entries.map(entry => entry.entry as SongEntryWithReleaseEventInfo))
     );
     const entriesWithErrors = errors.map(error => error.entryId);
     for (const entry of entries) {
       if (!entriesWithErrors.includes(entry.entry?.id as number)) {
         entry.entry?.events.push({
           id: this.event.id,
-          name: this.event.name
+          name: this.event.name,
+          seriesId: null
         });
         entry.processed = true;
         entry.toUpdate = false;
@@ -1046,7 +1044,6 @@ export default class extends Vue {
 
   // session
   created(): void {
-    this.locale = navigator.language;
     let max_results = localStorage.getItem(localStorageKeyMaxResults);
     if (max_results != null) {
       this.maxResults = parseInt(max_results);

@@ -2,6 +2,7 @@ package niconicotagger.client
 
 import com.github.tomakehurst.wiremock.client.WireMock.delete
 import com.github.tomakehurst.wiremock.client.WireMock.equalTo
+import com.github.tomakehurst.wiremock.client.WireMock.equalToDateTime
 import com.github.tomakehurst.wiremock.client.WireMock.equalToJson
 import com.github.tomakehurst.wiremock.client.WireMock.get
 import com.github.tomakehurst.wiremock.client.WireMock.ok
@@ -12,7 +13,9 @@ import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathTemplate
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo
 import com.github.tomakehurst.wiremock.junit5.WireMockTest
+import java.net.URI
 import java.time.Instant
+import java.time.LocalDate
 import java.time.OffsetDateTime
 import kotlinx.coroutines.runBlocking
 import niconicotagger.Utils.jsonMapper
@@ -31,6 +34,8 @@ import niconicotagger.dto.inner.misc.ArtistType.Circle
 import niconicotagger.dto.inner.misc.ArtistType.Producer
 import niconicotagger.dto.inner.misc.ArtistType.SynthesizerV
 import niconicotagger.dto.inner.misc.ReleaseEventCategory.Anniversary
+import niconicotagger.dto.inner.misc.ReleaseEventCategory.Club
+import niconicotagger.dto.inner.misc.ReleaseEventCategory.Festival
 import niconicotagger.dto.inner.misc.ReleaseEventCategory.Unspecified
 import niconicotagger.dto.inner.misc.SongType.Cover
 import niconicotagger.dto.inner.misc.SongType.Original
@@ -40,12 +45,14 @@ import niconicotagger.dto.inner.misc.UserGroup.Admin
 import niconicotagger.dto.inner.misc.UserGroup.Moderator
 import niconicotagger.dto.inner.misc.UserGroup.Trusted
 import niconicotagger.dto.inner.misc.WebLink
+import niconicotagger.dto.inner.vocadb.MainPicture
 import niconicotagger.dto.inner.vocadb.VocaDbArtist
 import niconicotagger.dto.inner.vocadb.VocaDbArtistEntryData
 import niconicotagger.dto.inner.vocadb.VocaDbCustomQueryArtistData
 import niconicotagger.dto.inner.vocadb.VocaDbCustomQueryData
 import niconicotagger.dto.inner.vocadb.VocaDbCustomQuerySongData
 import niconicotagger.dto.inner.vocadb.VocaDbEntryArtist
+import niconicotagger.dto.inner.vocadb.VocaDbFrontPageData
 import niconicotagger.dto.inner.vocadb.VocaDbReleaseEvent
 import niconicotagger.dto.inner.vocadb.VocaDbReleaseEventSeries
 import niconicotagger.dto.inner.vocadb.VocaDbSongEntryWithNndPvsAndTags
@@ -290,6 +297,8 @@ class VocaDbClientTest {
                     ),
                     listOf(VocaDbTag(2987, "birthday"), VocaDbTag(9325, "15th birthday")),
                     seriesId,
+                    null,
+                    null,
                 )
             )
     }
@@ -625,6 +634,99 @@ class VocaDbClientTest {
                         )
                     ),
                     373_865,
+                )
+            )
+    }
+
+    @Test
+    fun `get all events for year test`(wm: WireMockRuntimeInfo): Unit = runBlocking {
+        stubFor(
+            get(urlPathEqualTo("/api/releaseEvents"))
+                .withQueryParams(
+                    mapOf(
+                        "afterDate" to
+                            equalToDateTime(
+                                LocalDate.now().minusYears(1).withMonth(12).withDayOfMonth(31).atStartOfDay()
+                            ),
+                        "beforeDate" to
+                            equalToDateTime(
+                                LocalDate.now().plusYears(1).withMonth(1).withDayOfMonth(31).atStartOfDay()
+                            ),
+                        "start" to equalTo("0"),
+                        "maxResults" to equalTo("1000"),
+                        "getTotalCount" to equalTo("true"),
+                        "fields" to equalTo("Series,MainPicture"),
+                        "sort" to equalTo("Date"),
+                        "sortDirection" to equalTo("Ascending"),
+                    )
+                )
+                .withHeader(USER_AGENT, equalTo(DEFAULT_USER_AGENT))
+                .willReturn(
+                    ok()
+                        .withBody(loadResource("responses/vocadb/all_events_for_year_response.json"))
+                        .withHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
+                )
+        )
+
+        assertThat(VocaDbClient(wm.httpBaseUrl, jsonMapper).getAllEventsForYear(false))
+            .containsExactlyInAnyOrder(
+                VocaDbReleaseEvent(
+                    8657,
+                    OffsetDateTime.parse("2025-01-24T00:00:00Z").toInstant(),
+                    null,
+                    "病みボカ界隈へようこそ！ 第1話こどもじゃないもん",
+                    Club,
+                    emptyList(),
+                    emptyList(),
+                    null,
+                    null,
+                    MainPicture(URI("https://static.vocadb.net/img/releaseevent/mainOrig/8657.jpg?v=5")),
+                ),
+                VocaDbReleaseEvent(
+                    8842,
+                    OffsetDateTime.parse("2026-01-16T00:00:00Z").toInstant(),
+                    OffsetDateTime.parse("2026-01-19T00:00:00Z").toInstant(),
+                    "第一回ボカロ三部作投稿祭（三部目）",
+                    Unspecified,
+                    emptyList(),
+                    emptyList(),
+                    864,
+                    VocaDbReleaseEventSeries(864, Festival, emptyList()),
+                    null,
+                ),
+            )
+    }
+
+    @Test
+    fun `get front page data test`(wm: WireMockRuntimeInfo): Unit = runBlocking {
+        stubFor(
+            get(urlPathEqualTo("/api/frontpage"))
+                .withHeader(USER_AGENT, equalTo(DEFAULT_USER_AGENT))
+                .willReturn(
+                    ok()
+                        .withBody(loadResource("responses/vocadb/front_page_response.json"))
+                        .withHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
+                )
+        )
+
+        assertThat(VocaDbClient(wm.httpBaseUrl, jsonMapper).getFrontPageData())
+            .usingRecursiveComparison()
+            .isEqualTo(
+                VocaDbFrontPageData(
+                    listOf(
+                        VocaDbReleaseEvent(
+                            7231,
+                            OffsetDateTime.parse("2024-06-09T00:00:00Z").toInstant(),
+                            OffsetDateTime.parse("2025-06-08T00:00:00Z").toInstant(),
+                            "モミアゲヲ投稿祭 2024",
+                            Unspecified,
+                            emptyList(),
+                            emptyList(),
+                            545,
+                            VocaDbReleaseEventSeries(545, Festival, emptyList()),
+                            MainPicture(URI("https://static.vocadb.net/img/releaseevent/mainOrig/7231.jpg?v=3")),
+                        )
+                    )
                 )
             )
     }

@@ -8,6 +8,7 @@ export interface SongTagsAndPvsMassUpdateRequest {
 
 export interface SongTagsAndPvsUpdateRequest {
   songId: number;
+  pvId: string | null;
   tags: number[];
   nndPvsToDisable: PvToDisable[];
 }

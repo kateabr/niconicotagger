@@ -4,10 +4,11 @@ import com.fasterxml.jackson.databind.json.JsonMapper
 import com.github.benmanes.caffeine.cache.Caffeine
 import com.sksamuel.aedile.core.asCache
 import io.netty.channel.ChannelOption.CONNECT_TIMEOUT_MILLIS
-import io.netty.handler.logging.LogLevel.INFO
+import io.netty.handler.logging.LogLevel.DEBUG
 import io.netty.handler.timeout.ReadTimeoutHandler
 import io.netty.handler.timeout.WriteTimeoutHandler
 import java.time.Duration
+import java.time.LocalDate
 import java.util.concurrent.TimeUnit.HOURS
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
@@ -24,6 +25,7 @@ import niconicotagger.dto.inner.vocadb.VocaDbArtist
 import niconicotagger.dto.inner.vocadb.VocaDbCustomQueryArtistData
 import niconicotagger.dto.inner.vocadb.VocaDbCustomQueryData
 import niconicotagger.dto.inner.vocadb.VocaDbCustomQuerySongData
+import niconicotagger.dto.inner.vocadb.VocaDbFrontPageData
 import niconicotagger.dto.inner.vocadb.VocaDbReleaseEvent
 import niconicotagger.dto.inner.vocadb.VocaDbReleaseEventSeries
 import niconicotagger.dto.inner.vocadb.VocaDbSongEntryBase
@@ -67,7 +69,7 @@ open class VocaDbClient(baseUrl: String, private val jsonMapper: JsonMapper) {
             .clientConnector(
                 ReactorClientHttpConnector(
                     HttpClient.create()
-                        .wiretap(this::class.java.getCanonicalName(), INFO, TEXTUAL)
+                        .wiretap(this::class.java.getCanonicalName(), DEBUG, TEXTUAL)
                         .option(CONNECT_TIMEOUT_MILLIS, timeoutSeconds * 1000)
                         .doOnConnected { conn: Connection ->
                             conn
@@ -79,7 +81,7 @@ open class VocaDbClient(baseUrl: String, private val jsonMapper: JsonMapper) {
             .baseUrl(baseUrl)
             .defaultHeader(USER_AGENT, DEFAULT_USER_AGENT)
             .defaultHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
-            .codecs { configurer -> configurer.defaultCodecs().maxInMemorySize(500 * 1024) }
+            .codecs { configurer -> configurer.defaultCodecs().maxInMemorySize(1000 * 1024) }
             .filter { request, next ->
                 next
                     .exchange(request)
@@ -87,8 +89,13 @@ open class VocaDbClient(baseUrl: String, private val jsonMapper: JsonMapper) {
             }
             .build()
     private var maxTagMappingsToLoad = 10_000
+    private var maxEventsToLoad = 1_000
     private val tagMappingsCache =
-        Caffeine.newBuilder().expireAfterWrite(1, HOURS).asCache<String, List<VocaDbTagMapping>>()
+        Caffeine.newBuilder().expireAfterAccess(12, HOURS).maximumSize(1).asCache<String, List<VocaDbTagMapping>>()
+    private val eventPreviewCache =
+        Caffeine.newBuilder().expireAfterAccess(12, HOURS).maximumSize(1).asCache<String, List<VocaDbReleaseEvent>>()
+    private val songsByNndPvCache =
+        Caffeine.newBuilder().expireAfterWrite(12, HOURS).maximumSize(10000).asCache<String, VocaDbSongEntryBase>()
 
     suspend fun login(username: String, password: String): MultiValueMap<String, String> {
         val loginPayload = mapOf("keepLoggedIn" to true, "userName" to username, "password" to password)
@@ -254,13 +261,15 @@ open class VocaDbClient(baseUrl: String, private val jsonMapper: JsonMapper) {
     }
 
     suspend fun <T : VocaDbSongEntryBase> getSongByNndPv(pvId: String, fields: String, responseClass: Class<T>): T? {
-        return client
-            .get()
-            .uri("/api/songs/byPv?pvId=$pvId&pvService=NicoNicoDouga&fields=$fields")
-            .retrieve()
-            .toEntity(responseClass)
-            .awaitSingle()
-            .body
+        return songsByNndPvCache.getOrNull("${pvId}_$fields") {
+            client
+                .get()
+                .uri("/api/songs/byPv?pvId=$pvId&pvService=NicoNicoDouga&fields=$fields")
+                .retrieve()
+                .toEntity(responseClass)
+                .awaitSingle()
+                .body
+        } as T?
     }
 
     suspend fun getArtistByQuery(query: String): VocaDbArtist? {
@@ -379,6 +388,56 @@ open class VocaDbClient(baseUrl: String, private val jsonMapper: JsonMapper) {
             .toEntity(VocaDbSongEntryWithNndPvsAndTagsSearchResult::class.java)
             .awaitSingle()
             ?.body ?: error("Could not load songs"))
+    }
+
+    suspend fun getAllEventsForYear(useCached: Boolean): List<VocaDbReleaseEvent> {
+        if (useCached) {
+            val cached = eventPreviewCache.getOrNull("eventPreviews")
+            if (cached != null) return cached
+        }
+        while (true) {
+            val response =
+                client
+                    .get()
+                    .uri {
+                        it.path("/api/releaseEvents")
+                            .queryParam("afterDate", LocalDate.now().minusYears(1).withMonth(12).withDayOfMonth(31))
+                            .queryParam("beforeDate", LocalDate.now().plusYears(1).withMonth(1).withDayOfMonth(31))
+                            .queryParam("start", 0)
+                            .queryParam("maxResults", maxEventsToLoad)
+                            .queryParam("getTotalCount", true)
+                            .queryParam("fields", "Series,MainPicture")
+                            .queryParam("sort", "Date")
+                            .queryParam("sortDirection", "Ascending")
+                            .build()
+                    }
+                    .retrieve()
+                    .toEntity(VocaDbReleaseEventSearchResult::class.java)
+                    .awaitSingle()
+                    ?.body ?: error("Could not load event previews")
+
+            if (response.totalCount > response.items.size) {
+                maxEventsToLoad += 500
+                continue
+            }
+
+            eventPreviewCache.put("eventPreviews", response.items)
+            return response.items
+        }
+    }
+
+    suspend fun getFrontPageData(): VocaDbFrontPageData {
+        return client
+            .get()
+            .uri("/api/frontpage")
+            .retrieve()
+            .toEntity(VocaDbFrontPageData::class.java)
+            .awaitSingle()
+            ?.body ?: error("Could not load event previews")
+    }
+
+    suspend fun removeSongsByPvCache(pvId: String) {
+        songsByNndPvCache.asMap().keys.filter { it.startsWith(pvId) }.forEach { songsByNndPvCache.invalidate(it) }
     }
 
     companion object {

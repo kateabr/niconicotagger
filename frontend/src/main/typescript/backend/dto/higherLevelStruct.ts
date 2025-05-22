@@ -19,7 +19,7 @@ export interface ReleaseEventDataWithNndTags {
   seriesId: number | null;
 }
 
-export interface ReleaseEventDataWithVocaDbTag {
+export interface ReleaseEventData {
   id: number;
   dateString: string | null;
   date: string | null;
@@ -29,10 +29,21 @@ export interface ReleaseEventDataWithVocaDbTag {
   valid: boolean;
 }
 
+export interface ReleaseEventDataWithVocaDbTag {
+  id: number;
+  dateString: string | null;
+  date: string | null;
+  endDate: string | null;
+  name: string;
+  category: ReleaseEventCategory;
+  valid: boolean;
+  tag: string | null;
+}
+
 export interface SongEntryWithReleaseEventInfo {
   id: number;
   name: string;
-  type: SongType;
+  type: string;
   artistString: string;
   events: ReleaseEventWithSeriesId[];
 }
@@ -40,7 +51,7 @@ export interface SongEntryWithReleaseEventInfo {
 export interface SongEntryWithTagAssignmentInfo {
   id: number;
   name: string;
-  type: SongType;
+  type: string;
   artistString: string;
   publishedOn: string;
   mappedTags: VocaDbTagSelectable[];

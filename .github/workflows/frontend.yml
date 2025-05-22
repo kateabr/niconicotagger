@@ -17,14 +17,14 @@ jobs:
     defaults:
       run:
         working-directory: frontend
-    env:
-      NODE_OPTIONS: --openssl-legacy-provider
+#    env:
+#      NODE_OPTIONS: --openssl-legacy-provider
 
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 16
 
       - run: yarn --frozen-lockfile
       - run: yarn run build:prod

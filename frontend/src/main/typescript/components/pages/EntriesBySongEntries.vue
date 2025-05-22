@@ -107,9 +107,9 @@
             block
             variant="success"
             :disabled="defaultDisableCondition()"
-            @click="fetch(startOffset, startOffset / maxResults + 1)"
+            @click="fetch(startOffset, ~~(startOffset / maxResults + 1))"
             ><span v-if="fetching"><b-spinner small /></span>
-            <span v-else>Restore page {{ startOffset / maxResults + 1 }}</span>
+            <span v-else>Restore page {{ ~~(startOffset / maxResults + 1) }}</span>
           </b-button>
           <b-button
             style="width: 80px"
@@ -427,7 +427,7 @@ import {
 import { api } from "@/backend";
 import NicoEmbed from "@/components/NicoEmbed.vue";
 import ErrorMessage from "@/components/ErrorMessage.vue";
-import { AxiosResponse } from "axios";
+import { AxiosError, AxiosResponse } from "axios";
 import NicoDescription from "@/components/NicoDescription.vue";
 import EntryErrorReport from "@/components/EntryErrorReport.vue";
 import { ClientType, SongType, DbSortOrder } from "@/backend/dto/enumeration";
@@ -477,7 +477,7 @@ export default class extends Vue {
   private assigning: boolean = false;
   private totalSongCount: number = 0;
   private maxPage: number = 0;
-  private numOfPages: number = 1;
+  private entriesWithNoPvsLeft: number = 0;
   private page: number = 1;
   private showEntriesWithNoTags: boolean = false;
   private showEntriesWithErrors: boolean = true;
@@ -576,8 +576,8 @@ export default class extends Vue {
     return pageStateIsValid(this.pageToJump, this.maxPage);
   }
 
-  private getSongTypeColorForDisplay(typeString: SongType): string {
-    return getSongTypeColorForDisplay(typeString);
+  private getSongTypeColorForDisplay(typeString: string): string {
+    return getSongTypeColorForDisplay(SongType[typeString]);
   }
 
   private getVocaDBEntryUrl(id: number): string {
@@ -634,7 +634,7 @@ export default class extends Vue {
     this.fetching = true;
     try {
       let response = await api.getVocaDbSongEntriesForTagging({
-        startOffset: newStartOffset,
+        startOffset: newStartOffset - this.entriesWithNoPvsLeft,
         maxResults: this.maxResults,
         orderBy: this.orderingCondition,
         clientType: this.clientType
@@ -667,14 +667,13 @@ export default class extends Vue {
         };
       });
       this.filterSongs();
-      this.numOfPages = this.totalSongCount / this.maxResults + 1;
-      this.startOffset = newStartOffset;
+      this.startOffset = newStartOffset - this.entriesWithNoPvsLeft;
       this.songTypeStats = mapSongTypeStats(
         response.songTypeStats,
         this.songTypeStats
       );
     } catch (err) {
-      this.processError(err);
+      this.processError((err as AxiosError).response);
     } finally {
       localStorage.setItem(
         localStorageKeyMaxResults,
@@ -682,9 +681,10 @@ export default class extends Vue {
       );
       localStorage.setItem(
         localStorageKeyStartOffset,
-        newStartOffset.toString()
+        this.startOffset.toString()
       );
       localStorage.setItem(localStorageKeyDbOrderBy, this.orderingCondition);
+      this.entriesWithNoPvsLeft = 0;
       this.pageToJump = newPage;
       this.maxPage = Math.ceil(this.totalSongCount / this.maxResults);
       this.fetching = false;
@@ -700,6 +700,7 @@ export default class extends Vue {
         subRequests: songsToUpdate.map(song => {
           return {
             songId: song.entry.id,
+            pvId: null,
             tags: song.tagIdsToAssign,
             nndPvsToDisable: song.unavailablePvs
               .filter(unavailablePv => unavailablePv.toDisable)
@@ -721,9 +722,16 @@ export default class extends Vue {
           )[0];
         } else {
           song.toUpdate = false;
-          song.unavailablePvs.forEach(
-            unavailablePv => (unavailablePv.toDisable = false)
-          );
+          if (
+            song.unavailablePvs.some(unavailablePv => unavailablePv.toDisable)
+          ) {
+            song.unavailablePvs.forEach(
+              unavailablePv => (unavailablePv.toDisable = false)
+            );
+            if (song.availablePvs.length == 0) {
+              this.entriesWithNoPvsLeft += 1;
+            }
+          }
           for (const pv of song.availablePvs) {
             for (const tag of pv.suggestedTags) {
               tag.selected =
@@ -735,7 +743,7 @@ export default class extends Vue {
         }
       }
     } catch (err) {
-      this.processError(err);
+      this.processError((err as AxiosError).response);
     } finally {
       this.assigning = false;
     }
@@ -746,8 +754,8 @@ export default class extends Vue {
   }
 
   // error handling
-  private processError(err: { response: AxiosResponse }): void {
-    const errorData = getErrorData(err);
+  private processError(response: AxiosResponse | undefined): void {
+    const errorData = getErrorData(response);
     this.alertMessage = errorData.message;
     this.alertStatusText = errorData.statusText;
     this.$bvToast.show(getUniqueElementId("error_", this.thisMode.toString()));

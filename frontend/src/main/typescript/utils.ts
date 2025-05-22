@@ -84,11 +84,17 @@ export function getClientType(): ClientType {
   return ClientType[clientType as keyof typeof ClientType];
 }
 
-export function getErrorData(err: { response: AxiosResponse }): ErrorData {
-  if (typeof err.response.data == "object") {
-    if ("violations" in err.response.data) {
+export function getErrorData(response: AxiosResponse | undefined): ErrorData {
+  if (response == undefined) {
+    return {
+      message: "Unknown error",
+      statusText: "Could not handle error"
+    };
+  }
+  if (typeof response.data == "object") {
+    if ("violations" in response.data) {
       return {
-        message: (Object.entries(err.response.data).filter(
+        message: (Object.entries(response.data).filter(
           entry => entry[0] == "violations"
         )[0][1] as Array<any>)
           .map(violationTuple => `${violationTuple["field"]} ${violationTuple["message"]}`)
@@ -97,22 +103,22 @@ export function getErrorData(err: { response: AxiosResponse }): ErrorData {
       };
     } else {
       let alertMessage: string;
-      if ("detail" in err.response.data) {
-        alertMessage = Object.entries(err.response.data).filter(
+      if ("detail" in response.data) {
+        alertMessage = Object.entries(response.data).filter(
           entry => entry[0] == "detail"
         )[0][1] as string;
       } else {
-        alertMessage = err.response.data;
+        alertMessage = response.data;
       }
       return {
-        statusText: err.response.statusText,
+        statusText: response.statusText,
         message: alertMessage
       };
     }
   } else {
     return {
-      statusText: err.response.statusText,
-      message: err.response.data
+      statusText: response.statusText,
+      message: response.data
     };
   }
 }
@@ -143,13 +149,14 @@ export function getTagVariant(tag: VocaDbTagSelectable, tagsIdsToAssign: number[
   }
 }
 
-export function getShortenedSongType(typeString: SongType): string {
-  if (SongType[typeString] == SongType.Unspecified) {
-    return "?";
-  } else if (SongType[typeString] == SongType.MusicPV) {
-    return "PV";
-  } else {
-    return typeString[0];
+export function getShortenedSongType(type: SongType): string {
+  switch (type) {
+    case SongType.Unspecified:
+      return "?";
+    case SongType.MusicPV:
+      return "PV";
+    default:
+      return type[0];
   }
 }
 
@@ -158,6 +165,18 @@ export function getShortenedArtistType(typeString: ArtistType): string {
     return "?";
   } else if (typeString == "SynthesizerV") {
     return "SV";
+  } else if (typeString == "VoiSona") {
+    return "VS";
+  } else if (typeString == "NewType") {
+    return "NT";
+  } else if (typeString == "Voiceroid") {
+    return "VR";
+  } else if (typeString == "VOICEVOX") {
+    return "VV";
+  } else if (typeString == "AIVOICE") {
+    return "AIV";
+  } else if (typeString == "ACEVirtualSinger") {
+    return "ACE";
   } else if (
     typeString == "Vocaloid" ||
     typeString == "UTAU" ||
@@ -179,7 +198,7 @@ export function mapSongTypeStats(
     .map(key => {
       return {
         type: key[0],
-        count: key[1] as number,
+        count: (key[1] as unknown) as number,
         show:
           existingStats.length > 0
             ? existingStats.filter(statsItem => statsItem.type == key[0])[0].show
@@ -191,49 +210,35 @@ export function mapSongTypeStats(
     });
 }
 
-export function formatDateString(
-  date: string | null,
-  endDate: string | null,
-  locale: string
-): string | null {
-  const formatter = new Intl.DateTimeFormat(locale);
+export function formatDateString(date: string | null, endDate: string | null): string | null {
   let result = "";
   if (date != null) {
-    result += formatter.format(new Date(date));
+    result += new Date(date).toLocaleDateString();
   }
   if (endDate != null) {
-    result += " - " + formatter.format(new Date(endDate));
+    result += " - " + new Date(endDate).toLocaleDateString();
   }
-  if (result.length > 0) return result;
-  return null;
-}
-
-export function formatDate(date: string | null, locale: string): string | null {
-  if (date != null) {
-    const formatter = new Intl.DateTimeFormat(locale);
-    return formatter.format(new Date(date));
-  }
-  return null;
+  return result.length > 0 ? result : null;
 }
 
 // common interface methods
 export function getSongTypeColorForDisplay(songType: SongType): string {
-  const castType = SongType[songType];
-  if (castType == SongType.Original || castType == SongType.Remaster) {
-    return "primary";
-  } else if (
-    castType == SongType.Remix ||
-    castType == SongType.Cover ||
-    castType == SongType.Mashup ||
-    castType == SongType.Other
-  ) {
-    return "secondary";
-  } else if (castType == SongType.Instrumental) {
-    return "dark";
-  } else if (castType == SongType.MusicPV || castType == SongType.DramaPV) {
-    return "success";
-  } else {
-    return "warning";
+  switch (songType) {
+    case SongType.Original:
+    case SongType.Remaster:
+      return "primary";
+    case SongType.Remix:
+    case SongType.Cover:
+    case SongType.Mashup:
+    case SongType.Other:
+      return "secondary";
+    case SongType.Instrumental:
+      return "dark";
+    case SongType.MusicPV:
+    case SongType.DramaPV:
+      return "success";
+    default:
+      return "warning";
   }
 }
 
@@ -244,14 +249,10 @@ export function getArtistTypeColorForDisplay(typeString: ArtistType): string {
     return "danger";
   } else if (typeString == "CeVIO") {
     return "success";
-  } else if (typeString == "SynthesizerV") {
-    return "secondary";
   } else if (typeString == "OtherVoiceSynthesizer") {
     return "dark";
-  } else if (typeString == "OtherVocalist") {
-    return "secondary";
   } else {
-    return "";
+    return "secondary";
   }
 }
 

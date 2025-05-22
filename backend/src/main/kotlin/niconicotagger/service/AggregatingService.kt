@@ -2,6 +2,7 @@ package niconicotagger.service
 
 import com.github.benmanes.caffeine.cache.Caffeine
 import com.sksamuel.aedile.core.asCache
+import java.time.Duration
 import java.time.ZoneOffset.UTC
 import java.time.format.DateTimeFormatter.ISO_DATE_TIME
 import java.util.concurrent.TimeUnit.HOURS
@@ -22,6 +23,7 @@ import niconicotagger.dto.api.misc.NndTagType.NONE
 import niconicotagger.dto.api.misc.NndVideoWithAssociatedVocaDbEntry
 import niconicotagger.dto.api.misc.QueryConsoleData
 import niconicotagger.dto.api.misc.SongEntryBase
+import niconicotagger.dto.api.request.EventScheduleRequest
 import niconicotagger.dto.api.request.GetReleaseEventRequest
 import niconicotagger.dto.api.request.QueryConsoleRequest
 import niconicotagger.dto.api.request.SongsWithPvsRequest
@@ -29,6 +31,7 @@ import niconicotagger.dto.api.request.VideosByNndEventTagsRequest
 import niconicotagger.dto.api.request.VideosByNndTagsRequest
 import niconicotagger.dto.api.request.VideosByVocaDbTagRequest
 import niconicotagger.dto.api.response.QueryConsoleResponse
+import niconicotagger.dto.api.response.ReleaseEventPreviewResponse
 import niconicotagger.dto.api.response.ReleaseEventWithVocaDbTagsResponse
 import niconicotagger.dto.api.response.ReleaseEventWitnNndTagsResponse
 import niconicotagger.dto.api.response.SongsWithPvsResponse
@@ -39,6 +42,7 @@ import niconicotagger.dto.inner.misc.ArtistRole.Composer
 import niconicotagger.dto.inner.misc.ArtistRole.Default
 import niconicotagger.dto.inner.misc.ArtistType.Producer
 import niconicotagger.dto.inner.misc.PvService.NicoNicoDouga
+import niconicotagger.dto.inner.misc.ReleaseEventCategory
 import niconicotagger.dto.inner.misc.TagTypeHolder
 import niconicotagger.dto.inner.nnd.NndThumbnailOk
 import niconicotagger.dto.inner.nnd.NndVideoData
@@ -59,7 +63,7 @@ import niconicotagger.mapper.RequestMapper
 import niconicotagger.mapper.SongWithPvsMapper
 import niconicotagger.mapper.Utils.calculateSongStats
 import niconicotagger.serde.Utils.kata2hiraAndLowercase
-import niconicotagger.serde.Utils.normalizeToken
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 
 @Service
@@ -73,9 +77,11 @@ class AggregatingService(
     private val queryResponseMapper: QueryResponseMapper,
     private val songWithPvsMapper: SongWithPvsMapper,
     private val publisherLinkConfig: PublisherLinkConfig,
+    @Value("\${app.service.offline-events}") private val offlineEvents: Set<ReleaseEventCategory>,
+    @Value("\${app.service.event-scope}") private val eventScope: Duration,
 ) {
     private val publisherCache =
-        Caffeine.newBuilder().expireAfterWrite(1, HOURS).maximumSize(100).asCache<String, PublisherInfo>()
+        Caffeine.newBuilder().expireAfterAccess(12, HOURS).maximumSize(10000).asCache<String, PublisherInfo>()
 
     private fun getClient(clientType: ClientType) = dbClientHolder.getClient(clientType)
 
@@ -102,7 +108,9 @@ class AggregatingService(
         val event = getClient(request.clientType).getEventByName(request.eventName, "WebLinks")
         val series =
             event.seriesId?.let { getClient(request.clientType).getEventSeriesById(event.seriesId, "WebLinks") }
-        return eventMapper.mapWithLinks(event, series)
+        val mappedEvent = eventMapper.mapWithLinks(event, series)
+        require(mappedEvent.nndTags.isNotEmpty()) { "Event has no linked NND tags" }
+        return mappedEvent
     }
 
     suspend fun getVideosByEventNndTags(request: VideosByNndEventTagsRequest): VideosByNndTagsResponseForEvent {
@@ -152,7 +160,8 @@ class AggregatingService(
         val tagStyleHolder = TagTypeHolder().storeRequestTags(request)
 
         val mappedTags = getClient(request.clientType).getAllVocaDbTagMappings(request.startOffset != 0L)
-        val correspondingVocaDbTags = mappedTags.filter { request.tags.contains(it.sourceTag) }.map { it.tag }.toSet()
+        val correspondingVocaDbTags =
+            mappedTags.filter { request.tags.contains(kata2hiraAndLowercase(it.sourceTag)) }.map { it.tag }.toSet()
         if (correspondingVocaDbTags.isEmpty()) error("None of the tags in ${request.tags} is mapped")
         tagStyleHolder.storeTagMappings(mappedTags)
 
@@ -199,13 +208,7 @@ class AggregatingService(
             val mappedTags = async { getClient(request.clientType).getAllVocaDbTagMappings(false) }
             val tag = async { getClient(request.clientType).getTagByName(request.tag) }.await()
 
-            val tagMappings =
-                mappedTags
-                    .await()
-                    .filter { it.tag.id == tag.id }
-                    .map { it.sourceTag }
-                    .map { normalizeToken(it).trim() }
-                    .toSet()
+            val tagMappings = mappedTags.await().filter { it.tag.id == tag.id }.map { it.sourceTag }.toSet()
             require(tagMappings.isNotEmpty()) { "Tag \"${request.tag}\" is not mapped" }
 
             val newRequest = requestMapper.map(request, tagMappings)
@@ -413,5 +416,14 @@ class AggregatingService(
                 .filterNotNull()
 
         return songWithPvsMapper.map(songEntries, pvs, tagMappings, likelyFirstWorks)
+    }
+
+    suspend fun getRecentEvents(request: EventScheduleRequest): List<ReleaseEventPreviewResponse> {
+        return (dbClientHolder.getClient(request.clientType).getAllEventsForYear(request.useCached) +
+                dbClientHolder.getClient(request.clientType).getFrontPageData().newEvents)
+            .distinctBy { it.id }
+            .filterNot { it.date == null }
+            .mapNotNull { eventMapper.mapForPreview(it, eventScope, offlineEvents) }
+            .sortedWith(compareBy({ it.status.priority }, { it.date }))
     }
 }

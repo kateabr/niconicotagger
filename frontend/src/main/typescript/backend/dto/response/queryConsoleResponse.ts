@@ -2,14 +2,14 @@ import { UpdateErrorReport, VocaDbTag } from "@/backend/dto/lowerLevelStruct";
 import { ArtistType, SongType } from "@/backend/dto/enumeration";
 
 export interface QueryConsoleResponse {
-  items: QueryConsoleArtistItem[] | QueryConsoleSongItem[];
+  items: (QueryConsoleArtistItem | QueryConsoleSongItem)[];
   totalCount: number;
   tagPool: VocaDbTag[];
 }
 
 export interface QueryConsoleArtistItem {
   id: number;
-  name: number;
+  name: string;
   tags: VocaDbTag[];
   type: ArtistType;
   tagsToRemove: VocaDbTag[];

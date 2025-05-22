@@ -1,14 +1,7 @@
 package niconicotagger.service
 
-import io.mockk.impl.annotations.InjectMockKs
-import io.mockk.impl.annotations.MockK
-import io.mockk.junit5.MockKExtension
 import java.util.Comparator.comparing
 import java.util.stream.Stream
-import niconicotagger.client.DbClientHolder
-import niconicotagger.client.NicologClient
-import niconicotagger.client.NndClient
-import niconicotagger.configuration.PublisherLinkConfig
 import niconicotagger.dto.api.misc.NndSortOrder
 import niconicotagger.dto.api.misc.NndSortOrder.LIKE_COUNT
 import niconicotagger.dto.api.misc.NndSortOrder.PUBLISH_TIME
@@ -16,15 +9,9 @@ import niconicotagger.dto.api.misc.NndSortOrder.VIEW_COUNT
 import niconicotagger.dto.api.misc.NndVideoWithAssociatedVocaDbEntry
 import niconicotagger.dto.api.misc.NndVideoWithAssociatedVocaDbEntryForEvent
 import niconicotagger.dto.api.misc.SongEntryBase
-import niconicotagger.mapper.NndVideoWithAssociatedVocaDbEntryMapper
-import niconicotagger.mapper.QueryResponseMapper
-import niconicotagger.mapper.ReleaseEventMapper
-import niconicotagger.mapper.RequestMapper
-import niconicotagger.mapper.SongWithPvsMapper
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.InstanceOfAssertFactories.LIST
 import org.instancio.Instancio
-import org.junit.jupiter.api.extension.ExtendWith
 import org.junit.jupiter.api.extension.ExtensionContext
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
@@ -32,27 +19,7 @@ import org.junit.jupiter.params.provider.Arguments.argumentSet
 import org.junit.jupiter.params.provider.ArgumentsProvider
 import org.junit.jupiter.params.provider.ArgumentsSource
 
-@ExtendWith(MockKExtension::class)
-class VideoSortingTest {
-    @MockK lateinit var dbClientHolder: DbClientHolder
-
-    @MockK lateinit var nndClient: NndClient
-
-    @MockK lateinit var nicologClient: NicologClient
-
-    @MockK lateinit var releaseEventMapper: ReleaseEventMapper
-
-    @MockK lateinit var videoWithEntryMapper: NndVideoWithAssociatedVocaDbEntryMapper
-
-    @MockK lateinit var requestMapper: RequestMapper
-
-    @MockK lateinit var queryResponseMapper: QueryResponseMapper
-
-    @MockK lateinit var songWithPvsMapper: SongWithPvsMapper
-
-    @MockK lateinit var publisherLinkConfig: PublisherLinkConfig
-
-    @InjectMockKs lateinit var aggregatingService: AggregatingService
+class VideoSortingTest : AggregatingServiceTest() {
 
     @ParameterizedTest
     @ArgumentsSource(SortingTestData::class)

@@ -2,6 +2,7 @@ package niconicotagger.controller
 
 import jakarta.validation.Valid
 import niconicotagger.dto.api.misc.QueryConsoleData
+import niconicotagger.dto.api.request.EventScheduleRequest
 import niconicotagger.dto.api.request.GetReleaseEventRequest
 import niconicotagger.dto.api.request.QueryConsoleRequest
 import niconicotagger.dto.api.request.SongsWithPvsRequest
@@ -9,6 +10,7 @@ import niconicotagger.dto.api.request.VideosByNndEventTagsRequest
 import niconicotagger.dto.api.request.VideosByNndTagsRequest
 import niconicotagger.dto.api.request.VideosByVocaDbTagRequest
 import niconicotagger.dto.api.response.QueryConsoleResponse
+import niconicotagger.dto.api.response.ReleaseEventPreviewResponse
 import niconicotagger.dto.api.response.ReleaseEventWithVocaDbTagsResponse
 import niconicotagger.dto.api.response.ReleaseEventWitnNndTagsResponse
 import niconicotagger.dto.api.response.SongsWithPvsResponse
@@ -68,5 +70,10 @@ class AggregatingController(private val service: AggregatingService) {
     @PostMapping(value = ["/songs"])
     suspend fun getVocaDbSongEntriesForTagging(@Valid @RequestBody request: SongsWithPvsRequest): SongsWithPvsResponse {
         return service.getSongsWithPvsForTagging(request)
+    }
+
+    @PostMapping(value = ["/recent_events"])
+    suspend fun getRecentEvents(@Valid @RequestBody request: EventScheduleRequest): List<ReleaseEventPreviewResponse> {
+        return service.getRecentEvents(request)
     }
 }

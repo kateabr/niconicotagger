@@ -13,6 +13,7 @@ import niconicotagger.dto.api.misc.ReleaseEvent
 import niconicotagger.dto.api.misc.VocaDbSortOrder.AdditionDate
 import niconicotagger.dto.api.request.AddReleaseEventRequest
 import niconicotagger.dto.api.request.DeleteTagsRequest
+import niconicotagger.dto.api.request.EventScheduleRequest
 import niconicotagger.dto.api.request.MassAddReleaseEventRequest
 import niconicotagger.dto.api.request.MassDeleteTagsRequest
 import niconicotagger.dto.api.request.QueryConsoleRequest
@@ -128,6 +129,7 @@ class RequestDeserializationTest {
                     "subRequests": [
                         {
                             "songId": 1,
+                            "pvId": "1",
                             "tags": [
                                 1
                             ],
@@ -144,7 +146,7 @@ class RequestDeserializationTest {
                 """
                         .trimIndent(),
                     SongTagsAndPvsMassUpdateRequest(
-                        listOf(SongTagsAndPvsUpdateRequest(1, listOf(1), setOf(PvToDisable("id", "DELETED")))),
+                        listOf(SongTagsAndPvsUpdateRequest(1, "1", listOf(1), setOf(PvToDisable("id", "DELETED")))),
                         VOCADB,
                     ),
                 ),
@@ -165,7 +167,7 @@ class RequestDeserializationTest {
                 """
                         .trimIndent(),
                     VideosByNndTagsRequest(
-                        setOf("アアあAAaa11", "tag"),
+                        setOf("あああaaaa11", "tag"),
                         "イイいIIii11 ウウうUUuu11 OR エエえEEee11",
                         0,
                         100,
@@ -229,6 +231,27 @@ class RequestDeserializationTest {
                         VIEW_COUNT,
                         VOCADB,
                     ),
+                ),
+                arguments(
+                    EventScheduleRequest::class.java,
+                    """
+                    {
+                        "clientType": "vocadb_beta",
+                        "useCached": false
+                    }
+                    """
+                        .trimIndent(),
+                    EventScheduleRequest(VOCADB_BETA, false),
+                ),
+                arguments(
+                    EventScheduleRequest::class.java,
+                    """
+                    {
+                        "clientType": "vocadb_beta"
+                    }
+                    """
+                        .trimIndent(),
+                    EventScheduleRequest(VOCADB_BETA, true),
                 ),
             )
     }

@@ -13,6 +13,7 @@ data class SongTagsAndPvsMassUpdateRequest(
 
 data class SongTagsAndPvsUpdateRequest(
     val songId: Long,
+    val pvId: String?,
     val tags: List<Long>,
     @field:Valid val nndPvsToDisable: Set<PvToDisable>,
 )

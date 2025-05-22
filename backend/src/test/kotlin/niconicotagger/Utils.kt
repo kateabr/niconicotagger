@@ -5,6 +5,9 @@ import com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMEST
 import com.fasterxml.jackson.databind.json.JsonMapper
 import com.fasterxml.jackson.dataformat.xml.XmlMapper
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
+import java.time.Clock
+import java.time.LocalDate
+import java.time.ZoneOffset.UTC
 import java.util.function.Supplier
 import niconicotagger.dto.inner.misc.SongType
 import org.instancio.Instancio
@@ -22,6 +25,9 @@ object Utils {
             .build()
     val xmlMapper: XmlMapper =
         XmlMapper.builder().findAndAddModules().addModule(JavaTimeModule()).disable(FAIL_ON_UNKNOWN_PROPERTIES).build()
+
+    val eventPreviewFixedDate = LocalDate.of(2025, 5, 22)
+    val eventPreviewMapperFixedClock: Clock = Clock.fixed(eventPreviewFixedDate.atStartOfDay().toInstant(UTC), UTC)
 
     fun loadResource(path: String) =
         Utils::class.java.classLoader.getResourceAsStream(path)?.readAllBytes() ?: error("Invalid path $path")
