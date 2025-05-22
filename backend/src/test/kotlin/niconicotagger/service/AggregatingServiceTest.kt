@@ -58,6 +58,11 @@ import niconicotagger.dto.api.response.VideosByTagsResponseForTagging
 import niconicotagger.dto.inner.misc.PvService.NicoNicoDouga
 import niconicotagger.dto.inner.misc.PvService.Youtube
 import niconicotagger.dto.inner.misc.ReleaseEventCategory
+import niconicotagger.dto.inner.misc.ReleaseEventCategory.AlbumRelease
+import niconicotagger.dto.inner.misc.ReleaseEventCategory.Club
+import niconicotagger.dto.inner.misc.ReleaseEventCategory.Concert
+import niconicotagger.dto.inner.misc.ReleaseEventCategory.Convention
+import niconicotagger.dto.inner.misc.ReleaseEventCategory.Other
 import niconicotagger.dto.inner.misc.SongPv
 import niconicotagger.dto.inner.misc.WebLink
 import niconicotagger.dto.inner.nnd.NndApiSearchResult
@@ -136,8 +141,14 @@ open abstract class AggregatingServiceTest {
                 queryResponseMapper,
                 songWithPvsMapper,
                 publisherLinkConfig,
-                mockk(),
-                mockk()
+                setOf(
+                    AlbumRelease,
+                    Club,
+                    Concert,
+                    Convention,
+                    Other
+                ),
+                Duration.ofDays(14)
             )
         )
 

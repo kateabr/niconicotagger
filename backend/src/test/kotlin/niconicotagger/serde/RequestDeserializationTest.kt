@@ -13,6 +13,7 @@ import niconicotagger.dto.api.misc.ReleaseEvent
 import niconicotagger.dto.api.misc.VocaDbSortOrder.AdditionDate
 import niconicotagger.dto.api.request.AddReleaseEventRequest
 import niconicotagger.dto.api.request.DeleteTagsRequest
+import niconicotagger.dto.api.request.EventScheduleRequest
 import niconicotagger.dto.api.request.MassAddReleaseEventRequest
 import niconicotagger.dto.api.request.MassDeleteTagsRequest
 import niconicotagger.dto.api.request.QueryConsoleRequest
@@ -231,6 +232,25 @@ class RequestDeserializationTest {
                         VOCADB,
                     ),
                 ),
+                arguments(
+                    EventScheduleRequest::class.java,
+                    """
+                    {
+                        "clientType": "vocadb_beta",
+                        "useCached": false
+                    }
+                    """.trimIndent(),
+                    EventScheduleRequest(VOCADB_BETA, false)
+                ),
+                arguments(
+                    EventScheduleRequest::class.java,
+                    """
+                    {
+                        "clientType": "vocadb_beta"
+                    }
+                    """.trimIndent(),
+                    EventScheduleRequest(VOCADB_BETA, true)
+                )
             )
     }
 }

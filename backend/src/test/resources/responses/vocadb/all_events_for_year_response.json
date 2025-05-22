@@ -1,0 +1,49 @@
+{
+  "items": [
+    {
+      "category": "Club",
+      "date": "2025-01-24T00:00:00Z",
+      "id": 8657,
+      "mainPicture": {
+        "mime": "image/jpeg",
+        "urlOriginal": "https://static.vocadb.net/img/releaseevent/mainOrig/8657.jpg?v=5",
+        "urlSmallThumb": "https://static.vocadb.net/img/releaseevent/mainSmall/8657.jpg?v=5",
+        "urlThumb": "https://static.vocadb.net/img/releaseevent/mainThumb/8657.jpg?v=5",
+        "urlTinyThumb": "https://static.vocadb.net/img/releaseevent/mainTiny/8657.jpg?v=5"
+      },
+      "name": "病みボカ界隈へようこそ！ 第1話こどもじゃないもん",
+      "seriesNumber": 0,
+      "seriesSuffix": "",
+      "status": "Draft",
+      "urlSlug": "1",
+      "venueName": "",
+      "version": 5
+    },
+    {
+      "category": "Unspecified",
+      "date": "2026-01-16T00:00:00Z",
+      "endDate": "2026-01-19T00:00:00Z",
+      "id": 8842,
+      "name": "第一回ボカロ三部作投稿祭（三部目）",
+      "series": {
+        "additionalNames": "Vocalo Trilogy Uploading Festival",
+        "category": "Festival",
+        "deleted": false,
+        "description": "Participants must upload a song during every of the three sections of the event so that they form a trilogy.",
+        "id": 864,
+        "name": "ボカロ三部作投稿祭",
+        "status": "Draft",
+        "urlSlug": "vocalo-trilogy-uploading-festi",
+        "version": 2
+      },
+      "seriesId": 864,
+      "seriesNumber": 13,
+      "seriesSuffix": "",
+      "status": "Draft",
+      "urlSlug": "",
+      "venueName": "",
+      "version": 4
+    }
+  ],
+  "totalCount": 2
+}

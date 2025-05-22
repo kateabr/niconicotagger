@@ -18,7 +18,7 @@ sealed interface ReleaseEventBaseResponse {
 
 data class ReleaseEventPreviewResponse(
     override val id: Long,
-    @JsonSerialize(using = InstantToLocalDateSerializer::class) override val date: Instant?,
+    @JsonSerialize(using = InstantToLocalDateSerializer::class) override val date: Instant,
     @JsonSerialize(using = InstantToLocalDateSerializer::class) override val endDate: Instant?,
     override val name: String,
     override val category: ReleaseEventCategory,

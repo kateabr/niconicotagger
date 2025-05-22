@@ -34,6 +34,7 @@ import niconicotagger.dto.api.misc.SongEntryWithTagAssignmentInfo
 import niconicotagger.dto.api.misc.UnavailableNndVideo
 import niconicotagger.dto.api.misc.VocaDbSongEntryWithPvs
 import niconicotagger.dto.api.response.QueryConsoleResponse
+import niconicotagger.dto.api.response.ReleaseEventPreviewResponse
 import niconicotagger.dto.api.response.ReleaseEventWithVocaDbTagsResponse
 import niconicotagger.dto.api.response.ReleaseEventWitnNndTagsResponse
 import niconicotagger.dto.api.response.SongsWithPvsResponse
@@ -48,10 +49,12 @@ import org.instancio.Instancio
 import org.instancio.Select.all
 import org.instancio.Select.field
 import org.instancio.TypeToken
+import org.instancio.junit.Given
 import org.instancio.settings.Keys.COLLECTION_MAX_SIZE
 import org.instancio.settings.Keys.COLLECTION_MIN_SIZE
 import org.instancio.settings.Keys.MAP_MAX_SIZE
 import org.instancio.settings.Keys.MAP_MIN_SIZE
+import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtensionContext
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
@@ -59,6 +62,7 @@ import org.junit.jupiter.params.provider.Arguments.ArgumentSet
 import org.junit.jupiter.params.provider.Arguments.argumentSet
 import org.junit.jupiter.params.provider.ArgumentsProvider
 import org.junit.jupiter.params.provider.ArgumentsSource
+import java.time.LocalDate
 
 class ResponseSerializationTest {
 
@@ -98,6 +102,12 @@ class ResponseSerializationTest {
     @ParameterizedTest
     @ArgumentsSource(SongsWithPvsResponseTestData::class)
     fun `SongsWithPvsResponse serialization test`(responseObject: SongsWithPvsResponse, expectedJson: String) {
+        assertThatJson(jsonMapper.writeValueAsString(responseObject)).isEqualTo(expectedJson)
+    }
+
+    @ParameterizedTest
+    @ArgumentsSource(ReleaseEventPreviewResponseTestData::class)
+    fun `ReleaseEventPreviewResponse serialization test`(responseObject: ReleaseEventPreviewResponse, expectedJson: String) {
         assertThatJson(jsonMapper.writeValueAsString(responseObject)).isEqualTo(expectedJson)
     }
 
@@ -896,6 +906,43 @@ class ResponseSerializationTest {
             override fun provideArguments(context: ExtensionContext?): Stream<out Arguments> {
                 return Stream.of(availablePvWithTags(), unavailablePvAndNoPublishDate())
             }
+        }
+
+        class ReleaseEventPreviewResponseTestData: ArgumentsProvider {
+            private fun createPreview(setToNull: Boolean): ReleaseEventPreviewResponse {
+                return if (setToNull)
+                    Instancio.of(ReleaseEventPreviewResponse::class.java)
+                        .set(field("date"), LocalDate.of(2025, 5, 22).atStartOfDay().atOffset(UTC).toInstant())
+                        .ignore(all(field("endDate"), field("pictureUrl")))
+                        .create()
+                else Instancio.of(ReleaseEventPreviewResponse::class.java)
+                    .set(field("date"), LocalDate.of(2025, 5, 22).atStartOfDay().atOffset(UTC).toInstant())
+                    .set(field("endDate"), LocalDate.of(2025, 5, 23).atStartOfDay().atOffset(UTC).toInstant())
+                    .create()
+            }
+
+            override fun provideArguments(context: ExtensionContext?): Stream<out Arguments> {
+                return Stream.of(true, false).map {
+                    val preview = createPreview(it)
+                    argumentSet(
+                        if (it) "one-day event without picture" else "several-day event with picture",
+                        preview,
+                        """
+                        {
+                            "id": ${preview.id},
+                            "date": "2025-05-22",
+                            "endDate": ${if (it) null else "\"2025-05-23\""},
+                            "name": "${preview.name}",
+                            "category": "${preview.category}",
+                            "status": "${preview.status}",
+                            "pictureUrl": ${if (it) null else "\"" + preview.pictureUrl + "\""},
+                            "isOffline": ${preview.isOffline}
+                        }
+                        """.trimIndent()
+                    )
+                }
+            }
+
         }
     }
 }

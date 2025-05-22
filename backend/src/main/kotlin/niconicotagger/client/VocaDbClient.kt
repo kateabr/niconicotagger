@@ -5,6 +5,7 @@ import com.github.benmanes.caffeine.cache.Caffeine
 import com.sksamuel.aedile.core.asCache
 import io.netty.channel.ChannelOption.CONNECT_TIMEOUT_MILLIS
 import io.netty.handler.logging.LogLevel.DEBUG
+import io.netty.handler.logging.LogLevel.INFO
 import io.netty.handler.timeout.ReadTimeoutHandler
 import io.netty.handler.timeout.WriteTimeoutHandler
 import java.time.Duration
@@ -429,7 +430,7 @@ open class VocaDbClient(baseUrl: String, private val jsonMapper: JsonMapper) {
     suspend fun getFrontPageData(): VocaDbFrontPageData {
         return client
             .get()
-            .uri("https://vocadb.net/api/frontpage")
+            .uri("/api/frontpage")
             .retrieve()
             .toEntity(VocaDbFrontPageData::class.java)
             .awaitSingle()

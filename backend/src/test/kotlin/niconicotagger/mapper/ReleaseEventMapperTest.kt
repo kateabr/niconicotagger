@@ -52,7 +52,7 @@ class ReleaseEventMapperTest {
 
     @ParameterizedTest
     @ArgumentsSource(EventPreviewTestData::class)
-    fun `map event previews test`(
+    fun `map event previews (without event category) test`(
         event: VocaDbReleaseEvent,
         eventScope: Duration,
         offlineEvents: Set<ReleaseEventCategory>,
@@ -66,7 +66,7 @@ class ReleaseEventMapperTest {
 
     @ParameterizedTest
     @ArgumentsSource(EventPreviewCategoryTestData::class)
-    fun `map event previews (event category) test`(
+    fun `map event previews (event category only) test`(
         event: VocaDbReleaseEvent,
         expectedCategory: ReleaseEventCategory
     ) {
@@ -358,7 +358,7 @@ class ReleaseEventMapperTest {
                 val endDate = if (!hasEndDate) null else startDate.plusDays(offByDays)
 
                 return argumentSet(
-                    "event out of recent scope (${offByDays.absoluteValue} days ${if (offByDays > 0) "late" else "early"}, ${if (hasEndDate) "several-day" else "one-day"} event)",
+                    "event out of recent scope (${offByDays.absoluteValue} days ${if (offByDays > 0) "late" else "early"}, ${if (hasEndDate) "several-day" else "one-day"} event, scope: $eventScope)",
                     createEvent(Instancio.gen().booleans().get(), startDate, endDate),
                     eventScope,
                     offlineEvents,
@@ -368,18 +368,18 @@ class ReleaseEventMapperTest {
 
             private fun recentlyEnded(hasEndDate: Boolean, isOffline: Boolean): ArgumentSet {
                 val eventScope = eventScopeSpecs.get().let(Duration::ofDays)
-                val startDate = LocalDate.now().minusDays(eventScope.toDays() - 1)
-                val endDate = if (!hasEndDate) null else startDate.plusDays(1)
+                val endDate = if (!hasEndDate) null else LocalDate.now().minusDays(1)
+                val startDate = (endDate ?: LocalDate.now()).minusDays(1)
                 val event = createEvent(isOffline, startDate, endDate)
 
                 return argumentSet(
-                    "event recently ended (${if (hasEndDate) "several-day" else "one-day"} event, ${if (isOffline) "offline" else "online"})",
+                    "event recently ended (${if (hasEndDate) "several-day" else "one-day"} event, ${if (isOffline) "offline" else "online"}, scope: $eventScope)",
                     event,
                     eventScope,
                     offlineEvents,
                     ReleaseEventPreviewResponse(
                         event.id,
-                        event.date,
+                        requireNotNull(event.date),
                         event.endDate,
                         event.name,
                         Unspecified,
@@ -397,13 +397,13 @@ class ReleaseEventMapperTest {
                 val event = createEvent(isOffline, startDate, endDate)
 
                 return argumentSet(
-                    "event currently happening (${if (hasEndDate) "several-day" else "one-day"} event, ${if (isOffline) "offline" else "online"})",
+                    "event currently happening (${if (hasEndDate) "several-day" else "one-day"} event, ${if (isOffline) "offline" else "online"}, scope: $eventScope)",
                     event,
                     eventScope,
                     offlineEvents,
                     ReleaseEventPreviewResponse(
                         event.id,
-                        event.date,
+                        requireNotNull(event.date),
                         event.endDate,
                         event.name,
                         Unspecified,
@@ -427,7 +427,7 @@ class ReleaseEventMapperTest {
                     offlineEvents,
                     ReleaseEventPreviewResponse(
                         event.id,
-                        event.date,
+                        requireNotNull(event.date),
                         event.endDate,
                         event.name,
                         Unspecified,
