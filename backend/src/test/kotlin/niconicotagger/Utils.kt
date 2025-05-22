@@ -12,6 +12,9 @@ import org.instancio.Select.root
 import org.instancio.Select.types
 import org.instancio.settings.Keys.MAP_MAX_SIZE
 import org.instancio.settings.Keys.MAP_MIN_SIZE
+import java.time.Clock
+import java.time.LocalDate
+import java.time.ZoneOffset.UTC
 
 object Utils {
     val jsonMapper: JsonMapper =
@@ -22,6 +25,9 @@ object Utils {
             .build()
     val xmlMapper: XmlMapper =
         XmlMapper.builder().findAndAddModules().addModule(JavaTimeModule()).disable(FAIL_ON_UNKNOWN_PROPERTIES).build()
+
+    val eventPreviewFixedDate = LocalDate.of(2025, 5, 22)
+    val eventPreviewMapperFixedClock: Clock = Clock.fixed(eventPreviewFixedDate.atStartOfDay().toInstant(UTC), UTC)
 
     fun loadResource(path: String) =
         Utils::class.java.classLoader.getResourceAsStream(path)?.readAllBytes() ?: error("Invalid path $path")

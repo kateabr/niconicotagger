@@ -82,7 +82,7 @@ open class VocaDbClient(baseUrl: String, private val jsonMapper: JsonMapper) {
             .baseUrl(baseUrl)
             .defaultHeader(USER_AGENT, DEFAULT_USER_AGENT)
             .defaultHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
-            .codecs { configurer -> configurer.defaultCodecs().maxInMemorySize(500 * 1024) }
+            .codecs { configurer -> configurer.defaultCodecs().maxInMemorySize(1000 * 1024) }
             .filter { request, next ->
                 next
                     .exchange(request)

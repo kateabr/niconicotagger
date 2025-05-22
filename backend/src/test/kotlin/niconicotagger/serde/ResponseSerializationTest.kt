@@ -9,6 +9,7 @@ import java.time.format.DateTimeFormatter.ISO_DATE
 import java.util.stream.Stream
 import net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson
 import niconicotagger.Utils.createSampleSongTypeStats
+import niconicotagger.Utils.eventPreviewMapperFixedClock
 import niconicotagger.Utils.jsonMapper
 import niconicotagger.dto.api.misc.ApiType.ARTISTS
 import niconicotagger.dto.api.misc.ApiType.SONGS
@@ -63,6 +64,8 @@ import org.junit.jupiter.params.provider.Arguments.argumentSet
 import org.junit.jupiter.params.provider.ArgumentsProvider
 import org.junit.jupiter.params.provider.ArgumentsSource
 import java.time.LocalDate
+import java.time.temporal.ChronoUnit
+import java.time.temporal.ChronoUnit.DAYS
 
 class ResponseSerializationTest {
 
@@ -912,12 +915,12 @@ class ResponseSerializationTest {
             private fun createPreview(setToNull: Boolean): ReleaseEventPreviewResponse {
                 return if (setToNull)
                     Instancio.of(ReleaseEventPreviewResponse::class.java)
-                        .set(field("date"), LocalDate.of(2025, 5, 22).atStartOfDay().atOffset(UTC).toInstant())
+                        .set(field("date"), eventPreviewMapperFixedClock.instant())
                         .ignore(all(field("endDate"), field("pictureUrl")))
                         .create()
                 else Instancio.of(ReleaseEventPreviewResponse::class.java)
-                    .set(field("date"), LocalDate.of(2025, 5, 22).atStartOfDay().atOffset(UTC).toInstant())
-                    .set(field("endDate"), LocalDate.of(2025, 5, 23).atStartOfDay().atOffset(UTC).toInstant())
+                    .set(field("date"), eventPreviewMapperFixedClock.instant())
+                    .set(field("endDate"), eventPreviewMapperFixedClock.instant().plus(1, DAYS))
                     .create()
             }
 

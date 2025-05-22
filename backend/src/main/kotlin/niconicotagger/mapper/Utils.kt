@@ -24,6 +24,8 @@ import niconicotagger.dto.inner.misc.ReleaseEventCategory.Unspecified
 import niconicotagger.dto.inner.misc.SongType
 import niconicotagger.dto.inner.vocadb.VocaDbReleaseEvent
 import niconicotagger.dto.inner.vocadb.VocaDbReleaseEventSeries
+import java.time.Clock
+import java.time.temporal.ChronoUnit
 
 object Utils {
     @JvmStatic
@@ -50,8 +52,8 @@ object Utils {
         if (event.category == Unspecified && series != null) series.category else event.category
 
     @JvmStatic
-    internal fun getEventStatus(event: VocaDbReleaseEvent, eventScope: Duration): EventStatus {
-        val today = LocalDate.now().atStartOfDay().toInstant(UTC)
+    internal fun getEventStatus(event: VocaDbReleaseEvent, eventScope: Duration, clock: Clock): EventStatus {
+        val today = clock.instant().truncatedTo(DAYS)
         if (
             !today.isBefore(requireNotNull(event.date)) && !today.isAfter(requireNotNull(event.endDate ?: event.date))
         ) {

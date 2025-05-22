@@ -1,5 +1,10 @@
 package niconicotagger.mapper
 
+import io.mockk.every
+import io.mockk.mockkStatic
+import io.mockk.verifyAll
+import niconicotagger.Utils.eventPreviewFixedDate
+import niconicotagger.Utils.eventPreviewMapperFixedClock
 import niconicotagger.dto.api.response.ReleaseEventPreviewResponse
 import niconicotagger.dto.api.response.ReleaseEventWithVocaDbTagsResponse
 import niconicotagger.dto.api.response.ReleaseEventWitnNndTagsResponse
@@ -36,9 +41,12 @@ import org.junit.jupiter.params.provider.ArgumentsProvider
 import org.junit.jupiter.params.provider.ArgumentsSource
 import org.junit.jupiter.params.provider.FieldSource
 import org.mapstruct.factory.Mappers
+import org.mockito.MockedStatic
+import java.time.Clock
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
+import java.time.OffsetDateTime
 import java.time.ZoneOffset.UTC
 import java.time.temporal.ChronoUnit.DAYS
 import java.util.function.Function
@@ -49,6 +57,9 @@ import kotlin.math.absoluteValue
 @ExtendWith(InstancioExtension::class)
 class ReleaseEventMapperTest {
     private val mapper: ReleaseEventMapper = Mappers.getMapper(ReleaseEventMapper::class.java)
+    init {
+        mapper.clock = eventPreviewMapperFixedClock
+    }
 
     @ParameterizedTest
     @ArgumentsSource(EventPreviewTestData::class)
@@ -349,12 +360,12 @@ class ReleaseEventMapperTest {
             private fun outOfRecentScope(offByDays: Long, hasEndDate: Boolean): ArgumentSet {
                 val eventScope = eventScopeSpecs.get().let(Duration::ofDays)
                 val startDate = if (offByDays > 0)
-                    LocalDate.now().plusDays(eventScope.toDays()).plusDays(offByDays)
+                    eventPreviewFixedDate.plusDays(eventScope.toDays()).plusDays(offByDays)
                 else
                     if (!hasEndDate)
-                        LocalDate.now().minusDays(eventScope.toDays()).minusDays(-offByDays)
+                        eventPreviewFixedDate.minusDays(eventScope.toDays()).minusDays(-offByDays)
                     else
-                        LocalDate.now().minusDays(eventScope.toDays()).minusDays(-offByDays * 2)
+                        eventPreviewFixedDate.minusDays(eventScope.toDays()).minusDays(-offByDays * 2)
                 val endDate = if (!hasEndDate) null else startDate.plusDays(offByDays)
 
                 return argumentSet(
@@ -368,8 +379,8 @@ class ReleaseEventMapperTest {
 
             private fun recentlyEnded(hasEndDate: Boolean, isOffline: Boolean): ArgumentSet {
                 val eventScope = eventScopeSpecs.get().let(Duration::ofDays)
-                val endDate = if (!hasEndDate) null else LocalDate.now().minusDays(1)
-                val startDate = (endDate ?: LocalDate.now()).minusDays(1)
+                val endDate = if (!hasEndDate) null else eventPreviewFixedDate.minusDays(1)
+                val startDate = (endDate ?: eventPreviewFixedDate).minusDays(1)
                 val event = createEvent(isOffline, startDate, endDate)
 
                 return argumentSet(
@@ -392,7 +403,7 @@ class ReleaseEventMapperTest {
 
             private fun ongoing(hasEndDate: Boolean, isOffline: Boolean): ArgumentSet {
                 val eventScope = eventScopeSpecs.get().let(Duration::ofDays)
-                val startDate = LocalDate.now()
+                val startDate = eventPreviewFixedDate
                 val endDate = if (!hasEndDate) null else startDate.plusDays(1)
                 val event = createEvent(isOffline, startDate, endDate)
 
@@ -416,7 +427,7 @@ class ReleaseEventMapperTest {
 
             private fun upcoming(hasEndDate: Boolean, isOffline: Boolean): ArgumentSet {
                 val eventScope = eventScopeSpecs.get().let(Duration::ofDays)
-                val startDate = LocalDate.now().plusDays(1)
+                val startDate = eventPreviewFixedDate.plusDays(1)
                 val endDate = if (!hasEndDate) null else startDate.plusDays(eventScope.toDays())
                 val event = createEvent(isOffline, startDate, endDate)
 
