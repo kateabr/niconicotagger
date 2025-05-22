@@ -1,9 +1,8 @@
 package niconicotagger.mapper
 
+import java.time.Clock
 import java.time.Duration
 import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneOffset.UTC
 import java.time.temporal.ChronoUnit.DAYS
 import niconicotagger.dto.api.misc.DispositionRelativelyToDate
 import niconicotagger.dto.api.misc.DispositionRelativelyToDate.Disposition.EARLY
@@ -24,8 +23,6 @@ import niconicotagger.dto.inner.misc.ReleaseEventCategory.Unspecified
 import niconicotagger.dto.inner.misc.SongType
 import niconicotagger.dto.inner.vocadb.VocaDbReleaseEvent
 import niconicotagger.dto.inner.vocadb.VocaDbReleaseEventSeries
-import java.time.Clock
-import java.time.temporal.ChronoUnit
 
 object Utils {
     @JvmStatic

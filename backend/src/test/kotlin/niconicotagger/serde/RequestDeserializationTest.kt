@@ -239,8 +239,9 @@ class RequestDeserializationTest {
                         "clientType": "vocadb_beta",
                         "useCached": false
                     }
-                    """.trimIndent(),
-                    EventScheduleRequest(VOCADB_BETA, false)
+                    """
+                        .trimIndent(),
+                    EventScheduleRequest(VOCADB_BETA, false),
                 ),
                 arguments(
                     EventScheduleRequest::class.java,
@@ -248,9 +249,10 @@ class RequestDeserializationTest {
                     {
                         "clientType": "vocadb_beta"
                     }
-                    """.trimIndent(),
-                    EventScheduleRequest(VOCADB_BETA, true)
-                )
+                    """
+                        .trimIndent(),
+                    EventScheduleRequest(VOCADB_BETA, true),
+                ),
             )
     }
 }

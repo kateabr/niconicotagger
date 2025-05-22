@@ -6,11 +6,11 @@ import io.mockk.coVerifyAll
 import io.mockk.coVerifyCount
 import io.mockk.confirmVerified
 import io.mockk.every
-import io.mockk.mockk
 import io.mockk.mockkClass
-import io.mockk.slot
 import io.mockk.verifyAll
 import io.mockk.verifyCount
+import java.time.Duration
+import java.time.OffsetDateTime
 import kotlinx.coroutines.runBlocking
 import niconicotagger.dto.api.misc.ClientType
 import niconicotagger.dto.api.request.EventScheduleRequest
@@ -35,8 +35,6 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.NullSource
 import org.junit.jupiter.params.provider.ValueSource
 import org.springframework.test.util.ReflectionTestUtils
-import java.time.Duration
-import java.time.OffsetDateTime
 
 @ExtendWith(InstancioExtension::class)
 class EventMethodsTest : AggregatingServiceTest() {
@@ -54,13 +52,12 @@ class EventMethodsTest : AggregatingServiceTest() {
             val resultPlaceholder = mockkClass(ReleaseEventWitnNndTagsResponse::class)
             every { resultPlaceholder.nndTags } returns Instancio.createList(String::class.java)
             coEvery { dbClient.getEventByName(eq(eventName), eq("WebLinks")) } returns
-                    Instancio.of(VocaDbReleaseEvent::class.java).set(field("seriesId"), seriesId).create()
+                Instancio.of(VocaDbReleaseEvent::class.java).set(field("seriesId"), seriesId).create()
             if (seriesId != null) {
                 coEvery { dbClient.getEventSeriesById(eq(seriesId), eq("WebLinks")) } returns
-                        Instancio.create(VocaDbReleaseEventSeries::class.java)
+                    Instancio.create(VocaDbReleaseEventSeries::class.java)
             }
-            every { eventMapper.mapWithLinks(any(), any(VocaDbReleaseEventSeries::class)) } returns
-                    resultPlaceholder
+            every { eventMapper.mapWithLinks(any(), any(VocaDbReleaseEventSeries::class)) } returns resultPlaceholder
 
             assertThat(aggregatingService.getReleaseEventByName(GetReleaseEventRequest(eventName, clientType)))
                 .isEqualTo(resultPlaceholder)
@@ -92,7 +89,7 @@ class EventMethodsTest : AggregatingServiceTest() {
             coEvery { dbClient.getEventSeriesById(eq(seriesId)) } returns eventSeries
         }
         every { eventMapper.mapWithTags(eq(releaseEvent), seriesId?.let { eq(eventSeries) } ?: isNull()) } returns
-                resultPlaceholder
+            resultPlaceholder
 
         assertThat(aggregatingService.getReleaseEventWithLinkedTags(GetReleaseEventRequest(eventName, clientType)))
             .isEqualTo(resultPlaceholder)
@@ -106,21 +103,24 @@ class EventMethodsTest : AggregatingServiceTest() {
     @Test
     fun `get recent events test`(@Given request: EventScheduleRequest): Unit = runBlocking {
         val uniqueIds = mutableSetOf<Long>()
-        val outOfScopeEvent = Instancio.of(VocaDbReleaseEvent::class.java)
-            .set(field("date"), OffsetDateTime.now().plusMonths(1).toInstant())
-            .withNullable(field("endDate"))
-            .filter<Long>(field("id")) { uniqueIds.add(it) }
-            .create()
-        val regularEvent = Instancio.of(VocaDbReleaseEvent::class.java)
-            .set(field("date"), OffsetDateTime.now().toInstant())
-            .withNullable(field("endDate"))
-            .filter<Long>(field("id")) { uniqueIds.add(it) }
-            .create()
-        val frontPageEvent = Instancio.of(VocaDbReleaseEvent::class.java)
-            .set(field("date"), OffsetDateTime.now().toInstant())
-            .withNullable(field("endDate"))
-            .filter<Long>(field("id")) { uniqueIds.add(it) }
-            .create()
+        val outOfScopeEvent =
+            Instancio.of(VocaDbReleaseEvent::class.java)
+                .set(field("date"), OffsetDateTime.now().plusMonths(1).toInstant())
+                .withNullable(field("endDate"))
+                .filter<Long>(field("id")) { uniqueIds.add(it) }
+                .create()
+        val regularEvent =
+            Instancio.of(VocaDbReleaseEvent::class.java)
+                .set(field("date"), OffsetDateTime.now().toInstant())
+                .withNullable(field("endDate"))
+                .filter<Long>(field("id")) { uniqueIds.add(it) }
+                .create()
+        val frontPageEvent =
+            Instancio.of(VocaDbReleaseEvent::class.java)
+                .set(field("date"), OffsetDateTime.now().toInstant())
+                .withNullable(field("endDate"))
+                .filter<Long>(field("id")) { uniqueIds.add(it) }
+                .create()
         val allEventsForPreview = listOf(outOfScopeEvent, regularEvent, frontPageEvent)
         coEvery { dbClient.getAllEventsForYear(eq(request.useCached)) } returns listOf(outOfScopeEvent, regularEvent)
         coEvery { dbClient.getFrontPageData() } returns VocaDbFrontPageData(listOf(frontPageEvent, regularEvent))
@@ -128,7 +128,7 @@ class EventMethodsTest : AggregatingServiceTest() {
             eventMapper.mapForPreview(
                 match { allEventsForPreview.map { event -> event.id }.contains(it.id) },
                 eq(ReflectionTestUtils.getField(aggregatingService, "eventScope") as Duration),
-                eq(ReflectionTestUtils.getField(aggregatingService, "offlineEvents") as Set<ReleaseEventCategory>)
+                eq(ReflectionTestUtils.getField(aggregatingService, "offlineEvents") as Set<ReleaseEventCategory>),
             )
         } returns Instancio.create(ReleaseEventPreviewResponse::class.java)
 

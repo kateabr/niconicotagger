@@ -1,5 +1,9 @@
 package niconicotagger.mapper
 
+import java.net.URLDecoder
+import java.nio.charset.Charset
+import java.time.Clock
+import java.time.Duration
 import niconicotagger.dto.api.response.ReleaseEventPreviewResponse
 import niconicotagger.dto.api.response.ReleaseEventWithVocaDbTagsResponse
 import niconicotagger.dto.api.response.ReleaseEventWitnNndTagsResponse
@@ -9,17 +13,9 @@ import niconicotagger.dto.inner.misc.ReleaseEventCategory
 import niconicotagger.dto.inner.vocadb.VocaDbReleaseEvent
 import niconicotagger.dto.inner.vocadb.VocaDbReleaseEventSeries
 import org.mapstruct.Context
-import org.mapstruct.InjectionStrategy
-import org.mapstruct.InjectionStrategy.CONSTRUCTOR
-import org.mapstruct.InjectionStrategy.FIELD
 import org.mapstruct.Mapper
 import org.mapstruct.Mapping
 import org.mapstruct.MappingConstants.ComponentModel.SPRING
-import org.springframework.beans.factory.annotation.Autowired
-import java.net.URLDecoder
-import java.nio.charset.Charset
-import java.time.Clock
-import java.time.Duration
 
 @Mapper(componentModel = SPRING, imports = [Utils::class])
 abstract class ReleaseEventMapper {

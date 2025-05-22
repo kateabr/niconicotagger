@@ -9,6 +9,7 @@ import com.github.tomakehurst.wiremock.client.WireMock.okJson
 import com.github.tomakehurst.wiremock.client.WireMock.post
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathTemplate
+import java.time.LocalDate
 import java.util.stream.Stream
 import kotlinx.coroutines.runBlocking
 import niconicotagger.Utils.jsonMapper
@@ -46,7 +47,6 @@ import org.springframework.http.MediaType.APPLICATION_XML_VALUE
 import org.springframework.http.MediaType.TEXT_HTML_VALUE
 import org.springframework.test.json.JsonCompareMode.STRICT
 import org.springframework.test.web.servlet.post
-import java.time.LocalDate
 
 @ExtendWith(InstancioExtension::class)
 class AggregatingControllerTest : AbstractControllerTest() {
@@ -98,10 +98,14 @@ class AggregatingControllerTest : AbstractControllerTest() {
             get(urlPathTemplate("/api/releaseEvents"))
                 .withQueryParams(
                     mapOf(
-                        "afterDate" to equalToDateTime(LocalDate.now().minusYears(1).withMonth(12).withDayOfMonth(31).atStartOfDay()),
-                        "beforeDate" to equalToDateTime(
-                            LocalDate.now().plusYears(1).withMonth(1).withDayOfMonth(31).atStartOfDay()
-                        ),
+                        "afterDate" to
+                            equalToDateTime(
+                                LocalDate.now().minusYears(1).withMonth(12).withDayOfMonth(31).atStartOfDay()
+                            ),
+                        "beforeDate" to
+                            equalToDateTime(
+                                LocalDate.now().plusYears(1).withMonth(1).withDayOfMonth(31).atStartOfDay()
+                            ),
                         "start" to equalTo("0"),
                         "maxResults" to equalTo("1000"),
                         "getTotalCount" to equalTo("true"),
@@ -131,7 +135,7 @@ class AggregatingControllerTest : AbstractControllerTest() {
                         "useCached": false
                     }
                      """
-                    .trimIndent()
+                        .trimIndent()
             }
             .asyncDispatch()
             .andExpect {

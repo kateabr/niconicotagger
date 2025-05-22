@@ -1,8 +1,14 @@
 package niconicotagger.mapper
 
-import io.mockk.every
-import io.mockk.mockkStatic
-import io.mockk.verifyAll
+import java.time.Duration
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneOffset.UTC
+import java.time.temporal.ChronoUnit.DAYS
+import java.util.function.Function
+import java.util.function.Supplier
+import java.util.stream.Stream
+import kotlin.math.absoluteValue
 import niconicotagger.Utils.eventPreviewFixedDate
 import niconicotagger.Utils.eventPreviewMapperFixedClock
 import niconicotagger.dto.api.response.ReleaseEventPreviewResponse
@@ -41,22 +47,11 @@ import org.junit.jupiter.params.provider.ArgumentsProvider
 import org.junit.jupiter.params.provider.ArgumentsSource
 import org.junit.jupiter.params.provider.FieldSource
 import org.mapstruct.factory.Mappers
-import org.mockito.MockedStatic
-import java.time.Clock
-import java.time.Duration
-import java.time.Instant
-import java.time.LocalDate
-import java.time.OffsetDateTime
-import java.time.ZoneOffset.UTC
-import java.time.temporal.ChronoUnit.DAYS
-import java.util.function.Function
-import java.util.function.Supplier
-import java.util.stream.Stream
-import kotlin.math.absoluteValue
 
 @ExtendWith(InstancioExtension::class)
 class ReleaseEventMapperTest {
     private val mapper: ReleaseEventMapper = Mappers.getMapper(ReleaseEventMapper::class.java)
+
     init {
         mapper.clock = eventPreviewMapperFixedClock
     }
@@ -67,7 +62,7 @@ class ReleaseEventMapperTest {
         event: VocaDbReleaseEvent,
         eventScope: Duration,
         offlineEvents: Set<ReleaseEventCategory>,
-        expectedObject: ReleaseEventPreviewResponse?
+        expectedObject: ReleaseEventPreviewResponse?,
     ) {
         assertThat(mapper.mapForPreview(event, eventScope, offlineEvents))
             .usingRecursiveComparison()
@@ -79,7 +74,7 @@ class ReleaseEventMapperTest {
     @ArgumentsSource(EventPreviewCategoryTestData::class)
     fun `map event previews (event category only) test`(
         event: VocaDbReleaseEvent,
-        expectedCategory: ReleaseEventCategory
+        expectedCategory: ReleaseEventCategory,
     ) {
         assertThat(mapper.mapForPreview(event, Duration.ofDays(14), emptySet()))
             .usingRecursiveComparison()
@@ -92,11 +87,11 @@ class ReleaseEventMapperTest {
     @FieldSource("tagExtractionTestData")
     fun `NND tag extraction test`(link: WebLink, expectedTags: List<String>) {
         assertThat(
-            mapper.mapWithLinks(
-                Instancio.of(VocaDbReleaseEvent::class.java).set(field("webLinks"), listOf(link)).create(),
-                null,
+                mapper.mapWithLinks(
+                    Instancio.of(VocaDbReleaseEvent::class.java).set(field("webLinks"), listOf(link)).create(),
+                    null,
+                )
             )
-        )
             .extracting { it.nndTags }
             .asInstanceOf(list(String::class.java))
             .containsExactlyInAnyOrderElementsOf(expectedTags)
@@ -220,10 +215,7 @@ class ReleaseEventMapperTest {
                     Instancio.of(VocaDbReleaseEventSeries::class.java)
                         .set(
                             field("webLinks"),
-                            listOf(
-                                WebLink("https://www.nicovideo.jp/tag/general_series_tag"),
-                                WebLink("https://x.com")
-                            ),
+                            listOf(WebLink("https://www.nicovideo.jp/tag/general_series_tag"), WebLink("https://x.com")),
                         )
                         .create(),
                     listOf("event_specific_tag", "general_series_tag"),
@@ -266,10 +258,7 @@ class ReleaseEventMapperTest {
                     Instancio.of(VocaDbReleaseEventSeries::class.java)
                         .set(
                             field("webLinks"),
-                            listOf(
-                                WebLink("https://www.nicovideo.jp/tag/general_series_tag"),
-                                WebLink("https://x.com")
-                            ),
+                            listOf(WebLink("https://www.nicovideo.jp/tag/general_series_tag"), WebLink("https://x.com")),
                         )
                         .create(),
                     listOf("general_series_tag"),
@@ -359,13 +348,10 @@ class ReleaseEventMapperTest {
 
             private fun outOfRecentScope(offByDays: Long, hasEndDate: Boolean): ArgumentSet {
                 val eventScope = eventScopeSpecs.get().let(Duration::ofDays)
-                val startDate = if (offByDays > 0)
-                    eventPreviewFixedDate.plusDays(eventScope.toDays()).plusDays(offByDays)
-                else
-                    if (!hasEndDate)
-                        eventPreviewFixedDate.minusDays(eventScope.toDays()).minusDays(-offByDays)
-                    else
-                        eventPreviewFixedDate.minusDays(eventScope.toDays()).minusDays(-offByDays * 2)
+                val startDate =
+                    if (offByDays > 0) eventPreviewFixedDate.plusDays(eventScope.toDays()).plusDays(offByDays)
+                    else if (!hasEndDate) eventPreviewFixedDate.minusDays(eventScope.toDays()).minusDays(-offByDays)
+                    else eventPreviewFixedDate.minusDays(eventScope.toDays()).minusDays(-offByDays * 2)
                 val endDate = if (!hasEndDate) null else startDate.plusDays(offByDays)
 
                 return argumentSet(
@@ -373,7 +359,7 @@ class ReleaseEventMapperTest {
                     createEvent(Instancio.gen().booleans().get(), startDate, endDate),
                     eventScope,
                     offlineEvents,
-                    null
+                    null,
                 )
             }
 
@@ -396,8 +382,8 @@ class ReleaseEventMapperTest {
                         Unspecified,
                         ENDED,
                         event.mainPicture?.urlOriginal,
-                        isOffline
-                    )
+                        isOffline,
+                    ),
                 )
             }
 
@@ -420,8 +406,8 @@ class ReleaseEventMapperTest {
                         Unspecified,
                         ONGOING,
                         event.mainPicture?.urlOriginal,
-                        isOffline
-                    )
+                        isOffline,
+                    ),
                 )
             }
 
@@ -444,51 +430,54 @@ class ReleaseEventMapperTest {
                         Unspecified,
                         UPCOMING,
                         event.mainPicture?.urlOriginal,
-                        isOffline
-                    )
+                        isOffline,
+                    ),
                 )
             }
 
             override fun provideArguments(context: ExtensionContext?): Stream<out Arguments> {
-                return listOf(true, false).flatMap { hasEndDate ->
-                    listOf(-2L, 2L).map { offByDays ->
-                        outOfRecentScope(offByDays, hasEndDate)
-                    } + listOf(true, false).flatMap { isOffline ->
-                        listOf(
-                            recentlyEnded(hasEndDate, isOffline),
-                            ongoing(hasEndDate, isOffline),
-                            upcoming(hasEndDate, isOffline)
-                        )
+                return listOf(true, false)
+                    .flatMap { hasEndDate ->
+                        listOf(-2L, 2L).map { offByDays -> outOfRecentScope(offByDays, hasEndDate) } +
+                            listOf(true, false).flatMap { isOffline ->
+                                listOf(
+                                    recentlyEnded(hasEndDate, isOffline),
+                                    ongoing(hasEndDate, isOffline),
+                                    upcoming(hasEndDate, isOffline),
+                                )
+                            }
                     }
-                }
                     .stream()
             }
-
         }
 
         class EventPreviewCategoryTestData : ArgumentsProvider {
             private fun createEvent(hasSeries: Boolean, hasEndDate: Boolean, hasCategory: Boolean): ArgumentSet {
-                var eventSpec = Instancio.of(VocaDbReleaseEvent::class.java)
-                    .lenient()
-                    .generate(field("category")) { gen ->
-                        if (!hasCategory) gen.oneOf(Unspecified) else gen.enumOf(
-                            ReleaseEventCategory::class.java
-                        ).excluding(Unspecified)
-                    }
-                    .assign(valueOf(field("date")).supply(Supplier { Instant.now() }))
-                    .assign(
-                        valueOf(field("date")).to(field("endDate"))
-                            .`as`<Instant, Instant?>(Function { it.plus(1, DAYS) }).`when`<Instant> { hasEndDate })
+                var eventSpec =
+                    Instancio.of(VocaDbReleaseEvent::class.java)
+                        .lenient()
+                        .generate(field("category")) { gen ->
+                            if (!hasCategory) gen.oneOf(Unspecified)
+                            else gen.enumOf(ReleaseEventCategory::class.java).excluding(Unspecified)
+                        }
+                        .assign(valueOf(field("date")).supply(Supplier { Instant.now() }))
+                        .assign(
+                            valueOf(field("date"))
+                                .to(field("endDate"))
+                                .`as`<Instant, Instant?>(Function { it.plus(1, DAYS) })
+                                .`when`<Instant> { hasEndDate }
+                        )
                 if (!hasSeries) eventSpec = eventSpec.ignore(all(field("seriesId"), field("series")))
                 if (!hasEndDate) eventSpec = eventSpec.ignore(field("endDate"))
                 val event = eventSpec.create()
                 val expectedCategory =
-                    if (event.category == Unspecified && event.seriesId != null) event?.series?.category else event.category
+                    if (event.category == Unspecified && event.seriesId != null) event?.series?.category
+                    else event.category
 
                 return argumentSet(
                     "${if (hasEndDate) "several-day" else "one-day"} ${if (hasSeries) "series" else "standalone"} event of category ${event.category} => $expectedCategory",
                     event,
-                    expectedCategory
+                    expectedCategory,
                 )
             }
 
@@ -501,7 +490,6 @@ class ReleaseEventMapperTest {
                     .map { createEvent(it.first, it.second, it.third) }
                     .stream()
             }
-
         }
     }
 }

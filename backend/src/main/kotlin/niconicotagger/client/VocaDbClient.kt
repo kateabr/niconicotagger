@@ -5,7 +5,6 @@ import com.github.benmanes.caffeine.cache.Caffeine
 import com.sksamuel.aedile.core.asCache
 import io.netty.channel.ChannelOption.CONNECT_TIMEOUT_MILLIS
 import io.netty.handler.logging.LogLevel.DEBUG
-import io.netty.handler.logging.LogLevel.INFO
 import io.netty.handler.timeout.ReadTimeoutHandler
 import io.netty.handler.timeout.WriteTimeoutHandler
 import java.time.Duration

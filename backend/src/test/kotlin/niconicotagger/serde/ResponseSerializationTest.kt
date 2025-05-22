@@ -6,6 +6,7 @@ import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.time.ZoneOffset.UTC
 import java.time.format.DateTimeFormatter.ISO_DATE
+import java.time.temporal.ChronoUnit.DAYS
 import java.util.stream.Stream
 import net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson
 import niconicotagger.Utils.createSampleSongTypeStats
@@ -50,12 +51,10 @@ import org.instancio.Instancio
 import org.instancio.Select.all
 import org.instancio.Select.field
 import org.instancio.TypeToken
-import org.instancio.junit.Given
 import org.instancio.settings.Keys.COLLECTION_MAX_SIZE
 import org.instancio.settings.Keys.COLLECTION_MIN_SIZE
 import org.instancio.settings.Keys.MAP_MAX_SIZE
 import org.instancio.settings.Keys.MAP_MIN_SIZE
-import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtensionContext
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
@@ -63,9 +62,6 @@ import org.junit.jupiter.params.provider.Arguments.ArgumentSet
 import org.junit.jupiter.params.provider.Arguments.argumentSet
 import org.junit.jupiter.params.provider.ArgumentsProvider
 import org.junit.jupiter.params.provider.ArgumentsSource
-import java.time.LocalDate
-import java.time.temporal.ChronoUnit
-import java.time.temporal.ChronoUnit.DAYS
 
 class ResponseSerializationTest {
 
@@ -110,7 +106,10 @@ class ResponseSerializationTest {
 
     @ParameterizedTest
     @ArgumentsSource(ReleaseEventPreviewResponseTestData::class)
-    fun `ReleaseEventPreviewResponse serialization test`(responseObject: ReleaseEventPreviewResponse, expectedJson: String) {
+    fun `ReleaseEventPreviewResponse serialization test`(
+        responseObject: ReleaseEventPreviewResponse,
+        expectedJson: String,
+    ) {
         assertThatJson(jsonMapper.writeValueAsString(responseObject)).isEqualTo(expectedJson)
     }
 
@@ -911,17 +910,18 @@ class ResponseSerializationTest {
             }
         }
 
-        class ReleaseEventPreviewResponseTestData: ArgumentsProvider {
+        class ReleaseEventPreviewResponseTestData : ArgumentsProvider {
             private fun createPreview(setToNull: Boolean): ReleaseEventPreviewResponse {
                 return if (setToNull)
                     Instancio.of(ReleaseEventPreviewResponse::class.java)
                         .set(field("date"), eventPreviewMapperFixedClock.instant())
                         .ignore(all(field("endDate"), field("pictureUrl")))
                         .create()
-                else Instancio.of(ReleaseEventPreviewResponse::class.java)
-                    .set(field("date"), eventPreviewMapperFixedClock.instant())
-                    .set(field("endDate"), eventPreviewMapperFixedClock.instant().plus(1, DAYS))
-                    .create()
+                else
+                    Instancio.of(ReleaseEventPreviewResponse::class.java)
+                        .set(field("date"), eventPreviewMapperFixedClock.instant())
+                        .set(field("endDate"), eventPreviewMapperFixedClock.instant().plus(1, DAYS))
+                        .create()
             }
 
             override fun provideArguments(context: ExtensionContext?): Stream<out Arguments> {
@@ -941,11 +941,11 @@ class ResponseSerializationTest {
                             "pictureUrl": ${if (it) null else "\"" + preview.pictureUrl + "\""},
                             "isOffline": ${preview.isOffline}
                         }
-                        """.trimIndent()
+                        """
+                            .trimIndent(),
                     )
                 }
             }
-
         }
     }
 }

@@ -13,7 +13,9 @@ import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathTemplate
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo
 import com.github.tomakehurst.wiremock.junit5.WireMockTest
+import java.net.URI
 import java.time.Instant
+import java.time.LocalDate
 import java.time.OffsetDateTime
 import kotlinx.coroutines.runBlocking
 import niconicotagger.Utils.jsonMapper
@@ -31,7 +33,6 @@ import niconicotagger.dto.inner.misc.ArtistType
 import niconicotagger.dto.inner.misc.ArtistType.Circle
 import niconicotagger.dto.inner.misc.ArtistType.Producer
 import niconicotagger.dto.inner.misc.ArtistType.SynthesizerV
-import niconicotagger.dto.inner.misc.ReleaseEventCategory
 import niconicotagger.dto.inner.misc.ReleaseEventCategory.Anniversary
 import niconicotagger.dto.inner.misc.ReleaseEventCategory.Club
 import niconicotagger.dto.inner.misc.ReleaseEventCategory.Festival
@@ -88,8 +89,6 @@ import org.springframework.http.HttpHeaders.CONTENT_TYPE
 import org.springframework.http.HttpHeaders.SET_COOKIE
 import org.springframework.http.HttpHeaders.USER_AGENT
 import org.springframework.http.MediaType.APPLICATION_JSON_VALUE
-import java.net.URI
-import java.time.LocalDate
 
 @WireMockTest
 @ExtendWith(InstancioExtension::class)
@@ -645,12 +644,14 @@ class VocaDbClientTest {
             get(urlPathEqualTo("/api/releaseEvents"))
                 .withQueryParams(
                     mapOf(
-                        "afterDate" to equalToDateTime(
-                            LocalDate.now().minusYears(1).withMonth(12).withDayOfMonth(31).atStartOfDay()
-                        ),
-                        "beforeDate" to equalToDateTime(
-                            LocalDate.now().plusYears(1).withMonth(1).withDayOfMonth(31).atStartOfDay()
-                        ),
+                        "afterDate" to
+                            equalToDateTime(
+                                LocalDate.now().minusYears(1).withMonth(12).withDayOfMonth(31).atStartOfDay()
+                            ),
+                        "beforeDate" to
+                            equalToDateTime(
+                                LocalDate.now().plusYears(1).withMonth(1).withDayOfMonth(31).atStartOfDay()
+                            ),
                         "start" to equalTo("0"),
                         "maxResults" to equalTo("1000"),
                         "getTotalCount" to equalTo("true"),
@@ -679,7 +680,7 @@ class VocaDbClientTest {
                     emptyList(),
                     null,
                     null,
-                    MainPicture(URI("https://static.vocadb.net/img/releaseevent/mainOrig/8657.jpg?v=5"))
+                    MainPicture(URI("https://static.vocadb.net/img/releaseevent/mainOrig/8657.jpg?v=5")),
                 ),
                 VocaDbReleaseEvent(
                     8842,
@@ -690,13 +691,9 @@ class VocaDbClientTest {
                     emptyList(),
                     emptyList(),
                     864,
-                    VocaDbReleaseEventSeries(
-                        864,
-                        Festival,
-                        emptyList()
-                    ),
-                    null
-                )
+                    VocaDbReleaseEventSeries(864, Festival, emptyList()),
+                    null,
+                ),
             )
     }
 
@@ -726,12 +723,8 @@ class VocaDbClientTest {
                             emptyList(),
                             emptyList(),
                             545,
-                            VocaDbReleaseEventSeries(
-                                545,
-                                Festival,
-                                emptyList()
-                            ),
-                            MainPicture(URI("https://static.vocadb.net/img/releaseevent/mainOrig/7231.jpg?v=3"))
+                            VocaDbReleaseEventSeries(545, Festival, emptyList()),
+                            MainPicture(URI("https://static.vocadb.net/img/releaseevent/mainOrig/7231.jpg?v=3")),
                         )
                     )
                 )
