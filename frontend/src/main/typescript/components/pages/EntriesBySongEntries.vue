@@ -57,7 +57,7 @@
             <template #prepend>
               <b-input-group-text
                 class="justify-content-center"
-                style="width: 80px"
+                style="width: 82px"
                 >Page:
               </b-input-group-text>
             </template>
@@ -79,7 +79,7 @@
             </template>
             <template #append>
               <b-button
-                style="width: 80px"
+                style="width: 82px"
                 :variant="pageStateIsValid() ? 'success' : 'danger'"
                 :disabled="defaultDisableCondition() || !pageStateIsValid()"
                 @click="loadPage(page)"
@@ -112,7 +112,7 @@
             <span v-else>Restore page {{ ~~(startOffset / maxResults + 1) }}</span>
           </b-button>
           <b-button
-            style="width: 80px"
+            style="width: 82px"
             variant="danger"
             :disabled="defaultDisableCondition()"
             @click="unlockSession"

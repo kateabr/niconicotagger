@@ -13,7 +13,7 @@
             <b-button
               v-b-toggle="'scope-collapse-' + thisMode"
               variant="primary"
-              style="width: 80px"
+              style="width: 82px"
               :disabled="defaultDisableCondition() || !event.valid"
               ><font-awesome-icon
                 class="mr-sm-1"
@@ -33,12 +33,12 @@
             <b-button
               v-if="!fetching"
               variant="primary"
-              style="width: 80px"
+              style="width: 82px"
               :disabled="eventName === '' || defaultDisableCondition()"
               @click="fetchEvent()"
               >Load</b-button
             >
-            <b-button v-else variant="primary" style="width: 80px" disabled
+            <b-button v-else variant="primary" style="width: 82px" disabled
               ><b-spinner small></b-spinner
             ></b-button>
           </template>
@@ -59,7 +59,7 @@
                   <template #prepend>
                     <b-input-group-text
                       class="justify-content-center"
-                      style="width: 80px"
+                      style="width: 82px"
                       >Page:
                     </b-input-group-text>
                   </template>
@@ -79,7 +79,7 @@
                   </template>
                   <template #append>
                     <b-button
-                      style="width: 80px"
+                      style="width: 82px"
                       :variant="pageStateIsValid() ? 'success' : 'danger'"
                       :disabled="
                         defaultDisableCondition() || !pageStateIsValid()

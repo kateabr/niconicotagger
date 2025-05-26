@@ -13,7 +13,7 @@
             <b-button
               v-b-toggle="'scope-collapse-' + thisMode"
               variant="primary"
-              style="width: 80px"
+              style="width: 82px"
               :disabled="defaultDisableCondition()"
               ><font-awesome-icon
                 class="mr-sm-1"
@@ -33,12 +33,12 @@
             <b-button
               v-if="!fetching"
               variant="primary"
-              style="width: 80px"
+              style="width: 82px"
               :disabled="defaultDisableCondition()"
               @click="loadInitialPage()"
               >Load</b-button
             >
-            <b-button v-else variant="primary" style="width: 80px" disabled
+            <b-button v-else variant="primary" style="width: 82px" disabled
               ><b-spinner small></b-spinner
             ></b-button>
           </template>
@@ -62,7 +62,7 @@
                 <template #prepend>
                   <b-button
                     variant="secondary"
-                    style="width: 80px"
+                    style="width: 82px"
                     @click="setDefaultScopeTagString"
                   >
                     <font-awesome-icon icon="fa-solid fa-paste" />
@@ -71,7 +71,7 @@
                 <template #append>
                   <b-button
                     variant="danger"
-                    style="width: 80px"
+                    style="width: 82px"
                     :disabled="scopeTagString === ''"
                     @click="scopeTagString = ''"
                     >Clear</b-button
@@ -109,7 +109,7 @@
                   <template #prepend>
                     <b-input-group-text
                       class="justify-content-center"
-                      style="width: 80px"
+                      style="width: 82px"
                       >Page:</b-input-group-text
                     >
                   </template>
@@ -129,7 +129,7 @@
                   </template>
                   <template #append>
                     <b-button
-                      style="width: 80px"
+                      style="width: 82px"
                       :variant="pageStateIsValid() ? 'success' : 'danger'"
                       :disabled="
                         defaultDisableCondition() || !pageStateIsValid()
