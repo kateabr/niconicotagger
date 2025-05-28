@@ -692,8 +692,8 @@ export default class extends Vue {
     return getMaxResultsForDisplay(this.maxResults);
   }
 
-  private getSongTypeColorForDisplay(songType: SongType): string {
-    return getSongTypeColorForDisplay(songType);
+  private getSongTypeColorForDisplay(songType: string): string {
+    return getSongTypeColorForDisplay(SongType[songType]);
   }
 
   private pageStateIsValid(): boolean {
