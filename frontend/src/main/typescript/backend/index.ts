@@ -25,7 +25,7 @@ import { EventScheduleRequest } from "@/backend/dto/request/eventScheduleRequest
 
 export const api = {
   async authorize(payload: LoginRequest): Promise<void> {
-    return axios.post("/api/authorize", payload, { withCredentials: true });
+    return axios.post("/api/authorize", payload);
   },
   async getVideosByNndTagsForTagging(
     payload: VideosByNndTagsRequest
