@@ -13,6 +13,7 @@ import kotlinx.coroutines.runBlocking
 import niconicotagger.constants.Constants.COOKIE_HEADER_KEY
 import niconicotagger.constants.Constants.DEFAULT_USER_AGENT
 import niconicotagger.dto.api.misc.ClientType.VOCADB_BETA
+import org.eclipse.jetty.http.HttpCookie.SameSite
 import org.instancio.junit.Given
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
@@ -82,7 +83,12 @@ class AuthorizationControllerTest : AbstractControllerTest() {
                 .asyncDispatch()
                 .andExpect {
                     status { isOk() }
-                    cookie { value(COOKIE_HEADER_KEY, cookie) }
+                    cookie {
+                        value(COOKIE_HEADER_KEY, cookie)
+                        httpOnly(COOKIE_HEADER_KEY, true)
+                        secure(COOKIE_HEADER_KEY, true)
+                        sameSite(COOKIE_HEADER_KEY, SameSite.STRICT.attributeValue)
+                    }
                 }
         }
 
