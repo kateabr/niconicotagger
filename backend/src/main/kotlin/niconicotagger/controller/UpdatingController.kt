@@ -91,10 +91,11 @@ class UpdatingController(private val service: UpdatingService) {
         @Valid @RequestBody request: SongTagsAndPvsMassUpdateRequest,
         @CookieValue(COOKIE_HEADER_KEY) cookie: String,
     ): List<UpdateError> =
-        withContext(SupervisorJob()) {
-            request.subRequests
-                .chunked(maxOf(request.subRequests.size / 5, 1))
-                .map { sublist ->
+        request.subRequests
+            .chunked(10)
+            .map { sublist ->
+                // too many requests at the same time cause timeouts
+                withContext(SupervisorJob()) {
                     async {
                         sublist.map {
                             try {
@@ -108,8 +109,8 @@ class UpdatingController(private val service: UpdatingService) {
                         }
                     }
                 }
-                .awaitAll()
-                .flatten()
-                .filterIsInstance<UpdateError>()
-        }
+            }
+            .awaitAll()
+            .flatten()
+            .filterIsInstance<UpdateError>()
 }
