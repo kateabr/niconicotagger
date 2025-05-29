@@ -6,13 +6,22 @@
 
     <b-collapse id="nav-collapse" is-nav>
       <b-navbar-nav>
-        <b-nav-item :active="activeMode === 'tags'" href="/tags"
+        <b-nav-item
+          v-if="clientType != ClientType.UNKNOWN"
+          :active="activeMode === 'tags'"
+          href="/tags"
           >Tags</b-nav-item
         >
-        <b-nav-item :active="activeMode === 'events'" href="/events"
+        <b-nav-item
+          v-if="clientType != ClientType.UNKNOWN"
+          :active="activeMode === 'events'"
+          href="/events"
           >Events</b-nav-item
         >
-        <b-nav-item :active="activeMode === 'console'" href="/console"
+        <b-nav-item
+          v-if="clientType != ClientType.UNKNOWN"
+          :active="activeMode === 'console'"
+          href="/console"
           >Query console</b-nav-item
         >
       </b-navbar-nav>
@@ -61,7 +70,13 @@ import { Component, Prop } from "vue-property-decorator";
 import Vue from "vue";
 import { ClientType } from "@/backend/dto/enumeration";
 
-@Component({ components: {} })
+@Component({
+  computed: {
+    ClientType() {
+      return ClientType
+    }
+  },
+  components: {} })
 export default class extends Vue {
   @Prop()
   private readonly activeMode!: string;
