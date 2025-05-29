@@ -5,7 +5,6 @@ import com.github.tomakehurst.wiremock.client.WireMock.get
 import com.github.tomakehurst.wiremock.client.WireMock.ok
 import com.github.tomakehurst.wiremock.client.WireMock.stubFor
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathTemplate
-import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo
 import com.github.tomakehurst.wiremock.junit5.WireMockTest
 import kotlinx.coroutines.runBlocking
 import niconicotagger.Utils.loadResource
@@ -21,7 +20,7 @@ import org.springframework.http.MediaType.TEXT_HTML_VALUE
 class NicologClientTest {
     @ParameterizedTest
     @CsvSource(value = ["44309388,綾鷹", "443093884564,null"], nullValues = ["null"])
-    fun `get user name (success)`(id: Long, expectedName: String?, wm: WireMockRuntimeInfo): Unit = runBlocking {
+    fun `get user name (success)`(id: Long, expectedName: String?): Unit = runBlocking {
         stubFor(
             get(urlPathTemplate("/user/{id}"))
                 .withPathParam("id", equalTo(id.toString()))
@@ -38,7 +37,7 @@ class NicologClientTest {
 
     @ParameterizedTest
     @CsvSource(value = ["2648319,ボカロ曲匿名投稿イベント 無色透名祭", "264831945876,null"], nullValues = ["null"])
-    fun `get channel name (success)`(id: Long, expectedName: String?, wm: WireMockRuntimeInfo): Unit = runBlocking {
+    fun `get channel name (success)`(id: Long, expectedName: String?): Unit = runBlocking {
         stubFor(
             get(urlPathTemplate("/ch/{id}"))
                 .withPathParam("id", equalTo(id.toString()))

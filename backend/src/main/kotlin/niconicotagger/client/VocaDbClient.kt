@@ -95,7 +95,7 @@ open class VocaDbClient(baseUrl: String, private val jsonMapper: JsonMapper) {
     private val eventPreviewCache =
         Caffeine.newBuilder().expireAfterAccess(12, HOURS).maximumSize(1).asCache<String, List<VocaDbReleaseEvent>>()
     private val songsByNndPvCache =
-        Caffeine.newBuilder().expireAfterWrite(12, HOURS).maximumSize(10000).asCache<String, VocaDbSongEntryBase>()
+        Caffeine.newBuilder().expireAfterWrite(12, HOURS).maximumSize(10_000).asCache<String, VocaDbSongEntryBase>()
 
     suspend fun login(username: String, password: String): MultiValueMap<String, String> {
         val loginPayload = mapOf("keepLoggedIn" to true, "userName" to username, "password" to password)

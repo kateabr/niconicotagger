@@ -56,11 +56,11 @@ class NndClient(
             )
             .build()
     private val thumbCache =
-        Caffeine.newBuilder().expireAfterAccess(1, HOURS).maximumSize(10000).asCache<String, NndThumbnail>()
+        Caffeine.newBuilder().expireAfterAccess(1, HOURS).maximumSize(10_000).asCache<String, NndThumbnail>()
     private val formattedDescriptionCache =
-        Caffeine.newBuilder().expireAfterAccess(12, HOURS).maximumSize(10000).asCache<String, String?>()
+        Caffeine.newBuilder().expireAfterAccess(12, HOURS).maximumSize(10_000).asCache<String, String?>()
     private val videosByTagsCache =
-        Caffeine.newBuilder().expireAfterAccess(1, HOURS).maximumSize(1000).asCache<Int, NndApiSearchResult>()
+        Caffeine.newBuilder().expireAfterAccess(1, HOURS).maximumSize(1_000).asCache<Int, NndApiSearchResult>()
 
     suspend fun getThumbInfo(id: String): NndThumbnail {
         return thumbCache.get(id) {
@@ -116,7 +116,7 @@ class NndClient(
     }
 
     @Scheduled(cron = "0 0 22 * * *")
-    private fun invalidateVideosByTagsCache() {
+    fun invalidateVideosByTagsCache() {
         videosByTagsCache.invalidateAll()
     }
 

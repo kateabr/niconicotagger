@@ -81,7 +81,7 @@ class AggregatingService(
     @Value("\${app.service.event-scope}") private val eventScope: Duration,
 ) {
     private val publisherCache =
-        Caffeine.newBuilder().expireAfterAccess(12, HOURS).maximumSize(10000).asCache<String, PublisherInfo>()
+        Caffeine.newBuilder().expireAfterAccess(12, HOURS).maximumSize(10_000).asCache<String, PublisherInfo>()
 
     private fun getClient(clientType: ClientType) = dbClientHolder.getClient(clientType)
 

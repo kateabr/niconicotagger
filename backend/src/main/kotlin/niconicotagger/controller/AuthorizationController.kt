@@ -4,7 +4,7 @@ import jakarta.servlet.http.HttpServletResponse
 import jakarta.validation.Valid
 import niconicotagger.client.DbClientHolder
 import niconicotagger.dto.api.request.LoginRequest
-import org.springframework.http.HttpHeaders
+import org.springframework.boot.web.server.Cookie.SameSite.STRICT
 import org.springframework.http.HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS
 import org.springframework.http.HttpHeaders.SET_COOKIE
 import org.springframework.http.ResponseCookie
@@ -24,7 +24,12 @@ class AuthorizationController(private val dbClientHolder: DbClientHolder) {
         val cookie = dbClientHolder.getClient(request.clientType).login(request.userName, request.password)
         response.setHeader(
             SET_COOKIE,
-            ResponseCookie.from(cookie.keys.first(), cookie.values.first()[0]).build().toString(),
+            ResponseCookie.from(cookie.keys.first(), cookie.values.first()[0])
+                .httpOnly(true)
+                .secure(true)
+                .sameSite(STRICT.attributeValue())
+                .build()
+                .toString(),
         )
         response.setHeader(ACCESS_CONTROL_ALLOW_CREDENTIALS, "true")
     }
