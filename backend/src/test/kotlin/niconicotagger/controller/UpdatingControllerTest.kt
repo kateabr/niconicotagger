@@ -194,22 +194,20 @@ class UpdatingControllerTest : AbstractControllerTest() {
                     content =
                         """
                 {
-                    "subRequests": [
-                        {
-                            "apiType": "$apiType",
-                            "entryId": $entryId,
-                            "tags": [
-                                {
-                                    "id": ${tagUsage1.tag.id},
-                                    "name": "${tagUsage1.tag.name}"
-                                },
-                                {
-                                    "id": ${tagUsage2.tag.id},
-                                    "name": "${tagUsage2.tag.name}"
-                                }
-                            ]
-                        }
-                    ],
+                    "request": {
+                        "apiType": "$apiType",
+                        "entryId": $entryId,
+                        "tags": [
+                            {
+                                "id": ${tagUsage1.tag.id},
+                                "name": "${tagUsage1.tag.name}"
+                            },
+                            {
+                                "id": ${tagUsage2.tag.id},
+                                "name": "${tagUsage2.tag.name}"
+                            }
+                        ]
+                    },
                     "clientType": "$VOCADB_BETA"
                 }
                 """
@@ -467,13 +465,11 @@ class UpdatingControllerTest : AbstractControllerTest() {
                         "apiType=$apiType, no tags specified",
                         """
                         {
-                            "subRequests": [
-                                {
-                                    "apiType": "$apiType",
-                                    "entryId": 1,
-                                    "tags": []
-                                }
-                            ],
+                            "request": {
+                                "apiType": "$apiType",
+                                "entryId": 1,
+                                "tags": []
+                            },
                             "clientType": "$VOCADB_BETA"
                         }
                         """
@@ -484,7 +480,7 @@ class UpdatingControllerTest : AbstractControllerTest() {
                           "status": 400,
                           "violations": [
                             {
-                              "field": "subRequests[0].tags",
+                              "field": "request.tags",
                               "message": "must not be empty"
                             }
                           ],
@@ -497,18 +493,16 @@ class UpdatingControllerTest : AbstractControllerTest() {
                         "apiType=$apiType, empty tag name",
                         """
                         {
-                            "subRequests": [
-                                {
-                                    "apiType": "$apiType",
-                                    "entryId": 1,
-                                    "tags": [
-                                        {
-                                            "id": 1,
-                                            "name": " "
-                                        }
-                                    ]
-                                }
-                            ],
+                            "request": {
+                                "apiType": "$apiType",
+                                "entryId": 1,
+                                "tags": [
+                                    {
+                                        "id": 1,
+                                        "name": " "
+                                    }
+                                ]
+                            },
                             "clientType": "$VOCADB_BETA"
                         }
                         """
@@ -519,7 +513,7 @@ class UpdatingControllerTest : AbstractControllerTest() {
                           "status": 400,
                           "violations": [
                             {
-                              "field": "subRequests[0].tags[0].name",
+                              "field": "request.tags[0].name",
                               "message": "must not be blank"
                             }
                           ],

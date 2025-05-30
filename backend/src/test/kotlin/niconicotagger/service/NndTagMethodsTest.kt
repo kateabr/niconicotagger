@@ -9,6 +9,7 @@ import io.mockk.confirmVerified
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkClass
+import io.mockk.slot
 import io.mockk.verifyAll
 import java.time.ZoneOffset.UTC
 import java.time.format.DateTimeFormatter.ISO_DATE_TIME
@@ -54,6 +55,9 @@ import niconicotagger.dto.inner.vocadb.VocaDbTagSelectable
 import niconicotagger.dto.inner.vocadb.search.result.VocaDbSongEntryWithNndPvsAndTagsSearchResult
 import niconicotagger.serde.Utils.normalizeToken
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.InstanceOfAssertFactories.iterable
+import org.assertj.core.api.InstanceOfAssertFactories.list
+import org.assertj.core.api.InstanceOfAssertFactories.map
 import org.instancio.Assign.given
 import org.instancio.Instancio
 import org.instancio.Select.field
@@ -129,6 +133,7 @@ class NndTagMethodsTest : AggregatingServiceTest() {
                 any(),
                 any(),
             )
+            aggregatingService.buildResultingTagSet(any(), any(), any())
         }
         coVerifyCount {
             (if (song == null) 1 else 0) * { aggregatingService.getPublisher(any(), any()) }
@@ -210,6 +215,7 @@ class NndTagMethodsTest : AggregatingServiceTest() {
                 any(),
                 any(),
             )
+            aggregatingService.buildResultingTagSet(any(), any(), any())
         }
         coVerifyCount {
             (if (video.description == null) 1 else 0) * { nndClient.getFormattedDescription(any()) }
@@ -217,6 +223,63 @@ class NndTagMethodsTest : AggregatingServiceTest() {
         }
         confirmVerified(dbClient, nndClient, eventMapper, aggregatingService)
         verifyAll { songMapper.mapForTag(any(), any(), any(), anyNullable(), any(), anyNullable()) }
+    }
+
+    @Test
+    fun `get videos by NND tags test (prefetched tag id)`(@Given tag: VocaDbTag): Unit = runBlocking {
+        val request = Instancio.of(VideosByNndTagsRequest::class.java).set(field("tags"), setOf(tag.name)).create()
+        val mappedTags =
+            listOf(
+                VocaDbTagMapping("sourceTag1", tag),
+                VocaDbTagMapping("sourceTag2", tag),
+                VocaDbTagMapping(
+                    "sourceTag2",
+                    Instancio.of(VocaDbTag::class.java)
+                        .filter<VocaDbTag>(root()) { it.id != tag.id && it.name != tag.name }
+                        .create(),
+                ),
+            )
+        val video =
+            Instancio.of(NndVideoData::class.java).set(field("tags"), listOf("sourceTag1", "sourceTag2")).create()
+        val song = Instancio.of(VocaDbSongEntryWithTags::class.java).setBlank(field("tags")).create()
+        val correspondingVocaDbTagSetSlot = slot<Set<VocaDbTag>>()
+        val resultPlaceholder = Instancio.createBlank(NndVideoWithAssociatedVocaDbEntryForTag::class.java)
+        coEvery { dbClient.getAllVocaDbTagMappings(any()) } returns mappedTags
+        coEvery { nndClient.getVideosByTags(eq(request)) } returns NndApiSearchResult(NndMeta(1), listOf(video))
+        coEvery {
+            dbClient.getSongByNndPv(eq(video.id), eq("Tags,Artists"), eq(VocaDbSongEntryWithTags::class.java))
+        } returns song
+        every {
+            songMapper.mapForTag(
+                eq(video),
+                song,
+                mapOf("sourceTag1" to MAPPED, "sourceTag2" to MAPPED),
+                eq(video.description!!),
+                listOf(VocaDbTagSelectable(tag, false)),
+                isNull(),
+            )
+        } returns resultPlaceholder
+
+        assertThat(aggregatingService.getVideosByNndTags(request, tag.id))
+            .extracting { it.items }
+            .asInstanceOf(list(NndVideoWithAssociatedVocaDbEntryForTag::class.java))
+            .containsExactly(resultPlaceholder)
+
+        coVerifyAll {
+            dbClient.getAllVocaDbTagMappings(any())
+            dbClient.getSongByNndPv<VocaDbSongEntryWithTags>(any(), any(), any())
+            nndClient.getVideosByTags(any())
+            aggregatingService.getVideosByNndTags(any(), any())
+            aggregatingService.sortResults<NndVideoWithAssociatedVocaDbEntryForTag, SongEntryWithTagAssignmentInfo>(
+                any(),
+                any(),
+            )
+            aggregatingService.getVideosByNndTags(any(), any())
+            aggregatingService.buildResultingTagSet(any(), any(), capture(correspondingVocaDbTagSetSlot))
+        }
+        assertThat(correspondingVocaDbTagSetSlot.captured)
+            .asInstanceOf(iterable(VocaDbTag::class.java))
+            .containsExactlyInAnyOrder(tag)
     }
 
     @ParameterizedTest

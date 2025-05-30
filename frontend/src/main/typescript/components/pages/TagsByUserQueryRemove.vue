@@ -556,7 +556,7 @@ import {
   QueryConsoleApiType,
   SongType
 } from "@/backend/dto/enumeration";
-import { VocaDbTag } from "@/backend/dto/lowerLevelStruct";
+import { UpdateErrorReport, VocaDbTag } from "@/backend/dto/lowerLevelStruct";
 
 @Component({
   components: {
@@ -774,30 +774,8 @@ export default class extends Vue {
       const entriesToUpdate = this.entries.filter(
         entry => entry.tagsToRemove.length > 0
       );
-      const errors = await api.removeTagUsages({
-        subRequests: entriesToUpdate.map(entry => {
-          return {
-            apiType: this.apiType,
-            entryId: entry.id,
-            tags: entry.tagsToRemove
-          };
-        }),
-        clientType: this.clientType
-      });
-      const entriesWithErrors = errors.map(error => error.entryId);
-      for (const entry of entriesToUpdate) {
-        if (!entriesWithErrors.includes(entry.id)) {
-          entry.tags = entry.tags.filter(
-            tag =>
-              !entry.tagsToRemove.map(entryTag => entryTag.id).includes(tag.id)
-          );
-          entry.tagsToRemove = [];
-          entry.errorReport = null;
-        } else {
-          entry.errorReport = errors.filter(
-            error => error.entryId == entry.id
-          )[0];
-        }
+      for (const entryToUpdate of entriesToUpdate) {
+        await this.removeSingle(entryToUpdate);
       }
       const newTagPool = this.entries
         .map(entry => entry.tags)
@@ -810,6 +788,29 @@ export default class extends Vue {
       this.processError((err as AxiosError).response);
     } finally {
       this.executing = false;
+    }
+  }
+
+  private async removeSingle(
+    entry: QueryConsoleArtistItem | QueryConsoleSongItem
+  ): Promise<void> {
+    let error = await api.removeTagUsages({
+      apiType: this.apiType,
+      entryId: entry.id,
+      tags: entry.tagsToRemove,
+      clientType: this.clientType
+    });
+
+    console.log(error);
+
+    if (error == "") {
+      entry.tags = entry.tags.filter(
+        tag => !entry.tagsToRemove.map(entryTag => entryTag.id).includes(tag.id)
+      );
+      entry.tagsToRemove = [];
+      entry.errorReport = null;
+    } else {
+      entry.errorReport = error as UpdateErrorReport;
     }
   }
 

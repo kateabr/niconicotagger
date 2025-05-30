@@ -8,10 +8,7 @@ import niconicotagger.dto.api.misc.ClientType
 import niconicotagger.dto.inner.vocadb.VocaDbTag
 
 @JsonIgnoreProperties(ignoreUnknown = false)
-data class MassDeleteTagsRequest(
-    @field:Valid override val subRequests: List<DeleteTagsRequest>,
-    override val clientType: ClientType,
-) : MassUpdateRequest<DeleteTagsRequest>
+data class DeleteTagsRequestWrapper(@field:Valid val request: DeleteTagsRequest, val clientType: ClientType)
 
 data class DeleteTagsRequest(
     override val apiType: ApiType,

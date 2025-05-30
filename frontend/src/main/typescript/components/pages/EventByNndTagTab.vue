@@ -994,7 +994,9 @@ export default class extends Vue {
     entries: NndVideoWithAssociatedVocaDbEntryForEvent[]
   ): Promise<void> {
     const errors = await api.addReleaseEvent(
-      this.buildRequest(entries.map(entry => entry.entry as SongEntryWithReleaseEventInfo))
+      this.buildRequest(
+        entries.map(entry => entry.entry as SongEntryWithReleaseEventInfo)
+      )
     );
     const entriesWithErrors = errors.map(error => error.entryId);
     for (const entry of entries) {

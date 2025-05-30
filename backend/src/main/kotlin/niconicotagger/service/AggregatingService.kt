@@ -185,13 +185,15 @@ class AggregatingService(
                                     .getSongByNndPv(video.id, "Tags,Artists", VocaDbSongEntryWithTags::class.java)
                             val publisher = if (songEntry == null) getPublisher(video, request.clientType) else null
                             val description = video.description ?: nndClient.getFormattedDescription(video.id)
+                            val resultingTagSet =
+                                buildResultingTagSet(request.clientType, songEntry, correspondingVocaDbTags)
 
                             videoWithAssociatedEntryMapper.mapForTag(
                                 video,
                                 songEntry,
                                 videoTagsWithStyle,
                                 description,
-                                buildResultingTagSet(request.clientType, songEntry, correspondingVocaDbTags),
+                                resultingTagSet,
                                 publisher,
                             )
                         }
@@ -348,7 +350,7 @@ class AggregatingService(
                 )
     }
 
-    private suspend fun buildResultingTagSet(
+    internal suspend fun buildResultingTagSet(
         clientType: ClientType,
         songEntry: VocaDbSongEntryWithTags?,
         correspondingVocaDbTags: Set<VocaDbTag>,

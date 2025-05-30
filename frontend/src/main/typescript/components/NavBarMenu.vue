@@ -73,10 +73,11 @@ import { ClientType } from "@/backend/dto/enumeration";
 @Component({
   computed: {
     ClientType() {
-      return ClientType
+      return ClientType;
     }
   },
-  components: {} })
+  components: {}
+})
 export default class extends Vue {
   @Prop()
   private readonly activeMode!: string;

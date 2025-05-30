@@ -488,7 +488,10 @@ import { ClientType, DbSortOrder, SongType } from "@/backend/dto/enumeration";
 import { SongTypeStatsRecord } from "@/backend/dto/songTypeStats";
 import { ReleaseEvent, VocaDbTag } from "@/backend/dto/lowerLevelStruct";
 import { SongTagsAndEventsMassUpdateRequest } from "@/backend/dto/request/songTagsAndEventsUpdateRequest";
-import { ReleaseEventData, ReleaseEventDataWithVocaDbTag } from "@/backend/dto/higherLevelStruct";
+import {
+  ReleaseEventData,
+  ReleaseEventDataWithVocaDbTag
+} from "@/backend/dto/higherLevelStruct";
 import { SongEntryByVocaDbTagForEvent } from "@/backend/dto/response/songsByVocaDbEventTagResponse";
 import {
   localStorageKeyDbOrderBy,

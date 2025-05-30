@@ -13,9 +13,9 @@ import niconicotagger.dto.api.misc.ReleaseEvent
 import niconicotagger.dto.api.misc.VocaDbSortOrder.AdditionDate
 import niconicotagger.dto.api.request.AddReleaseEventRequest
 import niconicotagger.dto.api.request.DeleteTagsRequest
+import niconicotagger.dto.api.request.DeleteTagsRequestWrapper
 import niconicotagger.dto.api.request.EventScheduleRequest
 import niconicotagger.dto.api.request.MassAddReleaseEventRequest
-import niconicotagger.dto.api.request.MassDeleteTagsRequest
 import niconicotagger.dto.api.request.QueryConsoleRequest
 import niconicotagger.dto.api.request.SongTagsAndPvsMassUpdateRequest
 import niconicotagger.dto.api.request.SongTagsAndPvsUpdateRequest
@@ -65,31 +65,29 @@ class RequestDeserializationTest {
                     MassAddReleaseEventRequest(listOf(AddReleaseEventRequest(1, ReleaseEvent(1, "name", null))), VOCADB),
                 ),
                 arguments(
-                    MassDeleteTagsRequest::class.java,
+                    DeleteTagsRequestWrapper::class.java,
                     """
                 {
-                    "subRequests": [
-                        {
-                            "apiType": "songs",
-                            "entryId": 1,
-                            "tags": [
-                                {
-                                    "id": 1,
-                                    "name": "1"
-                                },
-                                {
-                                    "id": 2,
-                                    "name": "2"
-                                }
-                            ]
-                        }
-                    ],
+                    "request": {
+                        "apiType": "songs",
+                        "entryId": 1,
+                        "tags": [
+                            {
+                                "id": 1,
+                                "name": "1"
+                            },
+                            {
+                                "id": 2,
+                                "name": "2"
+                            }
+                        ]
+                    },
                     "clientType": "vocadb_beta"
                 }
                 """
                         .trimIndent(),
-                    MassDeleteTagsRequest(
-                        listOf(DeleteTagsRequest(SONGS, 1, listOf(VocaDbTag(1, "1"), VocaDbTag(2, "2")))),
+                    DeleteTagsRequestWrapper(
+                        DeleteTagsRequest(SONGS, 1, listOf(VocaDbTag(1, "1"), VocaDbTag(2, "2"))),
                         VOCADB_BETA,
                     ),
                 ),

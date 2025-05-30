@@ -156,7 +156,7 @@ export function getShortenedSongType(type: SongType): string {
     case SongType.MusicPV:
       return "PV";
     default:
-      return type[0];
+      return SongType[type][0];
   }
 }
 

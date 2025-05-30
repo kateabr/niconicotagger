@@ -4,13 +4,15 @@ import jakarta.validation.Valid
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import niconicotagger.constants.Constants.COOKIE_HEADER_KEY
+import niconicotagger.dto.api.request.DeleteTagsRequestWrapper
 import niconicotagger.dto.api.request.MassAddReleaseEventRequest
-import niconicotagger.dto.api.request.MassDeleteTagsRequest
 import niconicotagger.dto.api.request.SongTagsAndEventsMassUpdateRequest
 import niconicotagger.dto.api.request.SongTagsAndPvsMassUpdateRequest
 import niconicotagger.dto.api.response.UpdateError
+import niconicotagger.dto.api.response.UpdateReport
 import niconicotagger.dto.api.response.UpdateSuccess
 import niconicotagger.service.UpdatingService
 import org.springframework.web.bind.annotation.CookieValue
@@ -45,23 +47,17 @@ class UpdatingController(private val service: UpdatingService) {
 
     @PostMapping(value = ["/tags/delete"])
     suspend fun deleteTags(
-        @Valid @RequestBody request: MassDeleteTagsRequest,
+        @Valid @RequestBody reqWrapper: DeleteTagsRequestWrapper,
         @CookieValue(COOKIE_HEADER_KEY) cookie: String,
-    ): List<UpdateError> =
-        withContext(SupervisorJob()) {
-                request.subRequests.map {
-                    async {
-                        try {
-                            service.deleteTags(it, request.clientType, cookie)
-                            UpdateSuccess()
-                        } catch (expected: Exception) {
-                            UpdateError(it.entryId, expected.message)
-                        }
-                    }
-                }
-            }
-            .awaitAll()
-            .filterIsInstance<UpdateError>()
+    ): UpdateReport = runBlocking {
+        // only 1 request at a time to not overload the db
+        return@runBlocking try {
+            service.deleteTags(reqWrapper.request, reqWrapper.clientType, cookie)
+            UpdateSuccess()
+        } catch (expected: Exception) {
+            UpdateError(reqWrapper.request.entryId, expected.message)
+        }
+    }
 
     @PostMapping(value = ["/songs/replace_tag_with_event"])
     suspend fun updateSongEventsAndTags(
