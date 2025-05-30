@@ -156,12 +156,20 @@ class AggregatingService(
         return VideosByNndTagsResponseForEvent(result, videos.meta.totalCount, request.scope)
     }
 
-    suspend fun getVideosByNndTags(request: VideosByNndTagsRequest): VideosByNndTagsResponseForTagging {
+    suspend fun getVideosByNndTags(
+        request: VideosByNndTagsRequest,
+        prefetchedTagId: Long? = null,
+    ): VideosByNndTagsResponseForTagging {
         val tagStyleHolder = TagTypeHolder().storeRequestTags(request)
 
         val mappedTags = getClient(request.clientType).getAllVocaDbTagMappings(request.startOffset != 0L)
         val correspondingVocaDbTags =
+            if (prefetchedTagId == null)
+            // NND tag as a source, compare by tag name
             mappedTags.filter { request.tags.contains(kata2hiraAndLowercase(it.sourceTag)) }.map { it.tag }.toSet()
+            else
+            // DB tag as a source, compare by tag id
+            mappedTags.filter { it.tag.id == prefetchedTagId }.map { it.tag }.toSet()
         if (correspondingVocaDbTags.isEmpty()) error("None of the tags in ${request.tags} is mapped")
         tagStyleHolder.storeTagMappings(mappedTags)
 
@@ -213,7 +221,7 @@ class AggregatingService(
 
             val newRequest = requestMapper.map(request, tagMappings)
 
-            val tempResult = getVideosByNndTags(newRequest)
+            val tempResult = getVideosByNndTags(newRequest, tag.id)
 
             VideosByVocaDbTagResponse(
                 tempResult.items,

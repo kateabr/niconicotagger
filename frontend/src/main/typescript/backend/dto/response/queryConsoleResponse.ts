@@ -20,7 +20,7 @@ export interface QueryConsoleSongItem {
   id: number;
   name: string;
   tags: VocaDbTag[];
-  type: SongType;
+  type: string;
   artistString: string;
   tagsToRemove: VocaDbTag[];
   errorReport: UpdateErrorReport | null;

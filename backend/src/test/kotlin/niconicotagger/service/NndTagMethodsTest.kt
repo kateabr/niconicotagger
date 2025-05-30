@@ -299,7 +299,7 @@ class NndTagMethodsTest : AggregatingServiceTest() {
         coEvery { dbClient.getTagByName(eq(tag.name)) } returns tag
         coEvery { dbClient.getAllVocaDbTagMappings(eq(false)) } returns mappedTags
         every { requestMapper.map(eq(request), eq(tagMappings)) } returns newRequest
-        coEvery { aggregatingService.getVideosByNndTags(eq(newRequest)) } returns
+        coEvery { aggregatingService.getVideosByNndTags(eq(newRequest), eq(tag.id)) } returns
             Instancio.create(VideosByNndTagsResponseForTagging::class.java)
 
         aggregatingService.getVideosByVocaDbTagMappings(request)
@@ -308,7 +308,7 @@ class NndTagMethodsTest : AggregatingServiceTest() {
             aggregatingService.getVideosByVocaDbTagMappings(any())
             dbClient.getTagByName(any())
             dbClient.getAllVocaDbTagMappings(any())
-            aggregatingService.getVideosByNndTags(any())
+            aggregatingService.getVideosByNndTags(any(), any())
         }
         verifyAll { requestMapper.map(any(), any()) }
     }

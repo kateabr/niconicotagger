@@ -551,7 +551,11 @@ import {
   QueryConsoleSongItem
 } from "@/backend/dto/response/queryConsoleResponse";
 import EntryErrorReport from "@/components/EntryErrorReport.vue";
-import { ClientType, QueryConsoleApiType } from "@/backend/dto/enumeration";
+import {
+  ClientType,
+  QueryConsoleApiType,
+  SongType
+} from "@/backend/dto/enumeration";
 import { VocaDbTag } from "@/backend/dto/lowerLevelStruct";
 
 @Component({
@@ -621,7 +625,7 @@ export default class extends Vue {
   ): string {
     if (this.apiType == "songs") {
       let typeString = (entry as QueryConsoleSongItem).type;
-      return getShortenedSongType(typeString);
+      return getShortenedSongType(SongType[typeString]);
     } else if (this.apiType == "artists") {
       let typeString = (entry as QueryConsoleArtistItem).type;
       return getShortenedArtistType(typeString);
@@ -644,7 +648,9 @@ export default class extends Vue {
     entry: QueryConsoleSongItem | QueryConsoleArtistItem
   ): string {
     if (this.apiType == "songs") {
-      return getSongTypeColorForDisplay((entry as QueryConsoleSongItem).type);
+      return getSongTypeColorForDisplay(
+        SongType[(entry as QueryConsoleSongItem).type]
+      );
     } else if (this.apiType == "artists") {
       return getArtistTypeColorForDisplay(
         (entry as QueryConsoleArtistItem).type
