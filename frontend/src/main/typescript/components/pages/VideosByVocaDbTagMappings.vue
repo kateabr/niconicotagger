@@ -572,6 +572,7 @@ export default class extends Vue {
   private massAssigning: boolean = false;
   private assigning: boolean = false;
   private clientType: ClientType = getClientType();
+  private chunkSize = 10;
 
   // interface variables
   private allChecked: boolean = false;
@@ -819,7 +820,17 @@ export default class extends Vue {
   private async updateMultiple(): Promise<void> {
     this.massAssigning = true;
     try {
-      await this.update(this.videos.filter(video => video.selected));
+      let videosToProcess = this.videos.filter(video => video.selected);
+      let startPosition = 0;
+      let currentChunk = videosToProcess.slice(
+        startPosition,
+        startPosition + this.chunkSize
+      );
+      while (currentChunk.length > 0) {
+        await this.update(currentChunk);
+        startPosition += this.chunkSize;
+        currentChunk = videosToProcess.slice(startPosition, startPosition + 10);
+      }
     } catch (err) {
       this.processError((err as AxiosError).response);
     } finally {

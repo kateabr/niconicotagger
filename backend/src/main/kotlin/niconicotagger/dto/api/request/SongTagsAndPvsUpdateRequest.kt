@@ -2,12 +2,13 @@ package niconicotagger.dto.api.request
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import jakarta.validation.Valid
+import jakarta.validation.constraints.Size
 import niconicotagger.dto.api.misc.ClientType
 import niconicotagger.dto.api.misc.PvToDisable
 
 @JsonIgnoreProperties(ignoreUnknown = false)
 data class SongTagsAndPvsMassUpdateRequest(
-    @field:Valid override val subRequests: List<SongTagsAndPvsUpdateRequest>,
+    @field:Valid @field:Size(max = 10) override val subRequests: List<SongTagsAndPvsUpdateRequest>,
     override val clientType: ClientType,
 ) : MassUpdateRequest<SongTagsAndPvsUpdateRequest>
 

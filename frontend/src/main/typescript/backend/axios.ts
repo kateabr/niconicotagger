@@ -2,7 +2,7 @@ import originalAxios from "axios";
 import { authenticationExpireHandler } from "@/backend/authenticationExpireHandler";
 
 export const axios = originalAxios.create({
-  timeout: 5 * 60 * 1000,
+  timeout: 60 * 1000,
   withCredentials: true,
   baseURL: process.env.NODE_ENV !== "production" ? "" : "https://api.niconicotagger.handystuff.net"
 });

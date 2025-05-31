@@ -427,6 +427,126 @@ class UpdatingControllerTest : AbstractControllerTest() {
                                     "reason": " "
                                 }
                             ]
+                        },
+                        {
+                            "songId": 657775,
+                            "tags": [
+                                4582
+                            ],
+                            "nndPvsToDisable": [
+                                {
+                                    "id": "id",
+                                    "reason": "reason"
+                                }
+                            ]
+                        },
+                        {
+                            "songId": 657775,
+                            "tags": [
+                                4582
+                            ],
+                            "nndPvsToDisable": [
+                                {
+                                    "id": "id",
+                                    "reason": "reason"
+                                }
+                            ]
+                        },
+                        {
+                            "songId": 657775,
+                            "tags": [
+                                4582
+                            ],
+                            "nndPvsToDisable": [
+                                {
+                                    "id": "id",
+                                    "reason": "reason"
+                                }
+                            ]
+                        },
+                        {
+                            "songId": 657775,
+                            "tags": [
+                                4582
+                            ],
+                            "nndPvsToDisable": [
+                                {
+                                    "id": "id",
+                                    "reason": "reason"
+                                }
+                            ]
+                        },
+                        {
+                            "songId": 657775,
+                            "tags": [
+                                4582
+                            ],
+                            "nndPvsToDisable": [
+                                {
+                                    "id": "id",
+                                    "reason": "reason"
+                                }
+                            ]
+                        },
+                        {
+                            "songId": 657775,
+                            "tags": [
+                                4582
+                            ],
+                            "nndPvsToDisable": [
+                                {
+                                    "id": "id",
+                                    "reason": "reason"
+                                }
+                            ]
+                        },
+                        {
+                            "songId": 657775,
+                            "tags": [
+                                4582
+                            ],
+                            "nndPvsToDisable": [
+                                {
+                                    "id": "id",
+                                    "reason": "reason"
+                                }
+                            ]
+                        },
+                        {
+                            "songId": 657775,
+                            "tags": [
+                                4582
+                            ],
+                            "nndPvsToDisable": [
+                                {
+                                    "id": "id",
+                                    "reason": "reason"
+                                }
+                            ]
+                        },
+                        {
+                            "songId": 657775,
+                            "tags": [
+                                4582
+                            ],
+                            "nndPvsToDisable": [
+                                {
+                                    "id": "id",
+                                    "reason": "reason"
+                                }
+                            ]
+                        },
+                        {
+                            "songId": 657775,
+                            "tags": [
+                                4582
+                            ],
+                            "nndPvsToDisable": [
+                                {
+                                    "id": "id",
+                                    "reason": "reason"
+                                }
+                            ]
                         }
                     ],
                     "clientType": "$VOCADB_BETA"
@@ -438,6 +558,10 @@ class UpdatingControllerTest : AbstractControllerTest() {
                   "type": "https://zalando.github.io/problem/constraint-violation",
                   "status": 400,
                   "violations": [
+                    {
+                        "field": "subRequests",
+                        "message": "size must be between 0 and 10"
+                    },
                     {
                       "field": "subRequests[0].nndPvsToDisable[].id",
                       "message": "must not be blank"

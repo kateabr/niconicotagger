@@ -473,6 +473,7 @@ export default class extends Vue {
   private pageToJump: number = 0;
   private startOffset: number = 0;
   private clientType: ClientType = getClientType();
+  private chunkSize = 10;
 
   // interface variables
   private fetching: boolean = false;
@@ -698,56 +699,69 @@ export default class extends Vue {
     this.assigning = true;
     try {
       const songsToUpdate = this.songs.filter(song => song.toUpdate);
-      const errors = await api.updateSongTagsAndPvs({
-        subRequests: songsToUpdate.map(song => {
-          return {
-            songId: song.entry.id,
-            pvId: null,
-            tags: song.tagIdsToAssign,
-            nndPvsToDisable: song.unavailablePvs
-              .filter(unavailablePv => unavailablePv.toDisable)
-              .map(unavailablePv => {
-                return {
-                  id: unavailablePv.id,
-                  reason: unavailablePv.error
-                };
-              })
-          };
-        }),
-        clientType: this.clientType
-      });
-      const entriesWithErrors = errors.map(error => error.entryId);
-      for (const song of songsToUpdate) {
-        if (entriesWithErrors.includes(song.entry.id)) {
-          song.errorReport = errors.filter(
-            error => error.entryId == song.entry.id
-          )[0];
-        } else {
-          song.toUpdate = false;
-          if (
-            song.unavailablePvs.some(unavailablePv => unavailablePv.toDisable)
-          ) {
-            song.unavailablePvs.forEach(
-              unavailablePv => (unavailablePv.toDisable = false)
-            );
-            if (song.availablePvs.length == 0) {
-              this.entriesWithNoPvsLeft += 1;
-            }
-          }
-          for (const pv of song.availablePvs) {
-            for (const tag of pv.suggestedTags) {
-              tag.selected =
-                tag.selected || song.tagIdsToAssign.includes(tag.tag.id);
-            }
-          }
-          song.tagIdsToAssign.splice(0, song.tagIdsToAssign.length);
-          song.errorReport = null;
-        }
+      let startPosition = 0;
+      let currentChunk = songsToUpdate.slice(
+        startPosition,
+        startPosition + this.chunkSize
+      );
+      while (currentChunk.length > 0) {
+        await this.update(currentChunk);
+        startPosition += this.chunkSize;
+        currentChunk = songsToUpdate.slice(startPosition, startPosition + 10);
       }
     } catch (err) {
       this.processError((err as AxiosError).response);
     } finally {
       this.assigning = false;
+    }
+  }
+
+  private async update(songsToUpdate: VocaDbSongEntryWithPvs[]): Promise<void> {
+    const errors = await api.updateSongTagsAndPvs({
+      subRequests: songsToUpdate.map(song => {
+        return {
+          songId: song.entry.id,
+          pvId: null,
+          tags: song.tagIdsToAssign,
+          nndPvsToDisable: song.unavailablePvs
+            .filter(unavailablePv => unavailablePv.toDisable)
+            .map(unavailablePv => {
+              return {
+                id: unavailablePv.id,
+                reason: unavailablePv.error
+              };
+            })
+        };
+      }),
+      clientType: this.clientType
+    });
+    const entriesWithErrors = errors.map(error => error.entryId);
+    for (const song of songsToUpdate) {
+      if (entriesWithErrors.includes(song.entry.id)) {
+        song.errorReport = errors.filter(
+          error => error.entryId == song.entry.id
+        )[0];
+      } else {
+        song.toUpdate = false;
+        if (
+          song.unavailablePvs.some(unavailablePv => unavailablePv.toDisable)
+        ) {
+          song.unavailablePvs.forEach(
+            unavailablePv => (unavailablePv.toDisable = false)
+          );
+          if (song.availablePvs.length == 0) {
+            this.entriesWithNoPvsLeft += 1;
+          }
+        }
+        for (const pv of song.availablePvs) {
+          for (const tag of pv.suggestedTags) {
+            tag.selected =
+              tag.selected || song.tagIdsToAssign.includes(tag.tag.id);
+          }
+        }
+        song.tagIdsToAssign.splice(0, song.tagIdsToAssign.length);
+        song.errorReport = null;
+      }
     }
   }
 

@@ -82,11 +82,6 @@ open class VocaDbClient(baseUrl: String, private val jsonMapper: JsonMapper) {
             .defaultHeader(USER_AGENT, DEFAULT_USER_AGENT)
             .defaultHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
             .codecs { configurer -> configurer.defaultCodecs().maxInMemorySize(1000 * 1024) }
-            .filter { request, next ->
-                next
-                    .exchange(request)
-                    .retryWhen(Retry.fixedDelay(3, Duration.ofSeconds(2)).filter { it is InternalServerError })
-            }
             .build()
     private var maxTagMappingsToLoad = 10_000
     private var maxEventsToLoad = 1_000

@@ -87,26 +87,20 @@ class UpdatingController(private val service: UpdatingService) {
         @Valid @RequestBody request: SongTagsAndPvsMassUpdateRequest,
         @CookieValue(COOKIE_HEADER_KEY) cookie: String,
     ): List<UpdateError> =
-        request.subRequests
-            .chunked(10)
-            .map { sublist ->
-                // too many requests at the same time cause timeouts
-                withContext(SupervisorJob()) {
+        withContext(SupervisorJob()) {
+                request.subRequests.map {
                     async {
-                        sublist.map {
-                            try {
-                                service.assignSongTags(it, request.clientType, cookie)
-                                service.disablePvs(it, request.clientType, cookie)
-                                it.pvId?.let { pvId -> service.removeSongsByPvFromCache(request.clientType, pvId) }
-                                UpdateSuccess()
-                            } catch (expected: Exception) {
-                                UpdateError(it.songId, expected.message)
-                            }
+                        try {
+                            service.assignSongTags(it, request.clientType, cookie)
+                            service.disablePvs(it, request.clientType, cookie)
+                            it.pvId?.let { pvId -> service.removeSongsByPvFromCache(request.clientType, pvId) }
+                            UpdateSuccess()
+                        } catch (expected: Exception) {
+                            UpdateError(it.songId, expected.message)
                         }
                     }
                 }
             }
             .awaitAll()
-            .flatten()
             .filterIsInstance<UpdateError>()
 }
