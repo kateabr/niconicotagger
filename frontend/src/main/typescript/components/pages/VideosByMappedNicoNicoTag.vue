@@ -632,8 +632,8 @@ export default class extends Vue {
     return getVocaDBSongUrl(this.clientType, id);
   }
 
-  private getShortenedSongType(songType: SongType): string {
-    return getShortenedSongType(songType);
+  private getShortenedSongType(songType: string): string {
+    return getShortenedSongType(SongType[songType]);
   }
 
   private getVocaDBAddSongUrl(contentId: string): string {

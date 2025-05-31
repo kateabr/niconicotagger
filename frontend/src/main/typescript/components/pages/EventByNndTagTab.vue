@@ -648,7 +648,6 @@ import {
 
 @Component({
   methods: {
-    getShortenedSongType,
     getNicoVideoUrl
   },
   components: {
@@ -749,6 +748,10 @@ export default class extends Vue {
 
   private getSongTypeColorForDisplay(typeString: string): string {
     return getSongTypeColorForDisplay(SongType[typeString]);
+  }
+
+  private getShortenedSongType(songType: string): string {
+    return getShortenedSongType(SongType[songType]);
   }
 
   private eventInfoLoaded(): boolean {

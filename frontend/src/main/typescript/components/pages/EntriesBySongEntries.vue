@@ -594,8 +594,8 @@ export default class extends Vue {
     return getNicoVideoUrl(contentId);
   }
 
-  private getShortenedSongType(songType: SongType): string {
-    return getShortenedSongType(songType);
+  private getShortenedSongType(songType: string): string {
+    return getShortenedSongType(SongType[songType]);
   }
 
   private getTagVariant(
