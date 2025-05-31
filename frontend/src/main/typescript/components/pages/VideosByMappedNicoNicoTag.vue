@@ -284,7 +284,7 @@
             last-number
             limit="10"
             :disabled="defaultDisableCondition()"
-            @change="loadPage"
+            @input="loadPage(page)"
           ></b-pagination>
         </div>
       </template>
@@ -489,7 +489,7 @@
           last-number
           limit="10"
           :disabled="defaultDisableCondition()"
-          @change="loadPage"
+          @input="loadPage(page)"
         ></b-pagination>
       </div>
     </b-row>
@@ -785,6 +785,9 @@ export default class extends Vue {
       this.tagNameFrozen = targetTag;
       this.startOffset = newStartOffset;
       this.allChecked = false;
+      this.maxPage = Math.ceil(this.totalVideoCount / this.maxResults);
+      this.pageToJump = newPage;
+      this.page = newPage;
     } catch (err) {
       this.processError((err as AxiosError).response);
     } finally {
@@ -795,10 +798,7 @@ export default class extends Vue {
         this.maxResults.toString()
       );
       localStorage.setItem(localStorageKeyNndOrderBy, this.sortingCondition);
-      this.maxPage = Math.ceil(this.totalVideoCount / this.maxResults);
       this.fetching = false;
-      this.pageToJump = newPage;
-      this.page = newPage;
     }
   }
 

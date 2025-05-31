@@ -356,7 +356,7 @@
               last-number
               limit="10"
               :disabled="defaultDisableCondition()"
-              @change="loadPage"
+              @input="loadPage(page)"
             />
           </div>
         </template>
@@ -590,7 +590,7 @@
               last-number
               limit="10"
               :disabled="defaultDisableCondition()"
-              @change="loadPage"
+              @input="loadPage(page)"
             />
           </div>
         </template>
@@ -950,6 +950,9 @@ export default class extends Vue {
       this.scopeTagStringFrozen = response.cleanScope;
       this.numOfPages = this.totalVideoCount / this.maxResults + 1;
       this.allChecked = false;
+      this.maxPage = Math.ceil(this.totalVideoCount / this.maxResults);
+      this.pageToJump = newPage;
+      this.page = newPage;
     } catch (err) {
       this.processError((err as AxiosError).response);
     } finally {
@@ -959,10 +962,7 @@ export default class extends Vue {
         localStorageKeyMaxResults,
         this.maxResults.toString()
       );
-      this.maxPage = Math.ceil(this.totalVideoCount / this.maxResults);
       this.fetching = false;
-      this.pageToJump = newPage;
-      this.page = newPage;
     }
   }
 

@@ -180,7 +180,7 @@
             last-number
             limit="10"
             :disabled="defaultDisableCondition()"
-            @change="loadPage"
+            @input="loadPage(page)"
           />
         </div>
       </template>
@@ -397,7 +397,7 @@
             last-number
             limit="10"
             :disabled="defaultDisableCondition()"
-            @change="loadPage"
+            @input="loadPage(page)"
           />
         </div>
       </template>
@@ -674,6 +674,10 @@ export default class extends Vue {
         response.songTypeStats,
         this.songTypeStats
       );
+      this.entriesWithNoPvsLeft = 0;
+      this.pageToJump = newPage;
+      this.maxPage = Math.ceil(this.totalSongCount / this.maxResults);
+      this.page = newPage;
     } catch (err) {
       this.processError((err as AxiosError).response);
     } finally {
@@ -686,11 +690,7 @@ export default class extends Vue {
         this.startOffset.toString()
       );
       localStorage.setItem(localStorageKeyDbOrderBy, this.orderingCondition);
-      this.entriesWithNoPvsLeft = 0;
-      this.pageToJump = newPage;
-      this.maxPage = Math.ceil(this.totalSongCount / this.maxResults);
       this.fetching = false;
-      this.page = newPage;
     }
   }
 
