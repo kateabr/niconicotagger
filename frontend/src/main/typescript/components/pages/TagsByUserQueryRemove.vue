@@ -795,15 +795,15 @@ export default class extends Vue {
     entry: QueryConsoleArtistItem | QueryConsoleSongItem
   ): Promise<void> {
     let error = await api.removeTagUsages({
-      apiType: this.apiType,
-      entryId: entry.id,
-      tags: entry.tagsToRemove,
+      request: {
+        apiType: this.apiType,
+        entryId: entry.id,
+        tags: entry.tagsToRemove
+      },
       clientType: this.clientType
     });
 
-    console.log(error);
-
-    if (error == "") {
+    if (error.entryId != entry.id) {
       entry.tags = entry.tags.filter(
         tag => !entry.tagsToRemove.map(entryTag => entryTag.id).includes(tag.id)
       );

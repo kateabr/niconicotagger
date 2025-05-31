@@ -1,7 +1,11 @@
 package niconicotagger.dto.api.response
 
-interface UpdateReport
+interface UpdateReport {
+    val entryId: Long
+}
 
-class UpdateSuccess : UpdateReport
+class UpdateSuccess : UpdateReport {
+    override val entryId: Long = -1
+}
 
-data class UpdateError(val entryId: Long, val message: String?) : UpdateReport
+data class UpdateError(override val entryId: Long, val message: String?) : UpdateReport

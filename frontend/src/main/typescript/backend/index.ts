@@ -5,7 +5,7 @@ import { ReleaseEventResponse } from "@/backend/dto/response/releaseEventRespons
 import { ReleaseEventWithLinkedTagResponse } from "@/backend/dto/response/releaseEventWithLinkedTagResponse";
 import { VideosByTagsResponseForEvent } from "@/backend/dto/response/videosByTagsResponseForEvent";
 import { SongsByVocaDbEventTagResponse } from "@/backend/dto/response/songsByVocaDbEventTagResponse";
-import { UpdateErrorReport } from "@/backend/dto/lowerLevelStruct";
+import { UpdateErrorReport, UpdateErrorSuccess } from "@/backend/dto/lowerLevelStruct";
 import { VideosByTagsResponseForTagging } from "@/backend/dto/response/videosByTagsResponseForTagging";
 import { VideosByVocaDbTagResponse } from "@/backend/dto/response/videosByVocaDbTagResponse";
 import { MassAddReleaseEventRequest } from "@/backend/dto/request/addReleaseEventRequest";
@@ -21,7 +21,7 @@ import { SongsByVocaDbEventTagRequest } from "@/backend/dto/request/songsByVocaD
 import { SongTagsAndEventsMassUpdateRequest } from "@/backend/dto/request/songTagsAndEventsUpdateRequest";
 import { ReleaseEventPreview } from "@/backend/dto/response/releaseEventPreview";
 import { EventScheduleRequest } from "@/backend/dto/request/eventScheduleRequest";
-import { DeleteTagUsagesRequest } from "@/backend/dto/request/deleteTagUsagesRequest";
+import { DeleteTagUsagesRequestWrapper } from "@/backend/dto/request/deleteTagUsagesRequest";
 
 export const api = {
   async authorize(payload: LoginRequest): Promise<void> {
@@ -78,7 +78,9 @@ export const api = {
   async addReleaseEvent(payload: MassAddReleaseEventRequest): Promise<UpdateErrorReport[]> {
     return axios.post("/api/update/songs/add_release_event", payload).then(value => value.data);
   },
-  async removeTagUsages(payload: DeleteTagUsagesRequest): Promise<UpdateErrorReport | string> {
+  async removeTagUsages(
+    payload: DeleteTagUsagesRequestWrapper
+  ): Promise<UpdateErrorReport | UpdateErrorSuccess> {
     return axios.post("/api/update/tags/delete", payload).then(value => value.data);
   },
   async loadEventPreviews(request: EventScheduleRequest): Promise<ReleaseEventPreview[]> {

@@ -50,6 +50,10 @@ export interface PublisherInfo {
   type: PublisherType;
 }
 
+export interface UpdateErrorSuccess {
+  entryId: number;
+}
+
 export interface UpdateErrorReport {
   entryId: number;
   message: string | null;
