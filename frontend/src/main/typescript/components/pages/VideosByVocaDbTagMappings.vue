@@ -390,26 +390,12 @@
                 <entry-error-report :error-report="item.errorReport" />
               </div>
               <div v-else>
-                <b-button
-                  size="sm"
+                <add-to-the-database
                   :disabled="fetching"
-                  :href="getVocaDBAddSongUrl(item.video.id)"
-                  target="_blank"
-                  >Add to the database
-                </b-button>
-                <div
-                  v-if="
-                    item.publisher != null && item.publisher.type == 'DATABASE'
-                  "
-                  class="small text-secondary"
-                >
-                  Published by
-                  <b-link
-                    target="_blank"
-                    :href="getVocaDBArtistUrl(item.publisher.id)"
-                    >{{ item.publisher.name }}</b-link
-                  >
-                </div>
+                  :client-type="clientType"
+                  :publisher="item.publisher"
+                  :video-id="item.video.id"
+                />
               </div>
             </b-td>
             <b-td>
@@ -540,9 +526,16 @@ import {
   maxResultsOptions,
   nndOrderOptions
 } from "@/constants";
+import AddToTheDatabase from "@/components/AddToTheDatabase.vue";
 
 @Component({
-  components: { EntryErrorReport, NicoDescription, NicoEmbed, ErrorMessage }
+  components: {
+    AddToTheDatabase,
+    EntryErrorReport,
+    NicoDescription,
+    NicoEmbed,
+    ErrorMessage
+  }
 })
 export default class extends Vue {
   @Prop()

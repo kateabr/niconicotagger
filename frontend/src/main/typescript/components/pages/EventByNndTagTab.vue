@@ -489,25 +489,12 @@
                 <action v-if="!item.processed" :event="event" />
               </div>
               <div v-else>
-                <b-button
-                  size="sm"
+                <add-to-the-database
                   :disabled="fetching"
-                  :href="getVocaDBAddSongUrl(item.video.id)"
-                  target="_blank"
-                  >Add to the database
-                </b-button>
-                <div
-                  v-if="
-                    item.publisher !== null &&
-                    item.publisher.type === 'DATABASE'
-                  "
-                  class="small text-secondary"
-                >
-                  Published by
-                  <b-link target="_blank" :href="item.publisher.link"
-                    >{{ item.publisher.name }}
-                  </b-link>
-                </div>
+                  :client-type="clientType"
+                  :publisher="item.publisher"
+                  :video-id="item.video.id"
+                />
               </div>
               <entry-error-report :error-report="item.errorReport" />
             </td>
@@ -645,12 +632,14 @@ import {
   maxResultsOptions,
   nndOrderOptions
 } from "@/constants";
+import AddToTheDatabase from "@/components/AddToTheDatabase.vue";
 
 @Component({
   methods: {
     getNicoVideoUrl
   },
   components: {
+    AddToTheDatabase,
     EntryErrorReport,
     NicoDescription,
     Action,
