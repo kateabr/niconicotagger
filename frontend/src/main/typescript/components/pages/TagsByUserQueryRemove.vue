@@ -104,9 +104,9 @@
                       How many results you want in your batch, defaults to
                       <span class="text-monospace">10</span>.
                       <div class="alert-dark rounded p-2 my-1">
-                        <b-icon-arrow-right-circle class="mr-1" />Don't make it
-                        too big: it will slow everything down and can even cause
-                        timeouts.
+                        <b-icon-arrow-right-circle class="mr-1" />Can be as big
+                        as needed, but the page will freeze until all items are
+                        processed (reload to abort).
                       </div>
                     </td>
                   </tr>
