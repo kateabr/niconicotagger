@@ -1,7 +1,10 @@
 package niconicotagger.controller
 
+import niconicotagger.constants.Constants.COOKIE_HEADER_KEY
 import niconicotagger.dto.VocaDbLoginException
+import org.springframework.http.HttpStatusCode
 import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.MissingRequestCookieException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
 import org.springframework.web.context.request.NativeWebRequest
@@ -23,18 +26,32 @@ class ExceptionHandling : ProblemHandling, AdviceTrait {
                 ?: exception.errorData.errors.entries
                     .filter { it.key.isNotBlank() }
                     .joinToString("; ") { "${it.key}: ${it.value}" }
-        return this.create(exception, Problem.valueOf(Status.valueOf(exception.errorData.status), message), request)
+        return defaultHandler(exception, HttpStatusCode.valueOf(exception.errorData.status), message, request)
     }
 
     @ExceptionHandler
     fun handleWebClientResponseException(
         exception: WebClientResponseException,
         request: NativeWebRequest,
-    ): ResponseEntity<Problem> {
-        return this.create(
+    ): ResponseEntity<Problem> = defaultHandler(exception, exception.statusCode, exception.message, request)
+
+    @ExceptionHandler
+    fun handleMissingCookieException(
+        exception: MissingRequestCookieException,
+        request: NativeWebRequest,
+    ): ResponseEntity<Problem> =
+        defaultHandler(
             exception,
-            Problem.valueOf(Status.valueOf(exception.statusCode.value()), exception.message),
+            exception.statusCode,
+            if (exception.cookieName == COOKIE_HEADER_KEY) "Authentication cookie has expired" else exception.message,
             request,
         )
-    }
+
+    private fun defaultHandler(
+        exception: Throwable,
+        statusCode: HttpStatusCode,
+        message: String,
+        request: NativeWebRequest,
+    ): ResponseEntity<Problem> =
+        this.create(exception, Problem.valueOf(Status.valueOf(statusCode.value()), message), request)
 }
