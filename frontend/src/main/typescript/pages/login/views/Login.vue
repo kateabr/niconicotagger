@@ -1,11 +1,5 @@
 <template>
   <div style="display: flex; align-items: center" class="min-vh-100 min-vw-100">
-    <nav-bar-menu
-      style="position: fixed; top: 0"
-      class="flex-lg-nowrap col-12"
-      active-mode="index"
-      :client-type="clientTypeLoggedIn"
-    />
     <div class="col-lg-3 mx-auto text-center">
       <h1>NicoNicoTagger 2.0</h1>
       <div class="blockquote">for VocaDB</div>
@@ -68,6 +62,12 @@
       </div>
       <b-toaster class="b-toaster-bottom-center" name="toaster"> </b-toaster>
     </div>
+    <nav-bar-menu
+      style="position: fixed; top: 0"
+      class="flex-lg-nowrap col-12"
+      active-mode="index"
+      :client-type="clientTypeLoggedIn"
+    />
   </div>
 </template>
 

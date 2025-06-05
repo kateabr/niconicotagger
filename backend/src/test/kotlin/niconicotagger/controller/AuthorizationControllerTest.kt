@@ -9,6 +9,7 @@ import com.github.tomakehurst.wiremock.client.WireMock.okJson
 import com.github.tomakehurst.wiremock.client.WireMock.post
 import com.github.tomakehurst.wiremock.client.WireMock.serviceUnavailable
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
+import java.time.Duration
 import kotlinx.coroutines.runBlocking
 import niconicotagger.constants.Constants.COOKIE_HEADER_KEY
 import niconicotagger.constants.Constants.DEFAULT_USER_AGENT
@@ -88,6 +89,7 @@ class AuthorizationControllerTest : AbstractControllerTest() {
                         httpOnly(COOKIE_HEADER_KEY, true)
                         secure(COOKIE_HEADER_KEY, true)
                         sameSite(COOKIE_HEADER_KEY, SameSite.STRICT.attributeValue)
+                        maxAge(COOKIE_HEADER_KEY, Duration.ofDays(1).toSeconds().toInt())
                     }
                 }
         }

@@ -2,6 +2,7 @@ package niconicotagger.controller
 
 import jakarta.servlet.http.HttpServletResponse
 import jakarta.validation.Valid
+import java.time.Duration
 import niconicotagger.client.DbClientHolder
 import niconicotagger.dto.api.request.LoginRequest
 import org.springframework.boot.web.server.Cookie.SameSite.STRICT
@@ -28,6 +29,7 @@ class AuthorizationController(private val dbClientHolder: DbClientHolder) {
                 .httpOnly(true)
                 .secure(true)
                 .sameSite(STRICT.attributeValue())
+                .maxAge(Duration.ofDays(1))
                 .build()
                 .toString(),
         )

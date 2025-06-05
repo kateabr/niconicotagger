@@ -4,23 +4,23 @@ const path = require("path");
 module.exports = {
   pages: {
     events: {
-      title: "NicoNicoTagger (Events)",
+      title: "NicoNicoTagger | Loading...",
       entry: "src/main/typescript/pages/events/main.ts"
     },
     tags: {
-      title: "NicoNicoTagger (Tags)",
+      title: "NicoNicoTagger | Loading...",
       entry: "src/main/typescript/pages/tags/main.ts"
     },
     console: {
-      title: "NicoNicoTagger (Console)",
+      title: "NicoNicoTagger | Loading...",
       entry: "src/main/typescript/pages/console/main.ts"
     },
     login: {
-      title: "Login",
+      title: "NicoNicoTagger | Login",
       entry: "src/main/typescript/pages/login/main.ts"
     },
     index: {
-      title: "Login",
+      title: "NicoNicoTagger | Login",
       entry: "src/main/typescript/pages/login/main.ts"
     }
   },

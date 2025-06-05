@@ -1,5 +1,6 @@
 import Vue from "vue";
 import VueRouter, { RouteConfig } from "vue-router";
+import { serviceName } from "@/constants";
 
 Vue.use(VueRouter);
 
@@ -30,4 +31,21 @@ export const router = new VueRouter({
   base: "/console",
   mode: "history",
   routes: routes
+});
+
+router.beforeEach((to, from, next) => {
+  const mode = to.params["browseMode"];
+  switch (mode) {
+    case "songs":
+    case undefined:
+      document.title = `${serviceName} | Query console (Artists)`;
+      break;
+    case "artists":
+      document.title = `${serviceName} | Query console (Songs)`;
+      break;
+    default:
+      document.title = `${serviceName} | Query console (${mode})`;
+      break;
+  }
+  next();
 });

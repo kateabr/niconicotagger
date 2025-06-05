@@ -1,5 +1,6 @@
 import Vue from "vue";
 import VueRouter, { RouteConfig } from "vue-router";
+import { serviceName } from "@/constants";
 
 Vue.use(VueRouter);
 
@@ -30,4 +31,27 @@ export const router = new VueRouter({
   base: "/events",
   mode: "history",
   routes: routes
+});
+
+router.beforeEach((to, from, next) => {
+  const mode = to.params["browseMode"];
+  if (mode == "event-schedule") {
+    document.title = `${serviceName} | Event schedule`;
+    next();
+    return;
+  }
+  const eventName = to.params["targName"] ?? "Events";
+  switch (mode) {
+    case "vocadb":
+      document.title = `${serviceName} | ${eventName} (VocaDB)`;
+      break;
+    case "nicovideo":
+    case undefined:
+      document.title = `${serviceName} | ${eventName} (NND)`;
+      break;
+    default:
+      document.title = `${serviceName} | ${eventName} (${mode})`;
+      break;
+  }
+  next();
 });

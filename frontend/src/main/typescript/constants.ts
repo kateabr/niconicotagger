@@ -26,3 +26,5 @@ export const dbBaseUrl = {
 };
 
 export const videoStatusesToDisable = ["DELETED"];
+
+export const serviceName = "NicoNicoTagger";
