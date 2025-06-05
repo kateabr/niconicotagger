@@ -571,9 +571,6 @@ export default class extends Vue {
   private readonly currentMode!: string;
 
   @Prop()
-  private readonly userQueryProp!: string;
-
-  @Prop()
   private readonly apiType!: QueryConsoleApiType;
 
   // main variables
@@ -623,40 +620,43 @@ export default class extends Vue {
   private getShortenedType(
     entry: QueryConsoleSongItem | QueryConsoleArtistItem
   ): string {
-    if (this.apiType == "songs") {
-      let typeString = (entry as QueryConsoleSongItem).type;
-      return getShortenedSongType(SongType[typeString]);
-    } else if (this.apiType == "artists") {
-      let typeString = (entry as QueryConsoleArtistItem).type;
-      return getShortenedArtistType(typeString);
-    } else {
-      return "Invalid removal currentMode: " + this.apiType;
+    switch (this.apiType) {
+      case "songs":
+        return getShortenedSongType(
+          SongType[(entry as QueryConsoleSongItem).type]
+        );
+      case "artists":
+        return getShortenedArtistType((entry as QueryConsoleArtistItem).type);
+      default:
+        return "Invalid removal currentMode: " + this.apiType;
     }
   }
 
   private getEntryUrl(id: number): string {
-    if (this.apiType == "songs") {
-      return getVocaDBSongUrl(this.clientType, id);
-    } else if (this.apiType == "artists") {
-      return getVocaDBArtistUrl(this.clientType, id);
-    } else {
-      return "Invalid api type: " + this.apiType;
+    switch (this.apiType) {
+      case "songs":
+        return getVocaDBSongUrl(this.clientType, id);
+      case "artists":
+        return getVocaDBArtistUrl(this.clientType, id);
+      default:
+        return "Invalid api type: " + this.apiType;
     }
   }
 
   private getTypeColorForDisplay(
     entry: QueryConsoleSongItem | QueryConsoleArtistItem
   ): string {
-    if (this.apiType == "songs") {
-      return getSongTypeColorForDisplay(
-        SongType[(entry as QueryConsoleSongItem).type]
-      );
-    } else if (this.apiType == "artists") {
-      return getArtistTypeColorForDisplay(
-        (entry as QueryConsoleArtistItem).type
-      );
-    } else {
-      return "Invalid api type: " + this.apiType;
+    switch (this.apiType) {
+      case "songs":
+        return getSongTypeColorForDisplay(
+          SongType[(entry as QueryConsoleSongItem).type]
+        );
+      case "artists":
+        return getArtistTypeColorForDisplay(
+          (entry as QueryConsoleArtistItem).type
+        );
+      default:
+        return "Invalid api type: " + this.apiType;
     }
   }
 

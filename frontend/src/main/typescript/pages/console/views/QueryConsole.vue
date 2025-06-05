@@ -57,6 +57,7 @@ import VueClipboard from "vue-clipboard2";
 import { getClientType } from "@/utils";
 import TagsByUserQueryRemove from "@/components/pages/TagsByUserQueryRemove.vue";
 import { ClientType } from "@/backend/dto/enumeration";
+import { BrowseMode } from "@/pages/console/utils";
 
 Vue.use(VueClipboard);
 
@@ -68,7 +69,7 @@ Vue.use(VueClipboard);
 })
 export default class extends Vue {
   @Prop()
-  private browseMode!: "songs";
+  private browseMode!: BrowseMode;
 
   private clientType: ClientType = getClientType();
 }

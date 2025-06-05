@@ -77,6 +77,7 @@ import VideosByMappedNicoNicoTag from "@/components/pages/VideosByMappedNicoNico
 import VueClipboard from "vue-clipboard2";
 import { getClientType } from "@/utils";
 import { ClientType } from "@/backend/dto/enumeration";
+import { BrowseMode } from "@/pages/tags/utils";
 
 Vue.use(VueClipboard);
 
@@ -90,7 +91,7 @@ Vue.use(VueClipboard);
 })
 export default class extends Vue {
   @Prop()
-  private browseMode!: "song-entries" | "vocadb" | "nicovideo";
+  private browseMode!: BrowseMode;
 
   @Prop()
   private targName!: string;

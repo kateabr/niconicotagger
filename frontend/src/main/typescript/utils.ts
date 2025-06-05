@@ -161,32 +161,31 @@ export function getShortenedSongType(type: SongType): string {
 }
 
 export function getShortenedArtistType(typeString: ArtistType): string {
-  if (typeString == "Unknown") {
-    return "?";
-  } else if (typeString == "SynthesizerV") {
-    return "SV";
-  } else if (typeString == "VoiSona") {
-    return "VS";
-  } else if (typeString == "NewType") {
-    return "NT";
-  } else if (typeString == "Voiceroid") {
-    return "VR";
-  } else if (typeString == "VOICEVOX") {
-    return "VV";
-  } else if (typeString == "AIVOICE") {
-    return "AIV";
-  } else if (typeString == "ACEVirtualSinger") {
-    return "ACE";
-  } else if (
-    typeString == "Vocaloid" ||
-    typeString == "UTAU" ||
-    typeString == "CeVIO" ||
-    typeString == "OtherVoiceSynthesizer" ||
-    typeString == "OtherVocalist"
-  ) {
-    return typeString[0];
-  } else {
-    return "";
+  switch (typeString) {
+    case "Unknown":
+      return "?";
+    case "SynthesizerV":
+      return "SV";
+    case "VoiSona":
+      return "VS";
+    case "NewType":
+      return "NT";
+    case "Voiceroid":
+      return "VR";
+    case "VOICEVOX":
+      return "VV";
+    case "AIVOICE":
+      return "AIV";
+    case "ACEVirtualSinger":
+      return "ACE";
+    case "Vocaloid":
+    case "UTAU":
+    case "CeVIO":
+    case "OtherVoiceSynthesizer":
+    case "OtherVocalist":
+      return typeString[0];
+    default:
+      return "";
   }
 }
 

@@ -1,6 +1,7 @@
 import Vue from "vue";
 import VueRouter, { RouteConfig } from "vue-router";
 import { serviceName } from "@/constants";
+import { BrowseMode, defaultMode } from "@/pages/console/utils";
 
 Vue.use(VueRouter);
 
@@ -21,7 +22,7 @@ const routes: RouteConfig[] = [
     path: "/",
     name: "console",
     props: {
-      browseMode: "songs"
+      browseMode: defaultMode
     },
     component: () => import("@/pages/console/views/QueryConsole.vue")
   }
@@ -34,10 +35,9 @@ export const router = new VueRouter({
 });
 
 router.beforeEach((to, from, next) => {
-  const mode = to.params["browseMode"];
+  const mode: BrowseMode = (to.params["browseMode"] as BrowseMode) ?? defaultMode;
   switch (mode) {
     case "songs":
-    case undefined:
       document.title = `${serviceName} | Query console (Artists)`;
       break;
     case "artists":

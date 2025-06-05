@@ -6,6 +6,15 @@
       <b-container class="col-lg-11">
         <b-nav tabs class="mb-2">
           <b-nav-item
+            :to="{
+              name: 'events-mode',
+              params: { browseMode: 'event-schedule' }
+            }"
+            :active="browseMode === 'event-schedule'"
+          >
+            Event schedule
+          </b-nav-item>
+          <b-nav-item
             :to="{ name: 'events-mode', params: { browseMode: 'nicovideo' } }"
             :active="browseMode === 'nicovideo'"
           >
@@ -16,15 +25,6 @@
             :active="browseMode === 'vocadb'"
           >
             Replace an event tag (VocaDB)
-          </b-nav-item>
-          <b-nav-item
-            :to="{
-              name: 'events-mode',
-              params: { browseMode: 'event-schedule' }
-            }"
-            :active="browseMode === 'event-schedule'"
-          >
-            Event schedule
           </b-nav-item>
         </b-nav>
         <div class="tab-content">
@@ -60,6 +60,7 @@ import { getClientType } from "@/utils";
 import { ClientType } from "@/backend/dto/enumeration";
 import ErrorMessage from "@/components/ErrorMessage.vue";
 import EventScheduleTab from "@/components/pages/EventScheduleTab.vue";
+import { BrowseMode } from "@/pages/events/utils";
 
 Vue.use(VueClipboard);
 
@@ -74,7 +75,7 @@ Vue.use(VueClipboard);
 })
 export default class extends Vue {
   @Prop()
-  private readonly browseMode!: "vocadb" | "nicovideo" | "event-schedule";
+  private readonly browseMode!: BrowseMode;
 
   @Prop()
   private readonly targName: string | undefined;

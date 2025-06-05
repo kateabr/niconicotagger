@@ -1,6 +1,7 @@
 import Vue from "vue";
 import VueRouter, { RouteConfig } from "vue-router";
 import { serviceName } from "@/constants";
+import { BrowseMode, defaultMode } from "@/pages/events/utils";
 
 Vue.use(VueRouter);
 
@@ -9,7 +10,7 @@ const routes: RouteConfig[] = [
     path: "/",
     name: "events",
     props: {
-      browseMode: "nicovideo"
+      browseMode: defaultMode
     },
     component: () => import("@/pages/events/views/Events.vue")
   },
@@ -34,19 +35,16 @@ export const router = new VueRouter({
 });
 
 router.beforeEach((to, from, next) => {
-  const mode = to.params["browseMode"];
-  if (mode == "event-schedule") {
-    document.title = `${serviceName} | Event schedule`;
-    next();
-    return;
-  }
+  const mode: BrowseMode = (to.params["browseMode"] as BrowseMode) ?? defaultMode;
   const eventName = to.params["targName"] ?? "Events";
   switch (mode) {
+    case "event-schedule":
+      document.title = `${serviceName} | Event schedule`;
+      break;
     case "vocadb":
       document.title = `${serviceName} | ${eventName} (VocaDB)`;
       break;
     case "nicovideo":
-    case undefined:
       document.title = `${serviceName} | ${eventName} (NND)`;
       break;
     default:
