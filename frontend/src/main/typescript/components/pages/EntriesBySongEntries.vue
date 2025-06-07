@@ -82,7 +82,7 @@
                 style="width: 82px"
                 :variant="pageStateIsValid() ? 'success' : 'danger'"
                 :disabled="defaultDisableCondition() || !pageStateIsValid()"
-                @click="loadPage(page)"
+                @click="loadPage(pageToJump)"
               >
                 <span v-if="fetching"><b-spinner small /></span>
                 <span v-else-if="pageToJump === page">Refresh</span>
@@ -644,7 +644,9 @@ export default class extends Vue {
       });
       this.totalSongCount = response.totalCount;
       this.songs = response.items.map(entry => {
-        let deletedVideoIds = entry.unavailablePvs.map(pv => pv.id);
+        const hasVideosToDisable = entry.unavailablePvs
+          .filter(pv => pv.toDisable)
+          .length > 0;
         return {
           entry: entry.entry,
           availablePvs: entry.availablePvs.map(pv => {
@@ -663,7 +665,7 @@ export default class extends Vue {
               disabled: false
             };
           }),
-          toUpdate: deletedVideoIds.length > 0,
+          toUpdate: hasVideosToDisable,
           visible: true,
           tagIdsToAssign: [],
           errorReport: null
