@@ -644,9 +644,14 @@ export default class extends Vue {
       });
       this.totalSongCount = response.totalCount;
       this.songs = response.items.map(entry => {
-        const hasVideosToDisable = entry.unavailablePvs
-          .filter(pv => pv.toDisable)
-          .length > 0;
+        const unavailablePvs = entry.unavailablePvs.map(unavailablePv => {
+          return {
+            id: unavailablePv.id,
+            title: unavailablePv.title,
+            error: unavailablePv.error,
+            toDisable: shouldDisableByStatus(unavailablePv)
+          };
+        });
         return {
           entry: entry.entry,
           availablePvs: entry.availablePvs.map(pv => {
@@ -656,16 +661,8 @@ export default class extends Vue {
               visible: false
             };
           }),
-          unavailablePvs: entry.unavailablePvs.map(unavailablePv => {
-            return {
-              id: unavailablePv.id,
-              title: unavailablePv.title,
-              error: unavailablePv.error,
-              toDisable: shouldDisableByStatus(unavailablePv),
-              disabled: false
-            };
-          }),
-          toUpdate: hasVideosToDisable,
+          unavailablePvs: unavailablePvs,
+          toUpdate: unavailablePvs.filter(pv => pv.toDisable).length > 0,
           visible: true,
           tagIdsToAssign: [],
           errorReport: null
