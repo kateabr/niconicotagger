@@ -9,10 +9,16 @@ import io.mockk.verifyAll
 import java.util.stream.Stream
 import kotlinx.coroutines.runBlocking
 import niconicotagger.AbstractApplicationContextTest
+import niconicotagger.client.DbClient
 import niconicotagger.client.DbClientHolder
 import niconicotagger.client.NicologClient
 import niconicotagger.client.NndClient
-import niconicotagger.client.VocaDbClient
+import niconicotagger.configuration.dto.NndPublisherType
+import niconicotagger.configuration.dto.NndPublisherType.NND_CHANNEL
+import niconicotagger.configuration.dto.NndPublisherType.NND_CHANNEL_HANDLE
+import niconicotagger.configuration.dto.NndPublisherType.NND_CHANNEL_SHORTENED
+import niconicotagger.configuration.dto.NndPublisherType.NND_USER
+import niconicotagger.constants.Constants.DATABASE_PLACEHOLDER
 import niconicotagger.dto.api.misc.ClientType
 import niconicotagger.dto.api.misc.ClientType.VOCADB
 import niconicotagger.dto.api.misc.ClientType.VOCADB_BETA
@@ -22,10 +28,6 @@ import niconicotagger.dto.inner.nnd.NndThumbnailOk
 import niconicotagger.dto.inner.nnd.NndVideoData
 import niconicotagger.dto.inner.nnd.ThumbData
 import niconicotagger.dto.inner.vocadb.PublisherInfo
-import niconicotagger.dto.inner.vocadb.PublisherType
-import niconicotagger.dto.inner.vocadb.PublisherType.DATABASE
-import niconicotagger.dto.inner.vocadb.PublisherType.NND_CHANNEL
-import niconicotagger.dto.inner.vocadb.PublisherType.NND_USER
 import niconicotagger.dto.inner.vocadb.VocaDbArtist
 import org.assertj.core.api.Assertions.assertThat
 import org.instancio.Instancio
@@ -42,16 +44,16 @@ import org.junit.jupiter.params.provider.ArgumentsProvider
 import org.junit.jupiter.params.provider.ArgumentsSource
 import org.springframework.beans.factory.annotation.Autowired
 
-class AggregatingServiceIntegrationTest : AbstractApplicationContextTest() {
+class PublisherInfoServiceTest : AbstractApplicationContextTest() {
     @MockkBean lateinit var dbClientHolder: DbClientHolder
 
     @MockkBean lateinit var nndClient: NndClient
 
-    @MockkBean lateinit var dbClient: VocaDbClient
+    @MockkBean lateinit var dbClient: DbClient
 
     @MockkBean lateinit var nicologClient: NicologClient
 
-    @Autowired lateinit var aggregatingService: AggregatingService
+    @Autowired lateinit var publisherInfoService: PublisherInfoService
 
     @BeforeEach
     fun setup() {
@@ -68,35 +70,51 @@ class AggregatingServiceIntegrationTest : AbstractApplicationContextTest() {
     @Suppress("CognitiveComplexMethod")
     fun `get publisher test`(
         video: NndVideoData,
-        nndPublisherType: PublisherType,
+        nndPublisherType: NndPublisherType,
         artistQuery: String,
+        channelHandle: String?,
         vocaDbArtist: VocaDbArtist?,
         nndThumbnail: NndThumbnail,
         nicologResponse: String?,
         expectedPublisher: PublisherInfo,
         clientType: ClientType,
     ): Unit = runBlocking {
-        if (nndPublisherType == NND_USER) coEvery { dbClient.getArtistByQuery(eq(artistQuery)) } returns vocaDbArtist
-        else if (nndPublisherType == NND_CHANNEL)
-            coEvery { dbClient.findArtistDuplicate(eq(artistQuery)) } returns vocaDbArtist
+        when (nndPublisherType) {
+            NND_USER -> coEvery { dbClient.getArtistByQuery(eq(artistQuery)) } returns vocaDbArtist
+            NND_CHANNEL,
+            NND_CHANNEL_SHORTENED,
+            NND_CHANNEL_HANDLE -> {
+                coEvery { dbClient.findArtistDuplicate(eq(artistQuery)) } returns vocaDbArtist
+                coEvery { dbClient.findArtistDuplicate(neq(artistQuery)) } returns null
+            }
+        }
+        if (video.channelId != null && (channelHandle != null || vocaDbArtist == null)) {
+            coEvery { nndClient.getChannelHandle(eq(video.channelId!!)) } returns channelHandle
+        }
         if (vocaDbArtist == null) {
             coEvery { nndClient.getThumbInfo(eq(video.id)) } returns nndThumbnail
         }
         if (nicologResponse != null) {
             if (nndPublisherType == NND_USER)
-                coEvery { nicologClient.getUserName(requireNotNull(video.userId)) } returns nicologResponse
+                coEvery { nicologClient.getUserName(video.userId!!) } returns nicologResponse
             else if (nndPublisherType == NND_CHANNEL)
-                coEvery { nicologClient.getChannelName(requireNotNull(video.channelId)) } returns nicologResponse
+                coEvery { nicologClient.getChannelName(video.channelId!!) } returns nicologResponse
         }
 
-        assertThat(aggregatingService.getPublisher(video, clientType))
+        assertThat(publisherInfoService.getPublisher(video, clientType))
             .usingRecursiveComparison()
             .isEqualTo(expectedPublisher)
         coVerifyCount {
             (if (nndPublisherType == NND_USER) 1 else 0) * { dbClient.getArtistByQuery(any()) }
-            (if (nndPublisherType == NND_CHANNEL) 1 else 0) * { dbClient.findArtistDuplicate(any()) }
+            (if (nndPublisherType == NND_CHANNEL && vocaDbArtist != null) 1
+            else if (nndPublisherType == NND_CHANNEL || nndPublisherType == NND_CHANNEL_SHORTENED) 2
+            else if (nndPublisherType == NND_CHANNEL_HANDLE) 3 else 0) * { dbClient.findArtistDuplicate(any()) }
+            (if (video.channelId != null && (channelHandle != null || vocaDbArtist == null)) 1 else 0) *
+                {
+                    nndClient.getChannelHandle(any())
+                }
             (if (vocaDbArtist == null) 1 else 0) * { nndClient.getThumbInfo(any()) }
-            (if (nndPublisherType == NND_USER && (nicologResponse != null)) 1 else 0).times {
+            (if (nndPublisherType == NND_USER && nicologResponse != null) 1 else 0).times {
                 nicologClient.getUserName(any())
             }
             (if (nndPublisherType == NND_CHANNEL && (nicologResponse != null)) 1 else 0).times {
@@ -111,6 +129,10 @@ class AggregatingServiceIntegrationTest : AbstractApplicationContextTest() {
             private fun artistInDb(): List<ArgumentSet> {
                 val userVideo = Instancio.of(NndVideoData::class.java).ignore(field("channelId")).create()
                 val channelVideo = Instancio.of(NndVideoData::class.java).ignore(field("userId")).create()
+                val channelVideoForShortenedPath =
+                    Instancio.of(NndVideoData::class.java).ignore(field("userId")).create()
+                val channelVideoForHandle = Instancio.of(NndVideoData::class.java).ignore(field("userId")).create()
+                val channelHandle = Instancio.create(String::class.java)
                 val vocaDbEntryArtist = Instancio.create(VocaDbArtist::class.java)
                 return listOf(
                     argumentSet(
@@ -118,6 +140,7 @@ class AggregatingServiceIntegrationTest : AbstractApplicationContextTest() {
                         userVideo,
                         NND_USER,
                         "user/" + userVideo.userId,
+                        null,
                         vocaDbEntryArtist,
                         Instancio.create(NndThumbnailOk::class.java),
                         null,
@@ -125,15 +148,16 @@ class AggregatingServiceIntegrationTest : AbstractApplicationContextTest() {
                             "https://vocadb.net/Ar/" + vocaDbEntryArtist.id,
                             "Ar/" + vocaDbEntryArtist.id,
                             vocaDbEntryArtist.name,
-                            DATABASE,
+                            DATABASE_PLACEHOLDER,
                         ),
                         VOCADB,
                     ),
                     argumentSet(
-                        "publisher in the database, published by a channel",
+                        "publisher in the database, published by a channel, full id link",
                         channelVideo,
                         NND_CHANNEL,
                         "https://ch.nicovideo.jp/channel/ch" + channelVideo.channelId,
+                        null,
                         vocaDbEntryArtist,
                         Instancio.create(NndThumbnailOk::class.java),
                         null,
@@ -141,7 +165,41 @@ class AggregatingServiceIntegrationTest : AbstractApplicationContextTest() {
                             "https://beta.vocadb.net/Ar/" + vocaDbEntryArtist.id,
                             "Ar/" + vocaDbEntryArtist.id,
                             vocaDbEntryArtist.name,
-                            DATABASE,
+                            DATABASE_PLACEHOLDER,
+                        ),
+                        VOCADB_BETA,
+                    ),
+                    argumentSet(
+                        "publisher in the database, published by a channel, shortened id link",
+                        channelVideoForShortenedPath,
+                        NND_CHANNEL_SHORTENED,
+                        "https://ch.nicovideo.jp/ch" + channelVideoForShortenedPath.channelId,
+                        null,
+                        vocaDbEntryArtist,
+                        Instancio.create(NndThumbnailOk::class.java),
+                        null,
+                        PublisherInfo(
+                            "https://beta.vocadb.net/Ar/" + vocaDbEntryArtist.id,
+                            "Ar/" + vocaDbEntryArtist.id,
+                            vocaDbEntryArtist.name,
+                            DATABASE_PLACEHOLDER,
+                        ),
+                        VOCADB_BETA,
+                    ),
+                    argumentSet(
+                        "publisher in the database, published by a channel, handle link",
+                        channelVideoForHandle,
+                        NND_CHANNEL_HANDLE,
+                        "https://ch.nicovideo.jp/$channelHandle",
+                        channelHandle,
+                        vocaDbEntryArtist,
+                        Instancio.create(NndThumbnailOk::class.java),
+                        null,
+                        PublisherInfo(
+                            "https://beta.vocadb.net/Ar/" + vocaDbEntryArtist.id,
+                            "Ar/" + vocaDbEntryArtist.id,
+                            vocaDbEntryArtist.name,
+                            DATABASE_PLACEHOLDER,
                         ),
                         VOCADB_BETA,
                     ),
@@ -162,13 +220,14 @@ class AggregatingServiceIntegrationTest : AbstractApplicationContextTest() {
                         NND_USER,
                         "user/" + userVideo.userId,
                         null,
+                        null,
                         thumbnailUser,
                         null,
                         PublisherInfo(
                             "https://www.nicovideo.jp/user/" + thumbnailUser.data.userId,
                             "user/" + thumbnailUser.data.userId,
                             thumbnailUser.data.publisherName,
-                            NND_USER,
+                            NND_USER.name,
                         ),
                         VOCADB_BETA,
                     ),
@@ -178,13 +237,14 @@ class AggregatingServiceIntegrationTest : AbstractApplicationContextTest() {
                         NND_CHANNEL,
                         "https://ch.nicovideo.jp/channel/ch" + channelVideo.channelId,
                         null,
+                        null,
                         thumbnailChannel,
                         null,
                         PublisherInfo(
                             "https://ch.nicovideo.jp/channel/ch" + thumbnailChannel.data.channelId,
                             "channel/ch${thumbnailChannel.data.channelId}",
                             thumbnailChannel.data.publisherName,
-                            NND_CHANNEL,
+                            NND_CHANNEL.name,
                         ),
                         VOCADB,
                     ),
@@ -212,13 +272,14 @@ class AggregatingServiceIntegrationTest : AbstractApplicationContextTest() {
                         NND_USER,
                         "user/" + userVideo.userId,
                         null,
+                        null,
                         thumbnail,
                         nicologPublisherName,
                         PublisherInfo(
                             "https://www.nicovideo.jp/user/" + userVideo.userId,
                             "user/" + userVideo.userId,
                             nicologPublisherName,
-                            NND_USER,
+                            NND_USER.name,
                         ),
                         VOCADB_BETA,
                     ),
@@ -228,13 +289,14 @@ class AggregatingServiceIntegrationTest : AbstractApplicationContextTest() {
                         NND_CHANNEL,
                         "https://ch.nicovideo.jp/channel/ch" + channelVideo.channelId,
                         null,
+                        null,
                         thumbnail,
                         nicologPublisherName,
                         PublisherInfo(
                             "https://ch.nicovideo.jp/channel/ch" + channelVideo.channelId,
                             "channel/ch${channelVideo.channelId}",
                             nicologPublisherName,
-                            NND_CHANNEL,
+                            NND_CHANNEL.name,
                         ),
                         VOCADB,
                     ),
@@ -253,13 +315,14 @@ class AggregatingServiceIntegrationTest : AbstractApplicationContextTest() {
                         NND_USER,
                         "user/" + userVideo.userId,
                         null,
+                        null,
                         thumbnail,
                         nicologPublisherName,
                         PublisherInfo(
                             "https://www.nicovideo.jp/user/" + userVideo.userId,
                             "user/" + userVideo.userId,
                             nicologPublisherName,
-                            NND_USER,
+                            NND_USER.name,
                         ),
                         VOCADB_BETA,
                     ),
@@ -269,13 +332,14 @@ class AggregatingServiceIntegrationTest : AbstractApplicationContextTest() {
                         NND_CHANNEL,
                         "https://ch.nicovideo.jp/channel/ch" + channelVideo.channelId,
                         null,
+                        null,
                         thumbnail,
                         nicologPublisherName,
                         PublisherInfo(
                             "https://ch.nicovideo.jp/channel/ch" + channelVideo.channelId,
                             "channel/ch${channelVideo.channelId}",
                             nicologPublisherName,
-                            NND_CHANNEL,
+                            NND_CHANNEL.name,
                         ),
                         VOCADB,
                     ),

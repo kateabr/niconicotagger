@@ -1,6 +1,4 @@
-import { ClientType } from "@/backend/dto/enumeration";
-
 export interface EventScheduleRequest {
-  clientType: ClientType;
+  clientType: string;
   useCached: boolean;
 }

@@ -3,6 +3,7 @@ package niconicotagger.client
 import com.github.tomakehurst.wiremock.client.WireMock.equalTo
 import com.github.tomakehurst.wiremock.client.WireMock.equalToJson
 import com.github.tomakehurst.wiremock.client.WireMock.get
+import com.github.tomakehurst.wiremock.client.WireMock.notFound
 import com.github.tomakehurst.wiremock.client.WireMock.ok
 import com.github.tomakehurst.wiremock.client.WireMock.stubFor
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathTemplate
@@ -76,6 +77,7 @@ class NndClientTest {
                         xmlMapper = xmlMapper,
                         embedBaseUrl = "",
                         apiBaseUrl = "",
+                        channelBaseHost = "",
                     )
                     .getThumbInfo(id)
             )
@@ -99,6 +101,7 @@ class NndClientTest {
                         xmlMapper = xmlMapper,
                         thumbBaseUrl = "",
                         apiBaseUrl = "",
+                        channelBaseHost = "",
                     )
                     .getFormattedDescription(id)
             )
@@ -135,6 +138,7 @@ class NndClientTest {
                         xmlMapper = xmlMapper,
                         thumbBaseUrl = "",
                         apiBaseUrl = "",
+                        channelBaseHost = "",
                     )
                     .getFormattedDescription(id)
             )
@@ -173,6 +177,7 @@ class NndClientTest {
                         xmlMapper = xmlMapper,
                         thumbBaseUrl = "",
                         embedBaseUrl = "",
+                        channelBaseHost = "",
                     )
                     .getVideosByTags(
                         VideosByNndTagsRequest(
@@ -251,6 +256,7 @@ class NndClientTest {
                         xmlMapper = xmlMapper,
                         thumbBaseUrl = "",
                         embedBaseUrl = "",
+                        channelBaseHost = "",
                     )
                     .getVideosByTags(
                         VideosByNndEventTagsRequest(
@@ -300,6 +306,56 @@ class NndClientTest {
                     ),
                 )
             )
+    }
+
+    @Test
+    fun `get channel handle test (success)`(
+        wm: WireMockRuntimeInfo,
+        @Given channelId: Long,
+        @Given channelHandle: String,
+    ): Unit = runBlocking {
+        stubFor(
+            get(urlPathTemplate("/ch{channelId}"))
+                .withPathParam("channelId", equalTo(channelId.toString()))
+                .withHeader(USER_AGENT, equalTo(DEFAULT_USER_AGENT))
+                .willReturn(ok().withHeader("location", "/$channelHandle"))
+        )
+
+        assertThat(
+                NndClient(
+                        apiBaseUrl = "",
+                        jsonMapper = jsonMapper,
+                        xmlMapper = xmlMapper,
+                        thumbBaseUrl = "",
+                        embedBaseUrl = "",
+                        channelBaseHost = wm.httpBaseUrl,
+                    )
+                    .getChannelHandle(channelId)
+            )
+            .isEqualTo(channelHandle)
+    }
+
+    @Test
+    fun `get channel handle test (error)`(wm: WireMockRuntimeInfo, @Given channelId: Long): Unit = runBlocking {
+        stubFor(
+            get(urlPathTemplate("/ch{channelId}"))
+                .withPathParam("channelId", equalTo(channelId.toString()))
+                .withHeader(USER_AGENT, equalTo(DEFAULT_USER_AGENT))
+                .willReturn(notFound())
+        )
+
+        assertThat(
+                NndClient(
+                        apiBaseUrl = "",
+                        jsonMapper = jsonMapper,
+                        xmlMapper = xmlMapper,
+                        thumbBaseUrl = "",
+                        embedBaseUrl = "",
+                        channelBaseHost = wm.httpBaseUrl,
+                    )
+                    .getChannelHandle(channelId)
+            )
+            .isNull()
     }
 
     companion object {

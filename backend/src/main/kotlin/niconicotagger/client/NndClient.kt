@@ -28,6 +28,7 @@ import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.util.MimeTypeUtils.APPLICATION_XML
 import org.springframework.web.reactive.function.client.ExchangeStrategies
 import org.springframework.web.reactive.function.client.WebClient
+import org.springframework.web.reactive.function.client.WebClientResponseException
 import org.springframework.web.reactive.function.client.awaitBody
 import org.springframework.web.util.UriComponentsBuilder
 import reactor.netty.http.client.HttpClient
@@ -35,6 +36,7 @@ import reactor.netty.transport.logging.AdvancedByteBufFormat.TEXTUAL
 
 /** Api docs: https://site.nicovideo.jp/search-api-docs/snapshot */
 class NndClient(
+    private val channelBaseHost: String,
     private val thumbBaseUrl: String,
     private val embedBaseUrl: String,
     private val apiBaseUrl: String,
@@ -114,6 +116,23 @@ class NndClient(
                 .body
         } ?: error("Failed to load videos for tag \"${request.tags}\"")
     }
+
+    @Suppress("SwallowedException")
+    suspend fun getChannelHandle(channelId: Long) =
+        try {
+            client
+                .get()
+                .uri("$channelBaseHost/ch$channelId")
+                .retrieve()
+                .toBodilessEntity()
+                .awaitSingle()
+                ?.headers
+                ?.get("location")
+                ?.first()
+                ?.substring(1)
+        } catch (e: WebClientResponseException.NotFound) {
+            null
+        }
 
     @Scheduled(cron = "0 0 22 * * *")
     fun invalidateVideosByTagsCache() {

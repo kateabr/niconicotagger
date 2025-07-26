@@ -11,4 +11,5 @@ object Constants {
     const val API_SEARCH_FIELDS =
         "contentId,title,tags,userId,channelId,startTime,lengthSeconds,description,viewCounter,likeCounter"
     val GENRE_FILTER = OrFilter(listOf(EqualFilter("genre", "音楽・サウンド"), EqualFilter("genre", null)))
+    const val DATABASE_PLACEHOLDER = "DATABASE"
 }

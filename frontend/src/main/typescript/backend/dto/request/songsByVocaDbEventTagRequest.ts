@@ -1,4 +1,4 @@
-import { ClientType, DbSortOrder } from "@/backend/dto/enumeration";
+import { DbSortOrder } from "@/backend/dto/enumeration";
 import { EventDateBounds } from "@/backend/dto/lowerLevelStruct";
 
 export interface SongsByVocaDbEventTagRequest {
@@ -7,5 +7,5 @@ export interface SongsByVocaDbEventTagRequest {
   maxResults: number;
   orderBy: DbSortOrder;
   dates: EventDateBounds;
-  clientType: ClientType;
+  clientType: string;
 }

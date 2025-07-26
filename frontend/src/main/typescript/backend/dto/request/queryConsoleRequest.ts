@@ -1,7 +1,7 @@
-import { ClientType, QueryConsoleApiType } from "@/backend/dto/enumeration";
+import { QueryConsoleApiType } from "@/backend/dto/enumeration";
 
 export interface QueryConsoleRequest {
   apiType: QueryConsoleApiType;
   query: string;
-  clientType: ClientType;
+  clientType: string;
 }

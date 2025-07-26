@@ -1,28 +1,40 @@
 app:
-  vocadb-client-base-address:
-    regular: "https://vocadb.net"
-    beta: "https://beta.vocadb.net"
-  nnd-client-properties:
-    thumbnail: "https://ext.nicovideo.jp"
-    embed: "https://embed.nicovideo.jp"
-    api-base-address: "https://snapshot.search.nicovideo.jp"
   service:
     offline-events: AlbumRelease, Club, Concert, Convention, Other
     event-scope: 14d
-
-publisher-link-config:
-  nnd-user:
-    host: "https://www.nicovideo.jp/"
-    path: "user/"
-  nnd-channel:
-    host: "https://ch.nicovideo.jp/"
-    path: "channel/ch"
-  vocadb-beta:
-    host: "https://beta.vocadb.net/"
-    path: "Ar/"
-  vocadb:
-    host: "https://vocadb.net/"
-    path: "Ar/"
+  api-props:
+    database:
+      # -> https://vocadb.net/Ar/{artist id}
+      vocadb:
+        host: "https://vocadb.net"
+        publisher-path: "Ar"
+      # -> https://beta.vocadb.net/Ar/{artist id}
+      vocadb_beta:
+        host: "https://beta.vocadb.net"
+        publisher-path: "Ar"
+    service:
+      nnd:
+        channel-host: "https://ch.nicovideo.jp"
+        thumbnail-host: "https://ext.nicovideo.jp"
+        embed-host: "https://embed.nicovideo.jp"
+        snapshot-api-host: "https://snapshot.search.nicovideo.jp"
+        publisher-props:
+          # -> https://www.nicovideo.jp/user/{user id}
+          nnd_user:
+            host: "https://www.nicovideo.jp"
+            publisher-path: "user"
+          # -> https://ch.nicovideo.jp/channel/ch{channel id}
+          nnd_channel:
+            host: "https://ch.nicovideo.jp"
+            publisher-path: "channel"
+            id-prefix: "ch"
+          # -> https://ch.nicovideo.jp/ch{channel id}
+          nnd_channel_shortened:
+            host: "https://ch.nicovideo.jp"
+            id-prefix: "ch"
+          # -> https://ch.nicovideo.jp/{channel handle}
+          nnd_channel_handle:
+            host: "https://ch.nicovideo.jp"
 
 spring:
   web:

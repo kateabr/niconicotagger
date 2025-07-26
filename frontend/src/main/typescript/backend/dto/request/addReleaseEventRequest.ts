@@ -1,4 +1,3 @@
-import { ClientType } from "@/backend/dto/enumeration";
 import { ReleaseEvent } from "@/backend/dto/lowerLevelStruct";
 
 export interface AddReleaseEventRequest {
@@ -8,5 +7,5 @@ export interface AddReleaseEventRequest {
 
 export interface MassAddReleaseEventRequest {
   subRequests: AddReleaseEventRequest[];
-  clientType: ClientType;
+  clientType: string;
 }

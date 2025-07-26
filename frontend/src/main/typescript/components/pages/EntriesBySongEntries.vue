@@ -432,7 +432,7 @@ import ErrorMessage from "@/components/ErrorMessage.vue";
 import { AxiosError, AxiosResponse } from "axios";
 import NicoDescription from "@/components/NicoDescription.vue";
 import EntryErrorReport from "@/components/EntryErrorReport.vue";
-import { ClientType, SongType, DbSortOrder } from "@/backend/dto/enumeration";
+import { SongType, DbSortOrder } from "@/backend/dto/enumeration";
 import { SongTypeStatsRecord } from "@/backend/dto/songTypeStats";
 import { VocaDbTagSelectable } from "@/backend/dto/lowerLevelStruct";
 import { VocaDbSongEntryWithPvs } from "@/backend/dto/response/songsWithPvsResponse";
@@ -472,7 +472,7 @@ export default class extends Vue {
   private orderingCondition: DbSortOrder = "AdditionDate";
   private pageToJump: number = 0;
   private startOffset: number = 0;
-  private clientType: ClientType = getClientType();
+  private clientType: string = getClientType();
   private chunkSize = 10;
 
   // interface variables

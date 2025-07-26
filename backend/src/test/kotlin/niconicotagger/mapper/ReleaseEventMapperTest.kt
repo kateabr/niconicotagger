@@ -3,10 +3,11 @@ package niconicotagger.mapper
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
 import java.time.ZoneOffset.UTC
 import java.time.temporal.ChronoUnit.DAYS
 import java.util.function.Function
-import java.util.function.Supplier
 import java.util.stream.Stream
 import kotlin.math.absoluteValue
 import niconicotagger.Utils.eventPreviewFixedDate
@@ -460,7 +461,14 @@ class ReleaseEventMapperTest {
                             if (!hasCategory) gen.oneOf(Unspecified)
                             else gen.enumOf(ReleaseEventCategory::class.java).excluding(Unspecified)
                         }
-                        .assign(valueOf(field("date")).supply(Supplier { Instant.now() }))
+                        .assign(
+                            valueOf(field("date"))
+                                .set(
+                                    Instant.ofEpochSecond(
+                                        LocalDateTime.of(eventPreviewFixedDate, LocalTime.MIN).toEpochSecond(UTC)
+                                    )
+                                )
+                        )
                         .assign(
                             valueOf(field("date"))
                                 .to(field("endDate"))

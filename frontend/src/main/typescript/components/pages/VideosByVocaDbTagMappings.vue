@@ -512,7 +512,7 @@ import { AxiosError, AxiosResponse } from "axios";
 import NicoEmbed from "@/components/NicoEmbed.vue";
 import NicoDescription from "@/components/NicoDescription.vue";
 import EntryErrorReport from "@/components/EntryErrorReport.vue";
-import { ClientType, NndSortOrder, SongType } from "@/backend/dto/enumeration";
+import { NndSortOrder, SongType } from "@/backend/dto/enumeration";
 import { SongTypeStatsRecord } from "@/backend/dto/songTypeStats";
 import { VocaDbTag } from "@/backend/dto/lowerLevelStruct";
 import { SongTagsAndPvsMassUpdateRequest } from "@/backend/dto/request/songTagsAndPvsUpdateRequest";
@@ -564,7 +564,7 @@ export default class extends Vue {
   private fetching: boolean = false;
   private massAssigning: boolean = false;
   private assigning: boolean = false;
-  private clientType: ClientType = getClientType();
+  private clientType: string = getClientType();
   private chunkSize = 10;
 
   // interface variables

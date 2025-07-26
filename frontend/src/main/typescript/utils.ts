@@ -1,5 +1,5 @@
 import { AxiosResponse } from "axios";
-import { ArtistType, ClientType, SongType } from "@/backend/dto/enumeration";
+import { ArtistType, SongType } from "@/backend/dto/enumeration";
 import { SongTypeStats, SongTypeStatsRecord } from "@/backend/dto/songTypeStats";
 import { ErrorData, ReleaseEvent, VocaDbTagSelectable } from "@/backend/dto/lowerLevelStruct";
 import {
@@ -7,18 +7,15 @@ import {
   VocaDbSongEntryWithPvs
 } from "@/backend/dto/response/songsWithPvsResponse";
 import {
-  dbBaseUrl,
+  localStorageKeyBaseUrl,
   localStorageKeyClientType,
   nndOrderOptions,
+  unknownClientType,
   videoStatusesToDisable,
   vocaDbOrderOptions
 } from "@/constants";
 
 // url generators
-export function getBaseUrl(clientType: ClientType): string {
-  return dbBaseUrl[clientType];
-}
-
 export function getNicoTagUrl(tag: string, scope: string): string {
   if (scope.length > 0) {
     return "https://www.nicovideo.jp/tag/" + tag + " " + scope;
@@ -34,24 +31,24 @@ export function getNicoEmbedUrl(videoId: string): string {
   return "https://embed.nicovideo.jp/watch/" + videoId + "?noRelatedVideo=1&enablejsapi=0";
 }
 
-export function getVocaDBEventUrl(database: ClientType, id: number): string {
-  return dbBaseUrl[database] + "/E/" + id;
+export function getVocaDBEventUrl(database: string, id: number): string {
+  return getBaseUrl() + "/E/" + id;
 }
 
-export function getVocaDBSongUrl(database: ClientType, id: number): string {
-  return dbBaseUrl[database] + "/S/" + id;
+export function getVocaDBSongUrl(database: string, id: number): string {
+  return getBaseUrl() + "/S/" + id;
 }
 
-export function getVocaDBTagUrl(database: ClientType, id: number): string {
-  return dbBaseUrl[database] + "/T/" + id;
+export function getVocaDBTagUrl(database: string, id: number): string {
+  return getBaseUrl() + "/T/" + id;
 }
 
-export function getVocaDBAddSongUrl(database: ClientType, pvLink: string): string {
-  return dbBaseUrl[database] + "/Song/Create?pvUrl=https://www.nicovideo.jp/watch/" + pvLink;
+export function getVocaDBAddSongUrl(database: string, pvLink: string): string {
+  return getBaseUrl() + "/Song/Create?pvUrl=https://www.nicovideo.jp/watch/" + pvLink;
 }
 
-export function getVocaDBArtistUrl(database: ClientType, artistId: number): string {
-  return dbBaseUrl[database] + "/Ar/" + artistId;
+export function getVocaDBArtistUrl(database: string, artistId: number): string {
+  return getBaseUrl() + "/Ar/" + artistId;
 }
 
 export function getDeletedVideoUrl(videoId: string): string {
@@ -76,12 +73,20 @@ export function shouldDisableByStatus(pv: UnavailableNndVideo): boolean {
 }
 
 // common getters
-export function getClientType(): ClientType {
+export function getClientType(): string {
   const clientType = localStorage.getItem(localStorageKeyClientType);
-  if (clientType == null || ClientType[clientType as keyof typeof ClientType] == undefined) {
-    return ClientType.UNKNOWN;
+  if (clientType == null) {
+    return unknownClientType;
   }
-  return ClientType[clientType as keyof typeof ClientType];
+  return clientType;
+}
+
+export function getBaseUrl(): string {
+  const baseUrl = localStorage.getItem(localStorageKeyBaseUrl);
+  if (baseUrl == null) {
+    return "";
+  }
+  return baseUrl;
 }
 
 export function getErrorData(response: AxiosResponse | undefined): ErrorData {

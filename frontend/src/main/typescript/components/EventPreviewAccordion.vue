@@ -57,7 +57,6 @@
 <script lang="ts">
 import { Component, Prop } from "vue-property-decorator";
 import Vue from "vue";
-import { ClientType } from "@/backend/dto/enumeration";
 import { ReleaseEventPreview } from "@/backend/dto/response/releaseEventPreview";
 import EventPreviewStack from "@/components/EventPreviewStack.vue";
 
@@ -67,6 +66,6 @@ export default class extends Vue {
   private readonly eventPreviews!: ReleaseEventPreview[];
 
   @Prop()
-  private readonly clientType!: ClientType;
+  private readonly clientType!: string;
 }
 </script>

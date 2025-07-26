@@ -551,12 +551,9 @@ import {
   QueryConsoleSongItem
 } from "@/backend/dto/response/queryConsoleResponse";
 import EntryErrorReport from "@/components/EntryErrorReport.vue";
-import {
-  ClientType,
-  QueryConsoleApiType,
-  SongType
-} from "@/backend/dto/enumeration";
+import { QueryConsoleApiType, SongType } from "@/backend/dto/enumeration";
 import { UpdateErrorReport, VocaDbTag } from "@/backend/dto/lowerLevelStruct";
+import { unknownClientType } from "@/constants";
 
 @Component({
   components: {
@@ -581,7 +578,7 @@ export default class extends Vue {
   private tempTagName: string = "";
 
   // api variables
-  private clientType: ClientType = getClientType();
+  private clientType: string = getClientType();
   private queryBase: string =
     "/api/" + this.apiType + "?fields=Tags&getTotalCount=true&";
   private userQuery: string = "maxResults=10";
@@ -824,8 +821,8 @@ export default class extends Vue {
 
   // session
   created(): void {
-    if (this.clientType != ClientType.UNKNOWN) {
-      this.queryBase = getBaseUrl(this.clientType) + this.queryBase;
+    if (this.clientType != unknownClientType) {
+      this.queryBase = getBaseUrl() + this.queryBase;
     }
   }
 

@@ -26,6 +26,7 @@ import org.springframework.http.HttpHeaders.USER_AGENT
 import org.springframework.http.MediaType.APPLICATION_JSON
 import org.springframework.http.MediaType.APPLICATION_JSON_VALUE
 import org.springframework.test.json.JsonCompareMode.STRICT
+import org.springframework.test.web.servlet.get
 import org.springframework.test.web.servlet.post
 
 class AuthorizationControllerTest : AbstractControllerTest() {
@@ -241,6 +242,33 @@ class AuthorizationControllerTest : AbstractControllerTest() {
                 status { is4xxClientError() }
                 content { json(responseJson, STRICT) }
             }
+    }
+
+    @Test
+    fun `get supported databases test`(): Unit = runBlocking {
+        mockMvc.get("/api/authorize/databases").asyncDispatch().andExpect {
+            status { is2xxSuccessful() }
+            content {
+                json(
+                    """
+                    [
+                      {
+                        "clientType": "vocadb",
+                        "displayName": "VocaDB",
+                        "baseAddress": "https://vocadb.net"
+                      },
+                      {
+                        "clientType": "vocadb_beta",
+                        "displayName": "VocaDB BETA",
+                        "baseAddress": "$testDbHost"
+                      }
+                    ]
+                    """
+                        .trimIndent(),
+                    STRICT,
+                )
+            }
+        }
     }
 
     companion object {

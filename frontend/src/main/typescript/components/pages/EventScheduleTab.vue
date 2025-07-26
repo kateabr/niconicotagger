@@ -7,7 +7,7 @@
     />
     <b-row>
       <b-col>
-        <div v-if="clientType != ClientType.UNKNOWN" class="mt-2">
+        <div v-if="clientType != unknownClientType" class="mt-2">
           <b-form-checkbox
             v-model="hideOffline"
             class="text-muted mb-3"
@@ -117,14 +117,18 @@ import { AxiosError, AxiosResponse } from "axios";
 import Action from "@/components/Action.vue";
 import NicoDescription from "@/components/NicoDescription.vue";
 import EntryErrorReport from "@/components/EntryErrorReport.vue";
-import { ClientType } from "@/backend/dto/enumeration";
 import { ReleaseEventPreview } from "@/backend/dto/response/releaseEventPreview";
 import EventPreviewStack from "@/components/EventPreviewStack.vue";
 import EventPreviewAccordion from "@/components/EventPreviewAccordion.vue";
+import { unknownClientType } from "@/constants";
 
 @Component({
+  computed: {
+    unknownClientType() {
+      return unknownClientType;
+    }
+  },
   methods: {
-    getShortenedSongType,
     getNicoVideoUrl,
     getVocaDBEventUrl
   },
@@ -137,11 +141,6 @@ import EventPreviewAccordion from "@/components/EventPreviewAccordion.vue";
     ErrorMessage,
     NicoEmbed,
     DateDisposition
-  },
-  computed: {
-    ClientType() {
-      return ClientType;
-    }
   }
 })
 export default class extends Vue {
@@ -154,7 +153,7 @@ export default class extends Vue {
   @Prop()
   private readonly targName: string | undefined;
 
-  private clientType: ClientType = getClientType();
+  private clientType: string = getClientType();
   private eventPreviews: ReleaseEventPreview[] = [];
 
   private loadedAt: string | null = null;

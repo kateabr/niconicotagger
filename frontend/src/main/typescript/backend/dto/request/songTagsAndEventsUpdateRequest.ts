@@ -1,9 +1,8 @@
 import { ReleaseEvent, VocaDbTag } from "@/backend/dto/lowerLevelStruct";
-import { ClientType } from "@/backend/dto/enumeration";
 
 export interface SongTagsAndEventsMassUpdateRequest {
   subRequests: SongTagsAndEventsUpdateRequest[];
-  clientType: ClientType;
+  clientType: string;
 }
 
 export interface SongTagsAndEventsUpdateRequest {

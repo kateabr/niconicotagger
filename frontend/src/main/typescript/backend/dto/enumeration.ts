@@ -5,12 +5,6 @@ export type NndSortOrder = "viewCounter" | "startTime" | "likeCounter";
 export type PublisherType = "NND_USER" | "NND_CHANNEL" | "DATABASE";
 export type EventStatus = "ENDED" | "ONGOING" | "UPCOMING";
 
-export enum ClientType {
-  UNKNOWN = "",
-  vocadb = "vocadb",
-  vocadb_beta = "vocadb_beta"
-}
-
 export enum SongType {
   Unspecified = 0,
   Original = 1,

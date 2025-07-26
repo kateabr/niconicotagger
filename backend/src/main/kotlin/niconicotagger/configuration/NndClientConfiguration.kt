@@ -9,11 +9,12 @@ import org.springframework.context.annotation.Configuration
 @Configuration
 class NndClientConfiguration {
     @Bean
-    fun nndClient(config: AppConfiguration, jsonMapper: JsonMapper, xmlMapper: XmlMapper) =
+    fun nndClient(props: NndApiProps, jsonMapper: JsonMapper, xmlMapper: XmlMapper) =
         NndClient(
-            config.nndClientProperties.thumbnail,
-            config.nndClientProperties.embed,
-            config.nndClientProperties.apiBaseAddress,
+            props.channelHost.toString(),
+            props.thumbnailHost.toString(),
+            props.embedHost.toString(),
+            props.snapshotApiHost.toString(),
             jsonMapper,
             xmlMapper,
         )

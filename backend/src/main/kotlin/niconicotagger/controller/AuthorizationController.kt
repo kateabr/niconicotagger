@@ -4,12 +4,14 @@ import jakarta.servlet.http.HttpServletResponse
 import jakarta.validation.Valid
 import java.time.Duration
 import niconicotagger.client.DbClientHolder
+import niconicotagger.dto.api.misc.SupportedDatabase
 import niconicotagger.dto.api.request.LoginRequest
 import org.springframework.boot.web.server.Cookie.SameSite.STRICT
 import org.springframework.http.HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS
 import org.springframework.http.HttpHeaders.SET_COOKIE
 import org.springframework.http.ResponseCookie
 import org.springframework.validation.annotation.Validated
+import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -35,4 +37,7 @@ class AuthorizationController(private val dbClientHolder: DbClientHolder) {
         )
         response.setHeader(ACCESS_CONTROL_ALLOW_CREDENTIALS, "true")
     }
+
+    @GetMapping("/databases")
+    suspend fun getSupportedDatabases(): List<SupportedDatabase> = dbClientHolder.getSupportedDatabases()
 }

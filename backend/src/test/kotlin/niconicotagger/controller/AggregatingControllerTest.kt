@@ -4,6 +4,7 @@ import com.github.tomakehurst.wiremock.client.WireMock.equalTo
 import com.github.tomakehurst.wiremock.client.WireMock.equalToDateTime
 import com.github.tomakehurst.wiremock.client.WireMock.equalToJson
 import com.github.tomakehurst.wiremock.client.WireMock.get
+import com.github.tomakehurst.wiremock.client.WireMock.not
 import com.github.tomakehurst.wiremock.client.WireMock.ok
 import com.github.tomakehurst.wiremock.client.WireMock.okJson
 import com.github.tomakehurst.wiremock.client.WireMock.post
@@ -361,6 +362,7 @@ class AggregatingControllerTest : AbstractControllerTest() {
                         .willReturn(okJson(it.value))
                 )
             }
+            // channel links in entries
             dbPublisherLookupResultChannel.forEach {
                 wireMockExtension.stubFor(
                     post(urlPathEqualTo("/Artist/FindDuplicate"))
@@ -368,6 +370,19 @@ class AggregatingControllerTest : AbstractControllerTest() {
                         .withFormParam("term2", equalTo(""))
                         .withFormParam("term3", equalTo(""))
                         .withFormParam("linkUrl", equalTo(it.key))
+                        .withHeader(CONTENT_TYPE, equalTo(APPLICATION_FORM_URLENCODED_VALUE))
+                        .withHeader(USER_AGENT, equalTo(DEFAULT_USER_AGENT))
+                        .willReturn(okJson(it.value))
+                )
+            }
+            // shortened channel links in entries
+            dbPublisherLookupResultChannel.forEach {
+                wireMockExtension.stubFor(
+                    post(urlPathEqualTo("/Artist/FindDuplicate"))
+                        .withFormParam("term1", equalTo(""))
+                        .withFormParam("term2", equalTo(""))
+                        .withFormParam("term3", equalTo(""))
+                        .withFormParam("linkUrl", not(equalTo(it.key)))
                         .withHeader(CONTENT_TYPE, equalTo(APPLICATION_FORM_URLENCODED_VALUE))
                         .withHeader(USER_AGENT, equalTo(DEFAULT_USER_AGENT))
                         .willReturn(okJson(it.value))
@@ -420,7 +435,7 @@ class AggregatingControllerTest : AbstractControllerTest() {
                 .asyncDispatch()
                 .andExpect {
                     status { isOk() }
-                    content { json(expectedResponse, STRICT) }
+                    content { json(expectedResponse.replace("https://beta.vocadb.net", testDbHost), STRICT) }
                 }
         }
 

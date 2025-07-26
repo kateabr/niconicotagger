@@ -1,4 +1,5 @@
 export const localStorageKeyClientType = "clientType";
+export const localStorageKeyBaseUrl = "baseUrl";
 export const localStorageKeyMaxResults = "max_results";
 export const localStorageKeyStartOffset = "start_offset";
 export const localStorageKeyDbOrderBy = "db_order_by";
@@ -20,11 +21,9 @@ export const nndOrderOptions = {
   viewCounter: "views",
   likeCounter: "likes"
 };
-export const dbBaseUrl = {
-  vocadb: "https://vocadb.net",
-  vocadb_beta: "https://beta.vocadb.net"
-};
 
 export const videoStatusesToDisable = ["DELETED"];
 
 export const serviceName = "NicoNicoTagger";
+
+export const unknownClientType = "UNKNOWN";

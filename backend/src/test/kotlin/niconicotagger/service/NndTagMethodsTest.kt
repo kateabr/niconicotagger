@@ -112,7 +112,7 @@ class NndTagMethodsTest : AggregatingServiceTest() {
         every { resultPlaceholder.entry } returns
             if (song == null) null else Instancio.create(SongEntryWithTagAssignmentInfo::class.java)
         if (song == null) {
-            coEvery { aggregatingService.getPublisher(eq(video), eq(request.clientType)) } returns null
+            coEvery { publisherInfoService.getPublisher(eq(video), eq(request.clientType)) } returns null
         }
         if (priorSongsCheckResult != null) {
             coEvery {
@@ -136,7 +136,7 @@ class NndTagMethodsTest : AggregatingServiceTest() {
             aggregatingService.buildResultingTagSet(any(), any(), any())
         }
         coVerifyCount {
-            (if (song == null) 1 else 0) * { aggregatingService.getPublisher(any(), any()) }
+            (if (song == null) 1 else 0) * { publisherInfoService.getPublisher(any(), any()) }
             (if (song != null && song.tags.none { it.id == FIRST_WORK_TAG_ID }) 1 else 0).times {
                 aggregatingService.likelyEarliestWork(any(), any())
             }
@@ -168,7 +168,7 @@ class NndTagMethodsTest : AggregatingServiceTest() {
             coEvery { nndClient.getFormattedDescription(video.id) } returns additionalDescription
         }
         if (song == null) {
-            coEvery { aggregatingService.getPublisher(eq(video), eq(request.clientType)) } returns publisher
+            coEvery { publisherInfoService.getPublisher(eq(video), eq(request.clientType)) } returns publisher
         }
         coEvery {
             dbClient.getSongByNndPv(eq(video.id), eq("Tags,Artists"), eq(VocaDbSongEntryWithTags::class.java))
@@ -219,7 +219,7 @@ class NndTagMethodsTest : AggregatingServiceTest() {
         }
         coVerifyCount {
             (if (video.description == null) 1 else 0) * { nndClient.getFormattedDescription(any()) }
-            (if (song == null) 1 else 0) * { aggregatingService.getPublisher(any(), any()) }
+            (if (song == null) 1 else 0) * { publisherInfoService.getPublisher(any(), any()) }
         }
         confirmVerified(dbClient, nndClient, eventMapper, aggregatingService)
         verifyAll { songMapper.mapForTag(any(), any(), any(), anyNullable(), any(), anyNullable()) }
@@ -299,7 +299,7 @@ class NndTagMethodsTest : AggregatingServiceTest() {
             coEvery { nndClient.getFormattedDescription(video.id) } returns additionalDescription
         }
         if (song == null) {
-            coEvery { aggregatingService.getPublisher(eq(video), eq(request.clientType)) } returns publisher
+            coEvery { publisherInfoService.getPublisher(eq(video), eq(request.clientType)) } returns publisher
         }
         coEvery {
             dbClient.getSongByNndPv(eq(video.id), eq("ReleaseEvent"), eq(VocaDbSongWithReleaseEvents::class.java))
@@ -341,7 +341,7 @@ class NndTagMethodsTest : AggregatingServiceTest() {
         }
         coVerifyCount {
             (if (video.description == null) 1 else 0) * { nndClient.getFormattedDescription(any()) }
-            (if (song == null) 1 else 0) * { aggregatingService.getPublisher(any(), any()) }
+            (if (song == null) 1 else 0) * { publisherInfoService.getPublisher(any(), any()) }
         }
         confirmVerified(dbClient, nndClient, aggregatingService)
         verifyAll { songMapper.mapForEvent(any(), any(), any(), any(), any(), anyNullable(), anyNullable()) }

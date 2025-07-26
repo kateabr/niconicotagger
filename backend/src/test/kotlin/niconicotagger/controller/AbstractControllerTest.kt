@@ -65,6 +65,8 @@ abstract class AbstractControllerTest : AbstractApplicationContextTest() {
     }
 
     companion object {
+        lateinit var testDbHost: String
+
         @JvmStatic
         @RegisterExtension
         val wireMockExtension: WireMockExtension =
@@ -73,10 +75,11 @@ abstract class AbstractControllerTest : AbstractApplicationContextTest() {
         @DynamicPropertySource
         @JvmStatic
         fun dynamicProperties(registry: DynamicPropertyRegistry) {
-            registry.add("app.vocadb-client-base-address.beta") { wireMockExtension.baseUrl() }
-            registry.add("app.nnd-client-properties.thumbnail") { wireMockExtension.baseUrl() }
-            registry.add("app.nnd-client-properties.embed") { wireMockExtension.baseUrl() }
-            registry.add("app.nnd-client-properties.api-base-address") { wireMockExtension.baseUrl() }
+            testDbHost = wireMockExtension.baseUrl()
+            registry.add("app.api-props.database.vocadb_beta.host") { wireMockExtension.baseUrl() }
+            registry.add("app.api-props.service.nnd.thumbnail-host") { wireMockExtension.baseUrl() }
+            registry.add("app.api-props.service.nnd.embed-host") { wireMockExtension.baseUrl() }
+            registry.add("app.api-props.service.nnd.snapshot-api-host") { wireMockExtension.baseUrl() }
         }
     }
 }

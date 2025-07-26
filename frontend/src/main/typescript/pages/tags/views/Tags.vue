@@ -2,7 +2,7 @@
   <div>
     <nav-bar-menu
       active-mode="tags"
-      :client-type="clientType != undefined ? clientType : ClientType.UNKNOWN"
+      :client-type="clientType != undefined ? clientType : unknownClientType"
     />
     <b-row class="col-12 m-0">
       <b-toaster class="b-toaster-top-center" name="toaster-2"></b-toaster>
@@ -76,12 +76,17 @@ import VideosByMappedNicoNicoTag from "@/components/pages/VideosByMappedNicoNico
 
 import VueClipboard from "vue-clipboard2";
 import { getClientType } from "@/utils";
-import { ClientType } from "@/backend/dto/enumeration";
 import { BrowseMode } from "@/pages/tags/utils";
+import { unknownClientType } from "@/constants";
 
 Vue.use(VueClipboard);
 
 @Component({
+  computed: {
+    unknownClientType() {
+      return unknownClientType;
+    }
+  },
   components: {
     NavBarMenu,
     EntriesBySongEntries,
@@ -96,7 +101,7 @@ export default class extends Vue {
   @Prop()
   private targName!: string;
 
-  private clientType: ClientType = ClientType.UNKNOWN;
+  private clientType: string = unknownClientType;
 
   mounted(): void {
     this.clientType = getClientType();

@@ -1,9 +1,8 @@
 import { PvToDisable } from "@/backend/dto/lowerLevelStruct";
-import { ClientType } from "@/backend/dto/enumeration";
 
 export interface SongTagsAndPvsMassUpdateRequest {
   subRequests: SongTagsAndPvsUpdateRequest[];
-  clientType: ClientType;
+  clientType: string;
 }
 
 export interface SongTagsAndPvsUpdateRequest {

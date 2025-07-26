@@ -23,7 +23,6 @@
 import { Component, Prop } from "vue-property-decorator";
 import Vue from "vue";
 import { getVocaDBEventUrl, getVocaDBTagUrl } from "@/utils";
-import { ClientType } from "@/backend/dto/enumeration";
 import { ReleaseEvent, VocaDbTag } from "@/backend/dto/lowerLevelStruct";
 
 @Component({
@@ -37,6 +36,6 @@ export default class extends Vue {
   private readonly tagToRemove!: VocaDbTag | null;
 
   @Prop()
-  private readonly clientType!: ClientType;
+  private readonly clientType!: string;
 }
 </script>

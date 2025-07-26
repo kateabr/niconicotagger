@@ -57,10 +57,10 @@ import NavBarMenu from "@/components/NavBarMenu.vue";
 import EventByVocaDbTagTab from "@/components/pages/EventByVocaDbTagTab.vue";
 import EventByNndTagTab from "@/components/pages/EventByNndTagTab.vue";
 import { getClientType } from "@/utils";
-import { ClientType } from "@/backend/dto/enumeration";
 import ErrorMessage from "@/components/ErrorMessage.vue";
 import EventScheduleTab from "@/components/pages/EventScheduleTab.vue";
 import { BrowseMode } from "@/pages/events/utils";
+import { unknownClientType } from "@/constants";
 
 Vue.use(VueClipboard);
 
@@ -80,7 +80,7 @@ export default class extends Vue {
   @Prop()
   private readonly targName: string | undefined;
 
-  private clientType: ClientType = ClientType.UNKNOWN;
+  private clientType: string = unknownClientType;
 
   created(): void {
     this.clientType = getClientType();

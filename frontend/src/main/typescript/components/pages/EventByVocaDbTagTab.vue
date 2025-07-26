@@ -484,14 +484,11 @@ import DateDisposition from "@/components/DateDisposition.vue";
 import { AxiosError, AxiosResponse } from "axios";
 import Action from "@/components/Action.vue";
 import EntryErrorReport from "@/components/EntryErrorReport.vue";
-import { ClientType, DbSortOrder, SongType } from "@/backend/dto/enumeration";
+import { DbSortOrder, SongType } from "@/backend/dto/enumeration";
 import { SongTypeStatsRecord } from "@/backend/dto/songTypeStats";
 import { ReleaseEvent, VocaDbTag } from "@/backend/dto/lowerLevelStruct";
 import { SongTagsAndEventsMassUpdateRequest } from "@/backend/dto/request/songTagsAndEventsUpdateRequest";
-import {
-  ReleaseEventData,
-  ReleaseEventDataWithVocaDbTag
-} from "@/backend/dto/higherLevelStruct";
+import { ReleaseEventData } from "@/backend/dto/higherLevelStruct";
 import { SongEntryByVocaDbTagForEvent } from "@/backend/dto/response/songsByVocaDbEventTagResponse";
 import {
   localStorageKeyDbOrderBy,
@@ -539,7 +536,7 @@ export default class extends Vue {
   private fetching: boolean = false;
   private massAssigning: boolean = false;
   private assigning: boolean = false;
-  private clientType: ClientType = getClientType();
+  private clientType: string = getClientType();
 
   // interface variables
   private allChecked: boolean = false;

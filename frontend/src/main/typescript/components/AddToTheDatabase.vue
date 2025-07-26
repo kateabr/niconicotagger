@@ -23,7 +23,6 @@
 import { Component, Prop } from "vue-property-decorator";
 import Vue from "vue";
 import { PublisherInfo } from "@/backend/dto/lowerLevelStruct";
-import { ClientType } from "@/backend/dto/enumeration";
 import { getVocaDBAddSongUrl } from "@/utils";
 
 @Component({ components: {} })
@@ -38,7 +37,7 @@ export default class extends Vue {
   private readonly videoId!: string;
 
   @Prop()
-  private readonly clientType!: ClientType;
+  private readonly clientType!: string;
 
   private getVocaDBAddSongUrl(contentId: string): string {
     return getVocaDBAddSongUrl(this.clientType, contentId);

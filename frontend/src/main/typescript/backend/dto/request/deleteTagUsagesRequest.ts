@@ -1,9 +1,9 @@
-import { ClientType, QueryConsoleApiType } from "@/backend/dto/enumeration";
+import { QueryConsoleApiType } from "@/backend/dto/enumeration";
 import { VocaDbTag } from "@/backend/dto/lowerLevelStruct";
 
 export interface DeleteTagUsagesRequestWrapper {
   request: DeleteTagUsagesRequest;
-  clientType: ClientType;
+  clientType: string;
 }
 
 export interface DeleteTagUsagesRequest {

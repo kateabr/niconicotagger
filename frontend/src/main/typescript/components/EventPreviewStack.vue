@@ -67,7 +67,6 @@
 import { Component, Prop } from "vue-property-decorator";
 import Vue from "vue";
 import { getVocaDBEventUrl } from "@/utils";
-import { ClientType } from "@/backend/dto/enumeration";
 import { ReleaseEventPreview } from "@/backend/dto/response/releaseEventPreview";
 
 @Component({
@@ -78,6 +77,6 @@ export default class extends Vue {
   private readonly eventPreviews!: ReleaseEventPreview[];
 
   @Prop()
-  private readonly clientType!: ClientType;
+  private readonly clientType!: string;
 }
 </script>

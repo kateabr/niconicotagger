@@ -22,10 +22,14 @@ import { SongTagsAndEventsMassUpdateRequest } from "@/backend/dto/request/songTa
 import { ReleaseEventPreview } from "@/backend/dto/response/releaseEventPreview";
 import { EventScheduleRequest } from "@/backend/dto/request/eventScheduleRequest";
 import { DeleteTagUsagesRequestWrapper } from "@/backend/dto/request/deleteTagUsagesRequest";
+import { SupportedDatabaseResponse } from "@/backend/dto/response/supportedDatabaseResponse";
 
 export const api = {
   async authorize(payload: LoginRequest): Promise<void> {
     return axios.post("/api/authorize", payload);
+  },
+  async getSupportedDatabases(): Promise<SupportedDatabaseResponse[]> {
+    return axios.get("/api/authorize/databases").then(value => value.data);
   },
   async getVideosByNndTagsForTagging(
     payload: VideosByNndTagsRequest

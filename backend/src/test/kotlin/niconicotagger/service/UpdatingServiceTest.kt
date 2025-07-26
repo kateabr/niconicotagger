@@ -14,8 +14,8 @@ import kotlinx.coroutines.runBlocking
 import net.javacrumbs.jsonunit.assertj.assertThatJson
 import niconicotagger.Utils.jsonMapper
 import niconicotagger.Utils.loadResource
+import niconicotagger.client.DbClient
 import niconicotagger.client.DbClientHolder
-import niconicotagger.client.VocaDbClient
 import niconicotagger.dto.api.misc.ApiType
 import niconicotagger.dto.api.misc.ApiType.SONGS
 import niconicotagger.dto.api.misc.ClientType
@@ -50,7 +50,7 @@ import org.junit.jupiter.params.provider.EnumSource
 @ExtendWith(InstancioExtension::class)
 class UpdatingServiceTest {
 
-    private val client = mockk<VocaDbClient>()
+    private val client = mockk<DbClient>()
     private val clientHolder = mockk<DbClientHolder>()
     private val service = spyk(UpdatingService(clientHolder))
 

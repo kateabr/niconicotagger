@@ -1,5 +1,9 @@
 <template>
-  <div style="display: flex; align-items: center" class="min-vh-100 min-vw-100">
+  <div
+    v-if="databaseOptions.length > 0"
+    style="display: flex; align-items: center"
+    class="min-vh-100 min-vw-100"
+  >
     <div class="col-lg-3 mx-auto text-center">
       <h1>NicoNicoTagger 2.0</h1>
       <div class="blockquote">for VocaDB</div>
@@ -36,16 +40,16 @@
                   id="dbDropdown"
                   :disabled="loggingIn"
                   block
-                  :text="databaseOptions[clientType]"
+                  :text="selectedDatabase.displayName"
                   class="my-auto"
                   variant="link"
                   menu-class="w-100"
                 >
                   <b-dropdown-item
-                    v-for="(key, value) in databaseOptions"
-                    :key="key"
-                    @click="clientType = value"
-                    >{{ key }}
+                    v-for="dbOption in databaseOptions"
+                    :key="dbOption.clientType"
+                    @click="selectedDatabase = dbOption"
+                    >{{ dbOption.displayName }}
                   </b-dropdown-item>
                 </b-dropdown>
               </b-col>
@@ -66,7 +70,7 @@
       style="position: fixed; top: 0"
       class="flex-lg-nowrap col-12"
       active-mode="index"
-      :client-type="clientTypeLoggedIn"
+      :client-type="clientType"
     />
   </div>
 </template>
@@ -77,23 +81,25 @@ import { Component } from "vue-property-decorator";
 import { api } from "@/backend";
 import NavBarMenu from "@/components/NavBarMenu.vue";
 import { getErrorData, getClientType } from "@/utils";
-import { ClientType } from "@/backend/dto/enumeration";
-import { localStorageKeyClientType } from "@/constants";
+import {
+  localStorageKeyBaseUrl,
+  localStorageKeyClientType,
+  unknownClientType
+} from "@/constants";
 import { AxiosError } from "axios";
+import { SupportedDatabaseResponse } from "@/backend/dto/response/supportedDatabaseResponse";
 
 @Component({ components: { NavBarMenu } })
 export default class extends Vue {
   private username: string = "";
   private password: string = "";
   private loggingIn: boolean = false;
-  private clientTypeLoggedIn: ClientType = getClientType();
-  private clientType: ClientType =
-    this.clientTypeLoggedIn != ClientType.UNKNOWN
-      ? this.clientTypeLoggedIn
-      : ClientType.vocadb;
-  private databaseOptions = {
-    [ClientType.vocadb]: "VocaDB",
-    [ClientType.vocadb_beta]: "VocaDB BETA"
+  private clientType: string = "";
+  private databaseOptions: SupportedDatabaseResponse[] = [];
+  private selectedDatabase: SupportedDatabaseResponse = {
+    clientType: "",
+    displayName: "",
+    baseAddress: ""
   };
 
   private async login() {
@@ -102,21 +108,18 @@ export default class extends Vue {
       await api.authorize({
         userName: this.username,
         password: this.password,
-        clientType: ClientType[this.clientType]
+        clientType: this.selectedDatabase.clientType
       });
-      this.clientTypeLoggedIn = this.clientType;
-      this.$bvToast.toast(
-        "Logged in to " + this.databaseOptions[this.clientTypeLoggedIn],
-        {
-          title: "Success",
-          toaster: "b-toaster-bottom-center",
-          solid: true,
-          variant: "success",
-          noAutoHide: true
-        }
-      );
+      this.$bvToast.toast("Logged in to " + this.selectedDatabase.displayName, {
+        title: "Success",
+        toaster: "b-toaster-bottom-center",
+        solid: true,
+        variant: "success",
+        noAutoHide: true
+      });
     } catch (err) {
-      this.clientTypeLoggedIn = ClientType.UNKNOWN;
+      this.clientType = unknownClientType;
+      localStorage.removeItem(localStorageKeyClientType);
       const errorData = getErrorData((err as AxiosError).response);
       this.$bvToast.toast(errorData.message, {
         title: errorData.statusText,
@@ -127,15 +130,39 @@ export default class extends Vue {
       });
     } finally {
       this.loggingIn = false;
-      localStorage.setItem(localStorageKeyClientType, this.clientTypeLoggedIn);
+      localStorage.setItem(
+        localStorageKeyClientType,
+        this.selectedDatabase.clientType
+      );
+      localStorage.setItem(
+        localStorageKeyBaseUrl,
+        this.selectedDatabase.baseAddress
+      );
     }
+    this.clientType = this.selectedDatabase.clientType;
+  }
+
+  private async loadSupportedDatabases() {
+    this.databaseOptions = await api.getSupportedDatabases();
+    this.selectedDatabase = {
+      clientType: this.clientType,
+      displayName: this.databaseOptions.filter(
+        entry => entry.clientType == this.clientType
+      )[0].displayName,
+      baseAddress: this.databaseOptions.filter(
+        entry => entry.clientType == this.clientType
+      )[0].baseAddress
+    };
   }
 
   created(): void {
     let clientType = getClientType();
-    if (clientType != ClientType.UNKNOWN) {
-      this.clientTypeLoggedIn = clientType;
+    if (clientType != unknownClientType) {
+      this.clientType = clientType;
+    } else {
+      this.clientType = "vocadb";
     }
+    this.loadSupportedDatabases();
   }
 }
 </script>
