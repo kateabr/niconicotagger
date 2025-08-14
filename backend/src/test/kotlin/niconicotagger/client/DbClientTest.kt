@@ -33,6 +33,9 @@ import niconicotagger.dto.inner.misc.ArtistType
 import niconicotagger.dto.inner.misc.ArtistType.Circle
 import niconicotagger.dto.inner.misc.ArtistType.Producer
 import niconicotagger.dto.inner.misc.ArtistType.SynthesizerV
+import niconicotagger.dto.inner.misc.EntryField.Artists
+import niconicotagger.dto.inner.misc.EntryField.Tags
+import niconicotagger.dto.inner.misc.EntryField.WebLinks
 import niconicotagger.dto.inner.misc.ReleaseEventCategory.Anniversary
 import niconicotagger.dto.inner.misc.ReleaseEventCategory.Club
 import niconicotagger.dto.inner.misc.ReleaseEventCategory.Festival
@@ -55,7 +58,7 @@ import niconicotagger.dto.inner.vocadb.VocaDbEntryArtist
 import niconicotagger.dto.inner.vocadb.VocaDbFrontPageData
 import niconicotagger.dto.inner.vocadb.VocaDbReleaseEvent
 import niconicotagger.dto.inner.vocadb.VocaDbReleaseEventSeries
-import niconicotagger.dto.inner.vocadb.VocaDbSongEntryWithNndPvsAndTags
+import niconicotagger.dto.inner.vocadb.VocaDbSongEntryWithNndPvsTagsAndReleaseEvents
 import niconicotagger.dto.inner.vocadb.VocaDbSongEntryWithTags
 import niconicotagger.dto.inner.vocadb.VocaDbTag
 import niconicotagger.dto.inner.vocadb.VocaDbTagMapping
@@ -64,7 +67,7 @@ import niconicotagger.dto.inner.vocadb.VocaDbTagUsage
 import niconicotagger.dto.inner.vocadb.VocaDbTagUsages
 import niconicotagger.dto.inner.vocadb.VocaDbUser
 import niconicotagger.dto.inner.vocadb.search.result.VocaDbCustomQuerySearchResult
-import niconicotagger.dto.inner.vocadb.search.result.VocaDbSongEntryWithNndPvsAndTagsSearchResult
+import niconicotagger.dto.inner.vocadb.search.result.VocaDbSongEntryWithNndPvsTagsAndReleaseEventsSearchResult
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatExceptionOfType
 import org.assertj.core.api.Assertions.assertThatNoException
@@ -279,7 +282,7 @@ class DbClientTest {
                 )
         )
 
-        assertThat(DbClient(wm.httpBaseUrl, jsonMapper).getEventByName("重音テト誕生祭 2023", "WebLinks,Tags"))
+        assertThat(DbClient(wm.httpBaseUrl, jsonMapper).getEventByName("重音テト誕生祭 2023", WebLinks, Tags))
             .usingRecursiveComparison()
             .ignoringCollectionOrder()
             .isEqualTo(
@@ -372,7 +375,7 @@ class DbClientTest {
 
         assertThat(
                 DbClient(wm.httpBaseUrl, jsonMapper)
-                    .getSongByNndPv("sm42029727", "Tags,Artists", VocaDbSongEntryWithTags::class.java)
+                    .getSongByNndPv(VocaDbSongEntryWithTags::class.java, "sm42029727", Tags, Artists)
             )
             .usingRecursiveComparison()
             .isEqualTo(
@@ -619,9 +622,9 @@ class DbClientTest {
             .usingRecursiveComparison()
             .ignoringCollectionOrder()
             .isEqualTo(
-                VocaDbSongEntryWithNndPvsAndTagsSearchResult(
+                VocaDbSongEntryWithNndPvsTagsAndReleaseEventsSearchResult(
                     listOf(
-                        VocaDbSongEntryWithNndPvsAndTags(
+                        VocaDbSongEntryWithNndPvsTagsAndReleaseEvents(
                             743_185,
                             "オッドライアー",
                             Original,

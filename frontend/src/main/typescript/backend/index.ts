@@ -19,7 +19,10 @@ import { VideosByVocaDbTagRequest } from "@/backend/dto/request/videosByVocaDbTa
 import { SongTagsAndPvsMassUpdateRequest } from "@/backend/dto/request/songTagsAndPvsUpdateRequest";
 import { SongsByVocaDbEventTagRequest } from "@/backend/dto/request/songsByVocaDbEventTagRequest";
 import { SongTagsAndEventsMassUpdateRequest } from "@/backend/dto/request/songTagsAndEventsUpdateRequest";
-import { ReleaseEventPreview } from "@/backend/dto/response/releaseEventPreview";
+import {
+  EventScheduleResponse,
+  ReleaseEventPreview
+} from "@/backend/dto/response/releaseEventPreview";
 import { EventScheduleRequest } from "@/backend/dto/request/eventScheduleRequest";
 import { DeleteTagUsagesRequestWrapper } from "@/backend/dto/request/deleteTagUsagesRequest";
 import { SupportedDatabaseResponse } from "@/backend/dto/response/supportedDatabaseResponse";
@@ -87,7 +90,7 @@ export const api = {
   ): Promise<UpdateErrorReport | UpdateErrorSuccess> {
     return axios.post("/api/update/tags/delete", payload).then(value => value.data);
   },
-  async loadEventPreviews(request: EventScheduleRequest): Promise<ReleaseEventPreview[]> {
+  async loadEventPreviews(request: EventScheduleRequest): Promise<EventScheduleResponse> {
     return axios.post("/api/get/recent_events", request).then(value => value.data);
   }
 };

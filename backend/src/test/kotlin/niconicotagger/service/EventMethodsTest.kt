@@ -11,13 +11,17 @@ import io.mockk.verifyAll
 import io.mockk.verifyCount
 import java.time.Duration
 import java.time.OffsetDateTime
+import java.util.function.Consumer
+import java.util.stream.Stream
 import kotlinx.coroutines.runBlocking
 import niconicotagger.dto.api.misc.ClientType
 import niconicotagger.dto.api.request.EventScheduleRequest
 import niconicotagger.dto.api.request.GetReleaseEventRequest
-import niconicotagger.dto.api.response.ReleaseEventPreviewResponse
+import niconicotagger.dto.api.response.ReleaseEventPreview
 import niconicotagger.dto.api.response.ReleaseEventWithVocaDbTagsResponse
 import niconicotagger.dto.api.response.ReleaseEventWitnNndTagsResponse
+import niconicotagger.dto.inner.misc.EntryField.Tags
+import niconicotagger.dto.inner.misc.EntryField.WebLinks
 import niconicotagger.dto.inner.misc.ReleaseEventCategory
 import niconicotagger.dto.inner.misc.WebLink
 import niconicotagger.dto.inner.vocadb.VocaDbFrontPageData
@@ -29,9 +33,11 @@ import org.instancio.Select.field
 import org.instancio.junit.Given
 import org.instancio.junit.InstancioExtension
 import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.Arguments.ArgumentSet
+import org.junit.jupiter.params.provider.Arguments.argumentSet
+import org.junit.jupiter.params.provider.MethodSource
 import org.junit.jupiter.params.provider.NullSource
 import org.junit.jupiter.params.provider.ValueSource
 import org.springframework.test.util.ReflectionTestUtils
@@ -51,10 +57,10 @@ class EventMethodsTest : AggregatingServiceTest() {
         runBlocking {
             val resultPlaceholder = mockkClass(ReleaseEventWitnNndTagsResponse::class)
             every { resultPlaceholder.nndTags } returns Instancio.createList(String::class.java)
-            coEvery { dbClient.getEventByName(eq(eventName), eq("WebLinks")) } returns
+            coEvery { dbClient.getEventByName(eq(eventName), eq(WebLinks)) } returns
                 Instancio.of(VocaDbReleaseEvent::class.java).set(field("seriesId"), seriesId).create()
             if (seriesId != null) {
-                coEvery { dbClient.getEventSeriesById(eq(seriesId), eq("WebLinks")) } returns
+                coEvery { dbClient.getEventSeriesById(eq(seriesId), eq(WebLinks)) } returns
                     Instancio.create(VocaDbReleaseEventSeries::class.java)
             }
             every { eventMapper.mapWithLinks(any(), any(VocaDbReleaseEventSeries::class)) } returns resultPlaceholder
@@ -62,7 +68,7 @@ class EventMethodsTest : AggregatingServiceTest() {
             assertThat(aggregatingService.getReleaseEventByName(GetReleaseEventRequest(eventName, clientType)))
                 .isEqualTo(resultPlaceholder)
 
-            coVerify { dbClient.getEventByName(any(), any()) }
+            coVerify { dbClient.getEventByName(any(), *anyVararg()) }
             coVerifyCount { (if (seriesId == null) 0 else 1) * { dbClient.getEventSeriesById(any(), any()) } }
             confirmVerified(dbClient)
             verifyAll { eventMapper.mapWithLinks(any(), any(VocaDbReleaseEventSeries::class)) }
@@ -84,7 +90,7 @@ class EventMethodsTest : AggregatingServiceTest() {
                 .set(field("webLinks"), listOf(WebLink("https://beta.vocadb.net/T/$vocaDbTagId")))
                 .create()
         val resultPlaceholder = mockkClass(ReleaseEventWithVocaDbTagsResponse::class)
-        coEvery { dbClient.getEventByName(eq(eventName), eq("Tags")) } returns releaseEvent
+        coEvery { dbClient.getEventByName(eq(eventName), eq(Tags)) } returns releaseEvent
         if (seriesId != null) {
             coEvery { dbClient.getEventSeriesById(eq(seriesId)) } returns eventSeries
         }
@@ -94,14 +100,15 @@ class EventMethodsTest : AggregatingServiceTest() {
         assertThat(aggregatingService.getReleaseEventWithLinkedTags(GetReleaseEventRequest(eventName, clientType)))
             .isEqualTo(resultPlaceholder)
 
-        coVerify { dbClient.getEventByName(any(), any()) }
+        coVerify { dbClient.getEventByName(any(), *anyVararg()) }
         coVerifyCount { (if (seriesId != null) 1 else 0) * { dbClient.getEventSeriesById(any()) } }
         confirmVerified(dbClient)
         verifyAll { eventMapper.mapWithTags(any(), any()) }
     }
 
-    @Test
-    fun `get recent events test`(@Given request: EventScheduleRequest): Unit = runBlocking {
+    @ParameterizedTest
+    @MethodSource("getRecentEventsTestData")
+    fun `get recent events test`(request: EventScheduleRequest, eventScope: Duration): Unit = runBlocking {
         val uniqueIds = mutableSetOf<Long>()
         val outOfScopeEvent =
             Instancio.of(VocaDbReleaseEvent::class.java)
@@ -127,12 +134,14 @@ class EventMethodsTest : AggregatingServiceTest() {
         every {
             eventMapper.mapForPreview(
                 match { allEventsForPreview.map { event -> event.id }.contains(it.id) },
-                eq(ReflectionTestUtils.getField(aggregatingService, "eventScope") as Duration),
+                eq(eventScope),
                 eq(ReflectionTestUtils.getField(aggregatingService, "offlineEvents") as Set<ReleaseEventCategory>),
             )
-        } returns Instancio.create(ReleaseEventPreviewResponse::class.java)
+        } returns Instancio.create(ReleaseEventPreview::class.java)
 
-        assertThat(aggregatingService.getRecentEvents(request)).hasSameSizeAs(allEventsForPreview)
+        assertThat(aggregatingService.getRecentEvents(request))
+            .satisfies(Consumer { assertThat(it.eventPreviews).hasSameSizeAs(allEventsForPreview) })
+            .satisfies(Consumer { assertThat(it.eventScopeDays).isEqualTo(eventScope.toDays()) })
 
         coVerifyAll {
             dbClient.getAllEventsForYear(any())
@@ -140,5 +149,24 @@ class EventMethodsTest : AggregatingServiceTest() {
             aggregatingService.getRecentEvents(any())
         }
         verifyCount { allEventsForPreview.size * { eventMapper.mapForPreview(any(), any(), any()) } }
+    }
+
+    companion object {
+        @JvmStatic
+        fun getRecentEventsTestData(): Stream<ArgumentSet> {
+            val requestWithScope = Instancio.create(EventScheduleRequest::class.java)
+            return Stream.of(
+                argumentSet(
+                    "scope specified in request",
+                    requestWithScope,
+                    Duration.ofDays(requestWithScope.eventScopeDays!!),
+                ),
+                argumentSet(
+                    "scope not specified in request",
+                    Instancio.of(EventScheduleRequest::class.java).ignore(field("eventScopeDays")).create(),
+                    defaultEventScope,
+                ),
+            )
+        }
     }
 }

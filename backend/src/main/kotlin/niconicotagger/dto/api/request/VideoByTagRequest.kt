@@ -2,7 +2,6 @@ package niconicotagger.dto.api.request
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize
-import jakarta.validation.constraints.Max
 import jakarta.validation.constraints.Min
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.NotEmpty
@@ -12,6 +11,7 @@ import niconicotagger.dto.api.misc.NndSortOrder
 import niconicotagger.serde.NndScopeNormalizingDeserializer
 import niconicotagger.serde.StringNormalizingDeserializer
 import niconicotagger.serde.StringUnifyingDeserializer
+import org.hibernate.validator.constraints.Range
 
 sealed interface VideoByTagRequest {
     val scope: String
@@ -38,7 +38,7 @@ data class VideosByNndTagsRequest(
     @JsonDeserialize(contentUsing = StringUnifyingDeserializer::class) @field:NotEmpty override val tags: Set<String>,
     @JsonDeserialize(using = NndScopeNormalizingDeserializer::class) override val scope: String,
     @field:Min(0) override val startOffset: Long,
-    @field:Min(10) @field:Max(100) override val maxResults: Long,
+    @field:Range(min = 10, max = 100) override val maxResults: Long,
     override val orderBy: NndSortOrder,
     override val clientType: ClientType,
 ) : VideosByNndTagsRequestBase
@@ -50,9 +50,10 @@ data class VideosByNndEventTagsRequest(
     override val tags: Set<String>,
     @JsonDeserialize(using = NndScopeNormalizingDeserializer::class) override val scope: String,
     @field:Min(0) override val startOffset: Long,
-    @field:Min(10) @field:Max(100) override val maxResults: Long,
+    @field:Range(min = 10, max = 100) override val maxResults: Long,
     override val orderBy: NndSortOrder,
     val dates: EventDateBounds,
+    val eventId: Long,
     override val clientType: ClientType,
 ) : VideosByNndTagsRequestBase
 
@@ -61,7 +62,7 @@ data class VideosByVocaDbTagRequest(
     @JsonDeserialize(using = StringNormalizingDeserializer::class) @field:NotBlank val tag: String,
     @JsonDeserialize(using = NndScopeNormalizingDeserializer::class) override val scope: String,
     @field:Min(0) override val startOffset: Long,
-    @field:Min(10) @field:Max(100) override val maxResults: Long,
+    @field:Range(min = 10, max = 100) override val maxResults: Long,
     override val orderBy: NndSortOrder,
     override val clientType: ClientType,
 ) : VideoByTagRequest

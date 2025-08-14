@@ -29,17 +29,6 @@ export interface ReleaseEventData {
   valid: boolean;
 }
 
-export interface ReleaseEventDataWithVocaDbTag {
-  id: number;
-  dateString: string | null;
-  date: string | null;
-  endDate: string | null;
-  name: string;
-  category: ReleaseEventCategory;
-  valid: boolean;
-  tag: string | null;
-}
-
 export interface SongEntryWithReleaseEventInfo {
   id: number;
   name: string;

@@ -153,6 +153,22 @@
           }
         }
       ],
+      "releaseEvents": [
+        {
+          "category": "Unspecified",
+          "date": "2025-01-28T00:00:00Z",
+          "endDate": "2025-01-30T00:00:00Z",
+          "id": 3011,
+          "name": "巡音ルカ誕生祭 2025",
+          "seriesId": 12,
+          "seriesNumber": 2025,
+          "seriesSuffix": "",
+          "status": "Finished",
+          "urlSlug": "megurine-lukas-birthday-2025",
+          "venueName": "",
+          "version": 20
+        }
+      ],
       "version": 4
     }
   ],

@@ -36,6 +36,9 @@ import niconicotagger.dto.api.response.SongsWithPvsResponse
 import niconicotagger.dto.api.response.VideosByNndTagsResponseForEvent
 import niconicotagger.dto.api.response.VideosByNndTagsResponseForTagging
 import niconicotagger.dto.api.response.VideosByTagsResponseForTagging
+import niconicotagger.dto.inner.misc.EntryField.Artists
+import niconicotagger.dto.inner.misc.EntryField.ReleaseEvent
+import niconicotagger.dto.inner.misc.EntryField.Tags
 import niconicotagger.dto.inner.misc.PvService.NicoNicoDouga
 import niconicotagger.dto.inner.misc.PvService.Youtube
 import niconicotagger.dto.inner.misc.SongPv
@@ -46,18 +49,17 @@ import niconicotagger.dto.inner.nnd.NndThumbnailOk
 import niconicotagger.dto.inner.nnd.NndVideoData
 import niconicotagger.dto.inner.nnd.ThumbData
 import niconicotagger.dto.inner.vocadb.PublisherInfo
-import niconicotagger.dto.inner.vocadb.VocaDbSongEntryWithNndPvsAndTags
+import niconicotagger.dto.inner.vocadb.VocaDbSongEntryWithNndPvsTagsAndReleaseEvents
 import niconicotagger.dto.inner.vocadb.VocaDbSongEntryWithTags
 import niconicotagger.dto.inner.vocadb.VocaDbSongWithReleaseEvents
 import niconicotagger.dto.inner.vocadb.VocaDbTag
 import niconicotagger.dto.inner.vocadb.VocaDbTagMapping
 import niconicotagger.dto.inner.vocadb.VocaDbTagSelectable
-import niconicotagger.dto.inner.vocadb.search.result.VocaDbSongEntryWithNndPvsAndTagsSearchResult
+import niconicotagger.dto.inner.vocadb.search.result.VocaDbSongEntryWithNndPvsTagsAndReleaseEventsSearchResult
 import niconicotagger.serde.Utils.normalizeToken
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.InstanceOfAssertFactories.iterable
 import org.assertj.core.api.InstanceOfAssertFactories.list
-import org.assertj.core.api.InstanceOfAssertFactories.map
 import org.instancio.Assign.given
 import org.instancio.Instancio
 import org.instancio.Select.field
@@ -104,7 +106,7 @@ class NndTagMethodsTest : AggregatingServiceTest() {
         coEvery { dbClient.getAllVocaDbTagMappings(eq(false)) } returns tagMappings
         coEvery { nndClient.getVideosByTags(eq(request)) } returns NndApiSearchResult(NndMeta(1), listOf(video))
         coEvery {
-            dbClient.getSongByNndPv(eq(video.id), eq("Tags,Artists"), eq(VocaDbSongEntryWithTags::class.java))
+            dbClient.getSongByNndPv(eq(VocaDbSongEntryWithTags::class.java), eq(video.id), eq(Tags), eq(Artists))
         } returns song
         every {
             songMapper.mapForTag(eq(video), song?.let { eq(it) } ?: isNull(), any(), any(), eq(resultingTagSet), any())
@@ -127,7 +129,7 @@ class NndTagMethodsTest : AggregatingServiceTest() {
 
         coVerify {
             dbClient.getAllVocaDbTagMappings(any())
-            dbClient.getSongByNndPv<VocaDbSongEntryWithTags>(any(), any(), any())
+            dbClient.getSongByNndPv<VocaDbSongEntryWithTags>(any(), any(), *anyVararg())
             aggregatingService.getVideosByNndTags(any())
             aggregatingService.sortResults<NndVideoWithAssociatedVocaDbEntryForTag, SongEntryWithTagAssignmentInfo>(
                 any(),
@@ -171,7 +173,7 @@ class NndTagMethodsTest : AggregatingServiceTest() {
             coEvery { publisherInfoService.getPublisher(eq(video), eq(request.clientType)) } returns publisher
         }
         coEvery {
-            dbClient.getSongByNndPv(eq(video.id), eq("Tags,Artists"), eq(VocaDbSongEntryWithTags::class.java))
+            dbClient.getSongByNndPv(eq(VocaDbSongEntryWithTags::class.java), eq(video.id), eq(Tags), eq(Artists))
         } returns song
         every {
             songMapper.mapForTag(
@@ -209,7 +211,7 @@ class NndTagMethodsTest : AggregatingServiceTest() {
         coVerify {
             dbClient.getAllVocaDbTagMappings(any())
             nndClient.getVideosByTags(any())
-            dbClient.getSongByNndPv<VocaDbSongEntryWithTags>(any(), any(), any())
+            dbClient.getSongByNndPv<VocaDbSongEntryWithTags>(any(), any(), *anyVararg())
             aggregatingService.getVideosByNndTags(any())
             aggregatingService.sortResults<NndVideoWithAssociatedVocaDbEntryForTag, SongEntryWithTagAssignmentInfo>(
                 any(),
@@ -247,7 +249,7 @@ class NndTagMethodsTest : AggregatingServiceTest() {
         coEvery { dbClient.getAllVocaDbTagMappings(any()) } returns mappedTags
         coEvery { nndClient.getVideosByTags(eq(request)) } returns NndApiSearchResult(NndMeta(1), listOf(video))
         coEvery {
-            dbClient.getSongByNndPv(eq(video.id), eq("Tags,Artists"), eq(VocaDbSongEntryWithTags::class.java))
+            dbClient.getSongByNndPv(eq(VocaDbSongEntryWithTags::class.java), eq(video.id), eq(Tags), eq(Artists))
         } returns song
         every {
             songMapper.mapForTag(
@@ -267,7 +269,7 @@ class NndTagMethodsTest : AggregatingServiceTest() {
 
         coVerifyAll {
             dbClient.getAllVocaDbTagMappings(any())
-            dbClient.getSongByNndPv<VocaDbSongEntryWithTags>(any(), any(), any())
+            dbClient.getSongByNndPv<VocaDbSongEntryWithTags>(any(), any(), *anyVararg())
             nndClient.getVideosByTags(any())
             aggregatingService.getVideosByNndTags(any(), any())
             aggregatingService.sortResults<NndVideoWithAssociatedVocaDbEntryForTag, SongEntryWithTagAssignmentInfo>(
@@ -302,7 +304,12 @@ class NndTagMethodsTest : AggregatingServiceTest() {
             coEvery { publisherInfoService.getPublisher(eq(video), eq(request.clientType)) } returns publisher
         }
         coEvery {
-            dbClient.getSongByNndPv(eq(video.id), eq("ReleaseEvent"), eq(VocaDbSongWithReleaseEvents::class.java))
+            dbClient.getSongByNndPv(
+                eq(VocaDbSongWithReleaseEvents::class.java),
+                eq(request.eventId),
+                eq(video.id),
+                eq(ReleaseEvent),
+            )
         } returns song
         every {
             songMapper.mapForEvent(
@@ -332,7 +339,7 @@ class NndTagMethodsTest : AggregatingServiceTest() {
         coVerify {
             dbClient.getAllVocaDbTagMappings(any())
             nndClient.getVideosByTags(any())
-            dbClient.getSongByNndPv<VocaDbSongWithReleaseEvents>(any(), any(), any())
+            dbClient.getSongByNndPv<VocaDbSongWithReleaseEvents>(any(), anyNullable(), any(String::class), *anyVararg())
             aggregatingService.getVideosByEventNndTags(any())
             aggregatingService.sortResults<NndVideoWithAssociatedVocaDbEntryForEvent, SongEntryWithReleaseEventInfo>(
                 any(),
@@ -398,8 +405,9 @@ class NndTagMethodsTest : AggregatingServiceTest() {
                 SongPv("2", "2", true, NicoNicoDouga),
                 SongPv("3", "3", false, Youtube),
             )
-        val song = Instancio.of(VocaDbSongEntryWithNndPvsAndTags::class.java).set(field("pvs"), songPvs).create()
-        val searchResult = VocaDbSongEntryWithNndPvsAndTagsSearchResult(listOf(song), 1)
+        val song =
+            Instancio.of(VocaDbSongEntryWithNndPvsTagsAndReleaseEvents::class.java).set(field("pvs"), songPvs).create()
+        val searchResult = VocaDbSongEntryWithNndPvsTagsAndReleaseEventsSearchResult(listOf(song), 1)
         val responsePlaceholder = mockk<SongsWithPvsResponse>()
         coEvery { dbClient.getAllVocaDbTagMappings(eq(true)) } returns mappings
         coEvery {
@@ -407,7 +415,7 @@ class NndTagMethodsTest : AggregatingServiceTest() {
                 eq(request.startOffset),
                 eq(request.maxResults),
                 eq(request.orderBy),
-                eq(mapOf("pvServices" to NicoNicoDouga, "fields" to "PVs,Tags,Artists")),
+                eq(mapOf("pvServices" to NicoNicoDouga, "fields" to "PVs,Tags,Artists,ReleaseEvent")),
             )
         } returns searchResult
         coEvery { nndClient.getThumbInfo(eq(songPvs[0].id)) } returns thumbnailOk

@@ -9,8 +9,8 @@ import niconicotagger.dto.api.request.SongsWithPvsRequest
 import niconicotagger.dto.api.request.VideosByNndEventTagsRequest
 import niconicotagger.dto.api.request.VideosByNndTagsRequest
 import niconicotagger.dto.api.request.VideosByVocaDbTagRequest
+import niconicotagger.dto.api.response.EventScheduleResponse
 import niconicotagger.dto.api.response.QueryConsoleResponse
-import niconicotagger.dto.api.response.ReleaseEventPreviewResponse
 import niconicotagger.dto.api.response.ReleaseEventWithVocaDbTagsResponse
 import niconicotagger.dto.api.response.ReleaseEventWitnNndTagsResponse
 import niconicotagger.dto.api.response.SongsWithPvsResponse
@@ -73,7 +73,7 @@ class AggregatingController(private val service: AggregatingService) {
     }
 
     @PostMapping(value = ["/recent_events"])
-    suspend fun getRecentEvents(@Valid @RequestBody request: EventScheduleRequest): List<ReleaseEventPreviewResponse> {
+    suspend fun getRecentEvents(@Valid @RequestBody request: EventScheduleRequest): EventScheduleResponse {
         return service.getRecentEvents(request)
     }
 }

@@ -7,15 +7,15 @@ import niconicotagger.dto.api.misc.NndTagData
 import niconicotagger.dto.api.misc.NndTagType.MAPPED
 import niconicotagger.dto.api.misc.NndTagType.NONE
 import niconicotagger.dto.api.misc.PvWithSuggestedTags
-import niconicotagger.dto.api.misc.SongEntry
 import niconicotagger.dto.api.misc.SongEntryByVocaDbTagForEvent
+import niconicotagger.dto.api.misc.SongEntryWithPublishDateAndReleaseEventInfo
 import niconicotagger.dto.api.misc.UnavailableNndVideo
 import niconicotagger.dto.api.misc.VocaDbSongEntryWithPvs
 import niconicotagger.dto.api.response.SongsWithPvsResponse
 import niconicotagger.dto.inner.nnd.NndThumbnail
 import niconicotagger.dto.inner.nnd.NndThumbnailError
 import niconicotagger.dto.inner.nnd.NndThumbnailOk
-import niconicotagger.dto.inner.vocadb.VocaDbSongEntryWithNndPvsAndTags
+import niconicotagger.dto.inner.vocadb.VocaDbSongEntryWithNndPvsTagsAndReleaseEvents
 import niconicotagger.dto.inner.vocadb.VocaDbSongWithReleaseEvents
 import niconicotagger.dto.inner.vocadb.VocaDbTagMapping
 import niconicotagger.dto.inner.vocadb.VocaDbTagSelectable
@@ -30,7 +30,7 @@ import org.mapstruct.MappingConstants.ComponentModel.SPRING
 @Mapper(componentModel = SPRING)
 abstract class SongWithPvsMapper {
     fun map(
-        searchResult: SearchResult<VocaDbSongEntryWithNndPvsAndTags>,
+        searchResult: SearchResult<VocaDbSongEntryWithNndPvsTagsAndReleaseEvents>,
         nonDisabledPvs: Map<String, NndThumbnail>,
         tagMappings: Map<String, List<VocaDbTagMapping>>,
         likelyFirstWorks: List<Long>,
@@ -49,7 +49,7 @@ abstract class SongWithPvsMapper {
     ): SongEntryByVocaDbTagForEvent
 
     private fun mapItems(
-        songEntries: List<VocaDbSongEntryWithNndPvsAndTags>,
+        songEntries: List<VocaDbSongEntryWithNndPvsTagsAndReleaseEvents>,
         nonDisabledPvs: Map<String, NndThumbnail>,
         tagMappings: Map<String, List<VocaDbTagMapping>>,
         likelyFirstWorks: List<Long>,
@@ -63,10 +63,12 @@ abstract class SongWithPvsMapper {
         }
     }
 
-    protected abstract fun mapEntry(songEntry: VocaDbSongEntryWithNndPvsAndTags): SongEntry
+    protected abstract fun mapEntry(
+        songEntry: VocaDbSongEntryWithNndPvsTagsAndReleaseEvents
+    ): SongEntryWithPublishDateAndReleaseEventInfo
 
     private fun mapAvailablePvs(
-        songEntry: VocaDbSongEntryWithNndPvsAndTags,
+        songEntry: VocaDbSongEntryWithNndPvsTagsAndReleaseEvents,
         nonDisabledPvs: Map<String, NndThumbnail>,
         tagMappings: Map<String, List<VocaDbTagMapping>>,
         likelyFirstWork: Boolean,
@@ -111,7 +113,7 @@ abstract class SongWithPvsMapper {
     }
 
     private fun mapUnavailablePvs(
-        songEntry: VocaDbSongEntryWithNndPvsAndTags,
+        songEntry: VocaDbSongEntryWithNndPvsTagsAndReleaseEvents,
         nonDisabledPvs: Map<String, NndThumbnail>,
     ): List<UnavailableNndVideo> {
         return songEntry.pvs.mapNotNull { pv ->

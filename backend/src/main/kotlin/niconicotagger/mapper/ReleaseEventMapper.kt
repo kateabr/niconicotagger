@@ -4,7 +4,7 @@ import java.net.URLDecoder
 import java.nio.charset.Charset
 import java.time.Clock
 import java.time.Duration
-import niconicotagger.dto.api.response.ReleaseEventPreviewResponse
+import niconicotagger.dto.api.response.ReleaseEventPreview
 import niconicotagger.dto.api.response.ReleaseEventWithVocaDbTagsResponse
 import niconicotagger.dto.api.response.ReleaseEventWitnNndTagsResponse
 import niconicotagger.dto.inner.misc.EventStatus
@@ -26,7 +26,7 @@ abstract class ReleaseEventMapper {
         event: VocaDbReleaseEvent,
         eventScope: Duration,
         offlineEvents: Set<ReleaseEventCategory>,
-    ): ReleaseEventPreviewResponse? {
+    ): ReleaseEventPreview? {
         val eventStatus = Utils.getEventStatus(event, eventScope, clock)
         return if (eventStatus == OUT_OF_RECENT_SCOPE) null else mapEventPreview(event, eventStatus, offlineEvents)
     }
@@ -39,7 +39,7 @@ abstract class ReleaseEventMapper {
         event: VocaDbReleaseEvent,
         @Context status: EventStatus,
         @Context offlineEvents: Set<ReleaseEventCategory>,
-    ): ReleaseEventPreviewResponse
+    ): ReleaseEventPreview
 
     @Mapping(target = "nndTags", expression = "java(mapNndTags(event, series))")
     @Mapping(target = "category", expression = "java(Utils.mapCategory(event, series))")

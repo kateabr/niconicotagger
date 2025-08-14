@@ -29,14 +29,14 @@ import niconicotagger.dto.api.misc.QueryConsoleArtistData
 import niconicotagger.dto.api.misc.QueryConsoleData
 import niconicotagger.dto.api.misc.QueryConsoleSongData
 import niconicotagger.dto.api.misc.ReleaseEvent
-import niconicotagger.dto.api.misc.SongEntry
 import niconicotagger.dto.api.misc.SongEntryBase
+import niconicotagger.dto.api.misc.SongEntryWithPublishDateAndReleaseEventInfo
 import niconicotagger.dto.api.misc.SongEntryWithReleaseEventInfo
 import niconicotagger.dto.api.misc.SongEntryWithTagAssignmentInfo
 import niconicotagger.dto.api.misc.UnavailableNndVideo
 import niconicotagger.dto.api.misc.VocaDbSongEntryWithPvs
 import niconicotagger.dto.api.response.QueryConsoleResponse
-import niconicotagger.dto.api.response.ReleaseEventPreviewResponse
+import niconicotagger.dto.api.response.ReleaseEventPreview
 import niconicotagger.dto.api.response.ReleaseEventWithVocaDbTagsResponse
 import niconicotagger.dto.api.response.ReleaseEventWitnNndTagsResponse
 import niconicotagger.dto.api.response.SongsWithPvsResponse
@@ -106,10 +106,7 @@ class ResponseSerializationTest {
 
     @ParameterizedTest
     @ArgumentsSource(ReleaseEventPreviewResponseTestData::class)
-    fun `ReleaseEventPreviewResponse serialization test`(
-        responseObject: ReleaseEventPreviewResponse,
-        expectedJson: String,
-    ) {
+    fun `ReleaseEventPreviewResponse serialization test`(responseObject: ReleaseEventPreview, expectedJson: String) {
         assertThatJson(jsonMapper.writeValueAsString(responseObject)).isEqualTo(expectedJson)
     }
 
@@ -701,8 +698,12 @@ class ResponseSerializationTest {
         }
 
         class SongsWithPvsResponseTestData : ArgumentsProvider {
-            private fun availablePvWithTags(): ArgumentSet {
-                val songEntry = Instancio.of(SongEntry::class.java).set(field("type"), Original).create()
+            private fun availablePvWithTagsAndEvents(): ArgumentSet {
+                val songEntry =
+                    Instancio.of(SongEntryWithPublishDateAndReleaseEventInfo::class.java)
+                        .set(field("type"), Original)
+                        .generate(field("events")) { gen -> gen.collection<ReleaseEvent>().size(1) }
+                        .create()
                 val pv1 =
                     Instancio.of(AvailableNndVideo::class.java)
                         .generate(field("tags")) { gen -> gen.collection<NndTagData>().size(2) }
@@ -745,7 +746,14 @@ class ResponseSerializationTest {
                                     "artistString": "${songEntry.artistString}",
                                     "publishedOn": "${
                     requireNotNull(songEntry.publishedAt).atOffset(UTC).toLocalDate().format(ISO_DATE)
-                }"
+                }",
+                                    "events": [
+                                        {
+                                            "id": ${songEntry.events[0].id},
+                                            "name": "${songEntry.events[0].name}",
+                                            "seriesId": ${songEntry.events[0].seriesId!!}
+                                        }
+                                    ]
                                 },
                                 "availablePvs": [
                                     {
@@ -840,17 +848,18 @@ class ResponseSerializationTest {
                         .trimIndent()
 
                 return argumentSet(
-                    "song has two available PVs with different tags; publish date is present in the entry",
+                    "song has two available PVs with different tags; publish date is present in the entry; entry has 1 associated release event",
                     responseObject,
                     expectedJson,
                 )
             }
 
-            private fun unavailablePvAndNoPublishDate(): ArgumentSet {
+            private fun unavailablePvAndNoPublishDateAndNoEvents(): ArgumentSet {
                 val songEntry =
-                    Instancio.of(SongEntry::class.java)
+                    Instancio.of(SongEntryWithPublishDateAndReleaseEventInfo::class.java)
                         .ignore(field("publishedAt"))
                         .set(field("type"), Original)
+                        .setBlank(field("events"))
                         .create()
                 val pv = Instancio.create(UnavailableNndVideo::class.java)
                 val responseObject =
@@ -869,7 +878,8 @@ class ResponseSerializationTest {
                                     "name": "${songEntry.name}",
                                     "type": "${songEntry.type}",
                                     "artistString": "${songEntry.artistString}",
-                                    "publishedOn": null
+                                    "publishedOn": null,
+                                    "events": []
                                 },
                                 "availablePvs": [],
                                 "unavailablePvs": [
@@ -899,26 +909,26 @@ class ResponseSerializationTest {
                         .trimIndent()
 
                 return argumentSet(
-                    "song has an unavailable PV that should be disabled; publish date is missing from the entry",
+                    "song has an unavailable PV that should be disabled; publish date is missing from the entry; entry has no associated release events",
                     responseObject,
                     expectedJson,
                 )
             }
 
             override fun provideArguments(context: ExtensionContext?): Stream<out Arguments> {
-                return Stream.of(availablePvWithTags(), unavailablePvAndNoPublishDate())
+                return Stream.of(availablePvWithTagsAndEvents(), unavailablePvAndNoPublishDateAndNoEvents())
             }
         }
 
         class ReleaseEventPreviewResponseTestData : ArgumentsProvider {
-            private fun createPreview(setToNull: Boolean): ReleaseEventPreviewResponse {
+            private fun createPreview(setToNull: Boolean): ReleaseEventPreview {
                 return if (setToNull)
-                    Instancio.of(ReleaseEventPreviewResponse::class.java)
+                    Instancio.of(ReleaseEventPreview::class.java)
                         .set(field("date"), eventPreviewMapperFixedClock.instant())
                         .ignore(all(field("endDate"), field("pictureUrl")))
                         .create()
                 else
-                    Instancio.of(ReleaseEventPreviewResponse::class.java)
+                    Instancio.of(ReleaseEventPreview::class.java)
                         .set(field("date"), eventPreviewMapperFixedClock.instant())
                         .set(field("endDate"), eventPreviewMapperFixedClock.instant().plus(1, DAYS))
                         .create()

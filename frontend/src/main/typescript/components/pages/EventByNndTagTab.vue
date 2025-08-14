@@ -910,6 +910,7 @@ export default class extends Vue {
           to: this.event.endDate,
           applyToSearch: this.filterByEventDates
         },
+        eventId: this.event.id,
         clientType: this.clientType
       });
       this.entries = response.items.map(item => {

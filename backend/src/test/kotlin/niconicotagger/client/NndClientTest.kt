@@ -270,6 +270,7 @@ class NndClientTest {
                                 OffsetDateTime.parse("2024-08-24T17:36:03+09:00").plusDays(1).toInstant(),
                                 false,
                             ),
+                            Instancio.create(Long::class.java),
                             Instancio.create(ClientType::class.java),
                         )
                     )

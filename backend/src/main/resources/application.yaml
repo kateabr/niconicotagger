@@ -1,7 +1,11 @@
 app:
   service:
     offline-events: AlbumRelease, Club, Concert, Convention, Other
-    event-scope: 14d
+    default-event-scope: 14d
+  validation:
+    event-scope-days:
+      min: 1
+      max: 365
   api-props:
     database:
       # -> https://vocadb.net/Ar/{artist id}

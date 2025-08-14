@@ -14,11 +14,16 @@ import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import niconicotagger.constants.Constants.COOKIE_HEADER_KEY
 import niconicotagger.constants.Constants.DEFAULT_USER_AGENT
-import niconicotagger.dto.VocaDbLoginException
+import niconicotagger.dto.DbLoginException
 import niconicotagger.dto.api.misc.ApiType
 import niconicotagger.dto.api.misc.ApiType.ARTISTS
 import niconicotagger.dto.api.misc.ApiType.SONGS
 import niconicotagger.dto.api.misc.VocaDbSortOrder
+import niconicotagger.dto.inner.misc.EntryField
+import niconicotagger.dto.inner.misc.EntryField.MainPicture
+import niconicotagger.dto.inner.misc.EntryField.None
+import niconicotagger.dto.inner.misc.EntryField.Series
+import niconicotagger.dto.inner.misc.EntryField.Tags
 import niconicotagger.dto.inner.vocadb.DbLoginError
 import niconicotagger.dto.inner.vocadb.DbLoginSuccess
 import niconicotagger.dto.inner.vocadb.VocaDbArtist
@@ -29,6 +34,7 @@ import niconicotagger.dto.inner.vocadb.VocaDbFrontPageData
 import niconicotagger.dto.inner.vocadb.VocaDbReleaseEvent
 import niconicotagger.dto.inner.vocadb.VocaDbReleaseEventSeries
 import niconicotagger.dto.inner.vocadb.VocaDbSongEntryBase
+import niconicotagger.dto.inner.vocadb.VocaDbSongEntryWithReleaseEventsBase
 import niconicotagger.dto.inner.vocadb.VocaDbTag
 import niconicotagger.dto.inner.vocadb.VocaDbTagMapping
 import niconicotagger.dto.inner.vocadb.VocaDbTagMappings
@@ -39,7 +45,7 @@ import niconicotagger.dto.inner.vocadb.search.result.ArtistDuplicateSearchResult
 import niconicotagger.dto.inner.vocadb.search.result.VocaDbArtistSearchResult
 import niconicotagger.dto.inner.vocadb.search.result.VocaDbCustomQuerySearchResult
 import niconicotagger.dto.inner.vocadb.search.result.VocaDbReleaseEventSearchResult
-import niconicotagger.dto.inner.vocadb.search.result.VocaDbSongEntryWithNndPvsAndTagsSearchResult
+import niconicotagger.dto.inner.vocadb.search.result.VocaDbSongEntryWithNndPvsTagsAndReleaseEventsSearchResult
 import niconicotagger.dto.inner.vocadb.search.result.VocaDbTagSearchResult
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.HttpHeaders.CONTENT_TYPE
@@ -105,7 +111,7 @@ open class DbClient(baseUrl: String, private val jsonMapper: JsonMapper) {
         val cookies =
             when (loginResponse) {
                 is DbLoginSuccess -> loginResponse.cookies
-                is DbLoginError -> throw VocaDbLoginException(loginResponse)
+                is DbLoginError -> throw DbLoginException(loginResponse)
             }
 
         if (!cookies.containsKey(COOKIE_HEADER_KEY)) error("Required cookies are not found")
@@ -174,12 +180,12 @@ open class DbClient(baseUrl: String, private val jsonMapper: JsonMapper) {
             .awaitSingleOrNull()
     }
 
-    suspend fun getEventByName(name: String, fields: String): VocaDbReleaseEvent {
+    suspend fun getEventByName(name: String, vararg fields: EntryField): VocaDbReleaseEvent {
         return client
             .get()
             .uri(
-                "/api/releaseEvents?query={query}&lang=Default&fields=$fields&nameMatchMode=Exact&maxResults=1&getTotalCount=true",
-                mapOf("query" to name),
+                "/api/releaseEvents?query={query}&lang=Default&fields={fields}&nameMatchMode=Exact&maxResults=1&getTotalCount=true",
+                mapOf("query" to name, "fields" to fields),
             )
             .retrieve()
             .toEntity(VocaDbReleaseEventSearchResult::class.java)
@@ -195,7 +201,7 @@ open class DbClient(baseUrl: String, private val jsonMapper: JsonMapper) {
             ?.first() ?: error("Event \"$name\" not found")
     }
 
-    suspend fun getEventSeriesById(id: Long, fields: String = "None"): VocaDbReleaseEventSeries {
+    suspend fun getEventSeriesById(id: Long, fields: EntryField = None): VocaDbReleaseEventSeries {
         return client
             .get()
             .uri("/api/releaseEventSeries/{id}?fields={fields}", mapOf("id" to id, "fields" to fields))
@@ -255,16 +261,43 @@ open class DbClient(baseUrl: String, private val jsonMapper: JsonMapper) {
         }
     }
 
-    suspend fun <T : VocaDbSongEntryBase> getSongByNndPv(pvId: String, fields: String, responseClass: Class<T>): T? {
-        return songsByNndPvCache.getOrNull("${pvId}_$fields") {
-            client
-                .get()
-                .uri("/api/songs/byPv?pvId=$pvId&pvService=NicoNicoDouga&fields=$fields")
-                .retrieve()
-                .toEntity(responseClass)
-                .awaitSingle()
-                .body
-        } as T?
+    suspend fun <T : VocaDbSongEntryBase> getSongByNndPv(
+        responseClass: Class<T>,
+        pvId: String,
+        vararg fields: EntryField,
+    ): T? = getSongByNndPv(responseClass, null, pvId, *fields)
+
+    suspend fun <T : VocaDbSongEntryBase> getSongByNndPv(
+        responseClass: Class<T>,
+        targetEventId: Long?,
+        pvId: String,
+        vararg fields: EntryField,
+    ): T? {
+        val fieldsString = fields.joinToString(",")
+        val cacheKey = "${pvId}_$fieldsString"
+        val cachedValue = songsByNndPvCache.getOrNull(cacheKey)
+        return if (
+            cachedValue == null ||
+                (cachedValue is VocaDbSongEntryWithReleaseEventsBase &&
+                    cachedValue.events.none { it.id == targetEventId })
+        ) {
+            val value =
+                client
+                    .get()
+                    .uri(
+                        "/api/songs/byPv?pvId=$pvId&pvService=NicoNicoDouga&fields={fields}",
+                        mapOf("fields" to fieldsString),
+                    )
+                    .retrieve()
+                    .toEntity(responseClass)
+                    .awaitSingle()
+                    .body
+                    ?.also { songsByNndPvCache.put(cacheKey, it) }
+            value
+        } else {
+            cachedValue
+        }
+            as T?
     }
 
     suspend fun getArtistByQuery(query: String): VocaDbArtist? {
@@ -345,7 +378,7 @@ open class DbClient(baseUrl: String, private val jsonMapper: JsonMapper) {
             .uri { uri ->
                 uri.path("/api")
                     .path("/$apiType")
-                    .queryParam("fields", "Tags")
+                    .queryParam("fields", Tags)
                     .queryParam("getTotalCount", "true")
                     .query(query)
                     .build()
@@ -366,7 +399,7 @@ open class DbClient(baseUrl: String, private val jsonMapper: JsonMapper) {
         maxResults: Long,
         orderBy: VocaDbSortOrder,
         additionalParams: Map<String, Any>,
-    ): VocaDbSongEntryWithNndPvsAndTagsSearchResult {
+    ): VocaDbSongEntryWithNndPvsTagsAndReleaseEventsSearchResult {
         return (client
             .get()
             .uri { uri ->
@@ -380,7 +413,7 @@ open class DbClient(baseUrl: String, private val jsonMapper: JsonMapper) {
                 builder.build()
             }
             .retrieve()
-            .toEntity(VocaDbSongEntryWithNndPvsAndTagsSearchResult::class.java)
+            .toEntity(VocaDbSongEntryWithNndPvsTagsAndReleaseEventsSearchResult::class.java)
             .awaitSingle()
             ?.body ?: error("Could not load songs"))
     }
@@ -401,7 +434,7 @@ open class DbClient(baseUrl: String, private val jsonMapper: JsonMapper) {
                             .queryParam("start", 0)
                             .queryParam("maxResults", maxEventsToLoad)
                             .queryParam("getTotalCount", true)
-                            .queryParam("fields", "Series,MainPicture")
+                            .queryParam("fields", evenfFieldsForSchedule)
                             .queryParam("sort", "Date")
                             .queryParam("sortDirection", "Ascending")
                             .build()
@@ -440,6 +473,7 @@ open class DbClient(baseUrl: String, private val jsonMapper: JsonMapper) {
             object : ParameterizedTypeReference<VocaDbCustomQuerySearchResult<VocaDbCustomQueryArtistData>>() {}
         private val queryConsoleSongResponseTypeReference =
             object : ParameterizedTypeReference<VocaDbCustomQuerySearchResult<VocaDbCustomQuerySongData>>() {}
+        private val evenfFieldsForSchedule = "$Series,$MainPicture"
 
         val artistDuplicateResponseTypeReference =
             object : ParameterizedTypeReference<List<ArtistDuplicateSearchResult>>() {}

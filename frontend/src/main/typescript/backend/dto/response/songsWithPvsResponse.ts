@@ -1,5 +1,11 @@
 import { SongTypeStats } from "@/backend/dto/songTypeStats";
-import { NndTagData, UpdateErrorReport, VocaDbTagSelectable } from "@/backend/dto/lowerLevelStruct";
+import {
+  NndTagData,
+  ReleaseEvent,
+  ReleaseEventWithSeriesId,
+  UpdateErrorReport,
+  VocaDbTagSelectable
+} from "@/backend/dto/lowerLevelStruct";
 import { SongType } from "@/backend/dto/enumeration";
 
 export interface SongsWithPvsResponse {
@@ -24,6 +30,7 @@ export interface SongEntry {
   type: string;
   artistString: string;
   publishedOn: Date;
+  events: ReleaseEvent[];
 }
 
 export interface PvWithSuggestedTags {

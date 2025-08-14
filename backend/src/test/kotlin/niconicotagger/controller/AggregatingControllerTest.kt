@@ -10,6 +10,7 @@ import com.github.tomakehurst.wiremock.client.WireMock.okJson
 import com.github.tomakehurst.wiremock.client.WireMock.post
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathTemplate
+import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder
 import java.time.LocalDate
 import java.util.stream.Stream
 import kotlinx.coroutines.runBlocking
@@ -25,6 +26,7 @@ import niconicotagger.dto.api.misc.ClientType.VOCADB_BETA
 import niconicotagger.dto.api.misc.NndSortOrder.PUBLISH_TIME
 import niconicotagger.dto.api.misc.VocaDbSortOrder.AdditionDate
 import niconicotagger.dto.api.misc.VocaDbSortOrder.PublishDate
+import niconicotagger.dto.inner.misc.EntryField.ReleaseEvent
 import niconicotagger.dto.inner.misc.PvService.NicoNicoDouga
 import org.instancio.junit.InstancioExtension
 import org.junit.jupiter.api.Nested
@@ -39,6 +41,7 @@ import org.junit.jupiter.params.provider.Arguments.arguments
 import org.junit.jupiter.params.provider.ArgumentsProvider
 import org.junit.jupiter.params.provider.ArgumentsSource
 import org.junit.jupiter.params.provider.CsvSource
+import org.junit.jupiter.params.provider.ValueSource
 import org.springframework.http.HttpHeaders.CONTENT_TYPE
 import org.springframework.http.HttpHeaders.USER_AGENT
 import org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED_VALUE
@@ -143,6 +146,35 @@ class AggregatingControllerTest : AbstractControllerTest() {
                 status { isOk() }
                 content { json(loadResource("$basePath/expected_response.json").decodeToString(), STRICT) }
             }
+    }
+
+    @ParameterizedTest
+    @ValueSource(longs = [0, 366])
+    fun `get event schedule test (invalid request)`(eventScopeDays: Long) {
+        testInvalidRequest(
+            """
+                {
+                    "eventScopeDays": $eventScopeDays,
+                    "clientType": "$VOCADB_BETA"
+                }
+                """
+                .trimIndent(),
+            """
+                {
+                  "type": "https://zalando.github.io/problem/constraint-violation",
+                  "status": 400,
+                  "violations": [
+                    {
+                      "field": "eventScopeDays",
+                      "message": "must be between 1 and 365"
+                    }
+                  ],
+                  "title": "Constraint Violation"
+                }
+                """
+                .trimIndent(),
+            "/get/recent_events",
+        )
     }
 
     @Nested
@@ -536,8 +568,53 @@ class AggregatingControllerTest : AbstractControllerTest() {
         }
 
         @ParameterizedTest
-        @CsvSource(value = ["9,must be greater than or equal to 10", "101, must be less than or equal to 100"])
-        fun `get videos by NND tags test (invalid request)`(maxResults: Long, maxResultsConstraintMessage: String) {
+        @ArgumentsSource(GetVideosByEventNndTagsCacheTestData::class)
+        fun `get videos by VocaDB event NND tags from cache test`(
+            request: String,
+            tagQuery: String,
+            nndVideoSearchResult: String,
+            dbSongLookupResult: Map<String, String?>,
+            thumbnails: Map<String, String>,
+            dbSongByPvLookupCount: Int,
+        ) {
+            setupStubs(
+                emptyMap(),
+                """
+            {
+              "items": [],
+              "totalCount": 0
+            }
+            """
+                    .trimIndent(),
+                tagQuery,
+                nndVideoSearchResult,
+                dbSongLookupResult,
+                mapOf("user/102050" to "null"),
+                emptyMap(),
+                thumbnails,
+                emptyMap(),
+                ReleaseEvent.toString(),
+            )
+            repeat(2) {
+                mockMvc
+                    .post("/api/get/videos/by_nnd_tags/for_event") {
+                        contentType = APPLICATION_JSON
+                        content = request
+                    }
+                    .asyncDispatch()
+                    .andExpect { status { isOk() } }
+            }
+
+            wireMockExtension.verify(
+                dbSongByPvLookupCount,
+                RequestPatternBuilder.newRequestPattern()
+                    .withUrl("/api/songs/byPv?pvId=sm33123155&pvService=$NicoNicoDouga&fields=$ReleaseEvent"),
+            )
+        }
+
+        @ParameterizedTest
+        @ValueSource(ints = [9, 101])
+        fun `get videos by NND tags test (invalid request)`(maxResults: Int) {
             testInvalidRequest(
                 """
                 {
@@ -557,7 +634,7 @@ class AggregatingControllerTest : AbstractControllerTest() {
                   "violations": [
                     {
                       "field": "maxResults",
-                      "message": "$maxResultsConstraintMessage"
+                      "message": "must be between 10 and 100"
                     },
                     {
                       "field": "startOffset",
@@ -577,11 +654,8 @@ class AggregatingControllerTest : AbstractControllerTest() {
         }
 
         @ParameterizedTest
-        @CsvSource(value = ["9,must be greater than or equal to 10", "101, must be less than or equal to 100"])
-        fun `get videos by VocaDB tag mappings test (invalid request)`(
-            maxResults: Long,
-            maxResultsConstraintMessage: String,
-        ) {
+        @ValueSource(ints = [9, 101])
+        fun `get videos by VocaDB tag mappings test (invalid request)`(maxResults: Int) {
             testInvalidRequest(
                 """
                 {
@@ -601,7 +675,7 @@ class AggregatingControllerTest : AbstractControllerTest() {
                   "violations": [
                     {
                       "field": "maxResults",
-                      "message": "$maxResultsConstraintMessage"
+                      "message": "must be between 10 and 100"
                     },
                     {
                       "field": "startOffset",
@@ -621,11 +695,8 @@ class AggregatingControllerTest : AbstractControllerTest() {
         }
 
         @ParameterizedTest
-        @CsvSource(value = ["9,must be greater than or equal to 10", "101, must be less than or equal to 100"])
-        fun `get videos by VocaDB event NND tags test (invalid request)`(
-            maxResults: Long,
-            maxResultsConstraintMessage: String,
-        ) {
+        @ValueSource(ints = [9, 101])
+        fun `get videos by VocaDB event NND tags test (invalid request)`(maxResults: Int) {
             testInvalidRequest(
                 """
                 {
@@ -650,7 +721,7 @@ class AggregatingControllerTest : AbstractControllerTest() {
                   "violations": [
                     {
                       "field": "maxResults",
-                      "message": "$maxResultsConstraintMessage"
+                      "message": "must be between 10 and 100"
                     },
                     {
                       "field": "startOffset",
@@ -698,7 +769,7 @@ class AggregatingControllerTest : AbstractControllerTest() {
                             "sort" to equalTo(PublishDate.toString()),
                             "getTotalCount" to equalTo("true"),
                             "pvServices" to equalTo(NicoNicoDouga.toString()),
-                            "fields" to equalTo("PVs,Tags,Artists"),
+                            "fields" to equalTo("PVs,Tags,Artists,ReleaseEvent"),
                         )
                     )
                     .withHeader(CONTENT_TYPE, equalTo(APPLICATION_JSON_VALUE))
@@ -742,11 +813,8 @@ class AggregatingControllerTest : AbstractControllerTest() {
         }
 
         @ParameterizedTest
-        @CsvSource(value = ["9,must be greater than or equal to 10", "101, must be less than or equal to 100"])
-        fun `get VocaDB song entries for tagging test (invalid request)`(
-            maxResults: Long,
-            maxResultsConstraintMessage: String,
-        ) {
+        @ValueSource(ints = [9, 101])
+        fun `get VocaDB song entries for tagging test (invalid request)`(maxResults: Int) {
             mockMvc
                 .post("/api/get/songs") {
                     contentType = APPLICATION_JSON
@@ -772,7 +840,7 @@ class AggregatingControllerTest : AbstractControllerTest() {
                           "violations": [
                             {
                               "field": "maxResults",
-                              "message": "$maxResultsConstraintMessage"
+                              "message": "must be between 10 and 100"
                             },
                             {
                               "field": "startOffset",
@@ -991,6 +1059,57 @@ class AggregatingControllerTest : AbstractControllerTest() {
                 return Stream.of(
                     loadTestData("empty_scope", "冬のシューゲイザー祭2017 "),
                     loadTestData("non_empty_scope", "冬のシューゲイザー祭2017 VOCALOID"),
+                )
+            }
+        }
+
+        class GetVideosByEventNndTagsCacheTestData : ArgumentsProvider {
+            private val dataFolder = "event_nnd_tags_cache"
+            private val tagQuery = "冬のシューゲイザー祭2017 "
+
+            private fun buildArgs(caseType: String, dbSongByPvLookupCount: Int): ArgumentSet {
+                val request =
+                    loadResource("responses/integration/aggregate/videos_by_tags/$dataFolder/$caseType/request.json")
+                        .decodeToString()
+                val nndVideoSearchResult =
+                    loadResource(
+                            "responses/integration/aggregate/videos_by_tags/$dataFolder/$caseType/nnd_video_search_result.json"
+                        )
+                        .decodeToString()
+                val dbSongLookupResult =
+                    mapOf(
+                        "sm33123155" to
+                            loadResource(
+                                    "responses/integration/aggregate/videos_by_tags/$dataFolder/$caseType/song_by_pv_lookup_result_sm33123155.json"
+                                )
+                                .decodeToString()
+                    )
+                val thumbnails =
+                    mapOf(
+                        "sm33123155" to
+                            loadResource(
+                                    "responses/integration/aggregate/videos_by_tags/$dataFolder/$caseType/thumbnail_lookup_result_sm33123155.xml"
+                                )
+                                .decodeToString()
+                    )
+
+                return argumentSet(
+                    caseType,
+                    request,
+                    tagQuery,
+                    nndVideoSearchResult,
+                    dbSongLookupResult,
+                    thumbnails,
+                    dbSongByPvLookupCount,
+                )
+            }
+
+            override fun provideArguments(context: ExtensionContext?): Stream<out Arguments> {
+                return Stream.of(
+                    buildArgs("no_song_entry", 2),
+                    buildArgs("song_entry_without_events", 2),
+                    buildArgs("song_entry_with_non_target_event", 2),
+                    buildArgs("song_entry_with_target_event", 1),
                 )
             }
         }
