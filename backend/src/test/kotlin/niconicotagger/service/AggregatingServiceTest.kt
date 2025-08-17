@@ -22,7 +22,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.extension.ExtendWith
 
 @ExtendWith(InstancioExtension::class)
-open abstract class AggregatingServiceTest {
+abstract class AggregatingServiceTest {
     val dbClient = mockk<DbClient>()
     val dbClientHolder = mockk<DbClientHolder>()
     val nndClient = mockk<NndClient>()
@@ -44,12 +44,16 @@ open abstract class AggregatingServiceTest {
                 songWithPvsMapper,
                 publisherInfoService,
                 setOf(AlbumRelease, Club, Concert, Convention, Other),
-                Duration.ofDays(14),
+                defaultEventScope,
             )
         )
 
     @BeforeEach
     fun setup() {
         every { dbClientHolder.getClient(any()) } returns dbClient
+    }
+
+    companion object {
+        val defaultEventScope: Duration = Duration.ofDays(14)
     }
 }

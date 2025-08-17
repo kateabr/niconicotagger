@@ -8,13 +8,50 @@
     <b-row>
       <b-col>
         <div v-if="clientType != unknownClientType" class="mt-2">
-          <b-form-checkbox
-            v-model="hideOffline"
-            class="text-muted mb-3"
-            :disabled="eventPreviews.length == 0"
-          >
-            Hide offline events
-          </b-form-checkbox>
+          <b-row class="mb-3">
+            <b-col>
+              <template>
+                <b-input-group
+                  inline
+                  :state="validateEventScopeState()"
+                  invalid-feedback="Invalid scope value"
+                >
+                  <template #prepend>
+                    <b-input-group-text class="justify-content-center"
+                      >Scope (in days):
+                    </b-input-group-text>
+                  </template>
+                  <template>
+                    <b-form-input
+                      id="scope-form"
+                      v-model.number="eventScopeDays"
+                      type="number"
+                      :disabled="
+                        eventScopeDays == null || defaultDisableCondition()
+                      "
+                      aria-describedby="input-live-help input-live-feedback"
+                      :state="validateEventScopeState()"
+                      @keydown.enter.native="
+                        validateEventScopeState()
+                          ? loadEventPreviews(true)
+                          : null
+                      "
+                    >
+                    </b-form-input>
+                  </template>
+                </b-input-group>
+              </template>
+            </b-col>
+            <b-col class="my-auto">
+              <b-form-checkbox
+                v-model="hideOffline"
+                class="text-muted"
+                :disabled="defaultDisableCondition()"
+              >
+                Hide offline events
+              </b-form-checkbox>
+            </b-col>
+          </b-row>
           <div
             v-if="eventPreviews.length == 0 && !failedToLoadPreviews"
             class="accordion"
@@ -84,6 +121,7 @@
       size="sm"
       block
       variant="link"
+      :disabled="!validateEventScopeState()"
       @click="loadEventPreviews(false)"
       ><font-awesome-icon
         icon="fa-solid fa-arrow-rotate-right"
@@ -159,9 +197,21 @@ export default class extends Vue {
   private loadedAt: string | null = null;
   private hideOffline = true;
   private failedToLoadPreviews = false;
+  private eventScopeDays: number | null = null;
 
   private alertMessage = "";
   private alertStatusText = "";
+
+  private validateEventScopeState(): boolean {
+    return (
+      this.eventScopeDays == null ||
+      (this.eventScopeDays >= 1 && this.eventScopeDays <= 365)
+    );
+  }
+
+  private defaultDisableCondition(): boolean {
+    return this.eventPreviews.length == 0 && !this.failedToLoadPreviews;
+  }
 
   private async loadEventPreviews(useCached: boolean): Promise<void> {
     this.eventPreviews = [];
@@ -169,9 +219,10 @@ export default class extends Vue {
     try {
       const response = await api.loadEventPreviews({
         clientType: this.clientType,
-        useCached: useCached
+        useCached: useCached,
+        eventScopeDays: this.eventScopeDays
       });
-      this.eventPreviews = response.map(eventPreview => {
+      this.eventPreviews = response.eventPreviews.map(eventPreview => {
         return {
           id: eventPreview.id,
           name: eventPreview.name,
@@ -184,7 +235,9 @@ export default class extends Vue {
           isOffline: eventPreview.isOffline
         };
       });
+      this.eventScopeDays = response.eventScopeDays;
       this.loadedAt = new Date().toLocaleString();
+      this.failedToLoadPreviews = false;
     } catch (err) {
       this.processError((err as AxiosError).response);
       this.failedToLoadPreviews = true;

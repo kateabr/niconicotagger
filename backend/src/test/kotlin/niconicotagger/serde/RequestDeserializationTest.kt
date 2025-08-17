@@ -190,6 +190,7 @@ class RequestDeserializationTest {
                         "to": "2014-01-02",
                         "applyToSearch": true
                     },
+                    "eventId": 1,
                     "clientType": "vocadb_beta"
                 }
                 """
@@ -205,6 +206,7 @@ class RequestDeserializationTest {
                             Instant.parse("2014-01-02T00:00:00Z"),
                             true,
                         ),
+                        1,
                         VOCADB_BETA,
                     ),
                 ),
@@ -235,11 +237,12 @@ class RequestDeserializationTest {
                     """
                     {
                         "clientType": "vocadb_beta",
-                        "useCached": false
+                        "useCached": false,
+                        "eventScopeDays": 14
                     }
                     """
                         .trimIndent(),
-                    EventScheduleRequest(VOCADB_BETA, false),
+                    EventScheduleRequest(VOCADB_BETA, false, 14),
                 ),
                 arguments(
                     EventScheduleRequest::class.java,
@@ -249,7 +252,7 @@ class RequestDeserializationTest {
                     }
                     """
                         .trimIndent(),
-                    EventScheduleRequest(VOCADB_BETA, true),
+                    EventScheduleRequest(VOCADB_BETA, true, null),
                 ),
             )
     }

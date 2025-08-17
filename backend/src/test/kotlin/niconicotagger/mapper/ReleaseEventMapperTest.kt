@@ -12,7 +12,7 @@ import java.util.stream.Stream
 import kotlin.math.absoluteValue
 import niconicotagger.Utils.eventPreviewFixedDate
 import niconicotagger.Utils.eventPreviewMapperFixedClock
-import niconicotagger.dto.api.response.ReleaseEventPreviewResponse
+import niconicotagger.dto.api.response.ReleaseEventPreview
 import niconicotagger.dto.api.response.ReleaseEventWithVocaDbTagsResponse
 import niconicotagger.dto.api.response.ReleaseEventWitnNndTagsResponse
 import niconicotagger.dto.inner.misc.EventStatus.ENDED
@@ -63,7 +63,7 @@ class ReleaseEventMapperTest {
         event: VocaDbReleaseEvent,
         eventScope: Duration,
         offlineEvents: Set<ReleaseEventCategory>,
-        expectedObject: ReleaseEventPreviewResponse?,
+        expectedObject: ReleaseEventPreview?,
     ) {
         assertThat(mapper.mapForPreview(event, eventScope, offlineEvents))
             .usingRecursiveComparison()
@@ -79,7 +79,7 @@ class ReleaseEventMapperTest {
     ) {
         assertThat(mapper.mapForPreview(event, Duration.ofDays(14), emptySet()))
             .usingRecursiveComparison()
-            .asInstanceOf(type(ReleaseEventPreviewResponse::class.java))
+            .asInstanceOf(type(ReleaseEventPreview::class.java))
             .extracting { it.category }
             .isEqualTo(expectedCategory)
     }
@@ -375,7 +375,7 @@ class ReleaseEventMapperTest {
                     event,
                     eventScope,
                     offlineEvents,
-                    ReleaseEventPreviewResponse(
+                    ReleaseEventPreview(
                         event.id,
                         requireNotNull(event.date),
                         event.endDate,
@@ -399,7 +399,7 @@ class ReleaseEventMapperTest {
                     event,
                     eventScope,
                     offlineEvents,
-                    ReleaseEventPreviewResponse(
+                    ReleaseEventPreview(
                         event.id,
                         requireNotNull(event.date),
                         event.endDate,
@@ -423,7 +423,7 @@ class ReleaseEventMapperTest {
                     event,
                     eventScope,
                     offlineEvents,
-                    ReleaseEventPreviewResponse(
+                    ReleaseEventPreview(
                         event.id,
                         requireNotNull(event.date),
                         event.endDate,

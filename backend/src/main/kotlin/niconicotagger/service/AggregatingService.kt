@@ -25,8 +25,8 @@ import niconicotagger.dto.api.request.SongsWithPvsRequest
 import niconicotagger.dto.api.request.VideosByNndEventTagsRequest
 import niconicotagger.dto.api.request.VideosByNndTagsRequest
 import niconicotagger.dto.api.request.VideosByVocaDbTagRequest
+import niconicotagger.dto.api.response.EventScheduleResponse
 import niconicotagger.dto.api.response.QueryConsoleResponse
-import niconicotagger.dto.api.response.ReleaseEventPreviewResponse
 import niconicotagger.dto.api.response.ReleaseEventWithVocaDbTagsResponse
 import niconicotagger.dto.api.response.ReleaseEventWitnNndTagsResponse
 import niconicotagger.dto.api.response.SongsWithPvsResponse
@@ -36,6 +36,10 @@ import niconicotagger.dto.api.response.VideosByVocaDbTagResponse
 import niconicotagger.dto.inner.misc.ArtistRole.Composer
 import niconicotagger.dto.inner.misc.ArtistRole.Default
 import niconicotagger.dto.inner.misc.ArtistType.Producer
+import niconicotagger.dto.inner.misc.EntryField.Artists
+import niconicotagger.dto.inner.misc.EntryField.ReleaseEvent
+import niconicotagger.dto.inner.misc.EntryField.Tags
+import niconicotagger.dto.inner.misc.EntryField.WebLinks
 import niconicotagger.dto.inner.misc.PvService.NicoNicoDouga
 import niconicotagger.dto.inner.misc.ReleaseEventCategory
 import niconicotagger.dto.inner.misc.TagTypeHolder
@@ -66,7 +70,7 @@ class AggregatingService(
     private val songWithPvsMapper: SongWithPvsMapper,
     private val publisherInfoService: PublisherInfoService,
     @Value("\${app.service.offline-events}") private val offlineEvents: Set<ReleaseEventCategory>,
-    @Value("\${app.service.event-scope}") private val eventScope: Duration,
+    @Value("\${app.service.default-event-scope}") private val defaultEventScope: Duration,
 ) {
     private fun getClient(clientType: ClientType) = dbClientHolder.getClient(clientType)
 
@@ -86,13 +90,11 @@ class AggregatingService(
                 { it.video.id },
             )
         )
-        result
     }
 
     suspend fun getReleaseEventByName(request: GetReleaseEventRequest): ReleaseEventWitnNndTagsResponse {
-        val event = getClient(request.clientType).getEventByName(request.eventName, "WebLinks")
-        val series =
-            event.seriesId?.let { getClient(request.clientType).getEventSeriesById(event.seriesId, "WebLinks") }
+        val event = getClient(request.clientType).getEventByName(request.eventName, WebLinks)
+        val series = event.seriesId?.let { getClient(request.clientType).getEventSeriesById(event.seriesId, WebLinks) }
         val mappedEvent = eventMapper.mapWithLinks(event, series)
         require(mappedEvent.nndTags.isNotEmpty()) { "Event has no linked NND tags" }
         return mappedEvent
@@ -115,7 +117,12 @@ class AggregatingService(
                             val description = async { video.description ?: nndClient.getFormattedDescription(video.id) }
                             val songEntry = async {
                                 getClient(request.clientType)
-                                    .getSongByNndPv(video.id, "ReleaseEvent", VocaDbSongWithReleaseEvents::class.java)
+                                    .getSongByNndPv(
+                                        VocaDbSongWithReleaseEvents::class.java,
+                                        request.eventId,
+                                        video.id,
+                                        ReleaseEvent,
+                                    )
                             }
                             val publisher = async {
                                 if (songEntry.await() == null)
@@ -169,7 +176,7 @@ class AggregatingService(
                         async {
                             val songEntry =
                                 getClient(request.clientType)
-                                    .getSongByNndPv(video.id, "Tags,Artists", VocaDbSongEntryWithTags::class.java)
+                                    .getSongByNndPv(VocaDbSongEntryWithTags::class.java, video.id, Tags, Artists)
                             val publisher =
                                 if (songEntry == null) publisherInfoService.getPublisher(video, request.clientType)
                                 else null
@@ -226,7 +233,7 @@ class AggregatingService(
     }
 
     suspend fun getReleaseEventWithLinkedTags(request: GetReleaseEventRequest): ReleaseEventWithVocaDbTagsResponse {
-        val event = getClient(request.clientType).getEventByName(request.eventName, "Tags")
+        val event = getClient(request.clientType).getEventByName(request.eventName, Tags)
         val series =
             if (event.seriesId != null) getClient(request.clientType).getEventSeriesById(event.seriesId) else null
         return eventMapper.mapWithTags(event, series)
@@ -287,7 +294,7 @@ class AggregatingService(
                     request.startOffset,
                     request.maxResults,
                     request.orderBy,
-                    mapOf("pvServices" to NicoNicoDouga, "fields" to "PVs,Tags,Artists"),
+                    mapOf("pvServices" to NicoNicoDouga, "fields" to "PVs,Tags,Artists,ReleaseEvent"),
                 )
         val pvs =
             coroutineScope {
@@ -328,12 +335,14 @@ class AggregatingService(
         return songWithPvsMapper.map(songEntries, pvs, tagMappings, likelyFirstWorks)
     }
 
-    suspend fun getRecentEvents(request: EventScheduleRequest): List<ReleaseEventPreviewResponse> {
+    suspend fun getRecentEvents(request: EventScheduleRequest): EventScheduleResponse {
+        val eventScope = request.eventScopeDays?.let(Duration::ofDays) ?: defaultEventScope
         return (dbClientHolder.getClient(request.clientType).getAllEventsForYear(request.useCached) +
                 dbClientHolder.getClient(request.clientType).getFrontPageData().newEvents)
             .distinctBy { it.id }
             .filterNot { it.date == null }
             .mapNotNull { eventMapper.mapForPreview(it, eventScope, offlineEvents) }
             .sortedWith(compareBy({ it.status.priority }, { it.date }))
+            .let { EventScheduleResponse(it, eventScope.toDays()) }
     }
 }

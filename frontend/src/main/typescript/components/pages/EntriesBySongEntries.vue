@@ -230,6 +230,21 @@
             <div class="text-muted">
               {{ song.entry.artistString }}
             </div>
+            <div class="mt-1">
+              <div v-for="event in song.entry.events" :key="event.id">
+                <b-badge
+                  class="badge text-center"
+                  variant="primary"
+                  :href="getVocaDBEventUrl(clientType, event.id)"
+                  target="_blank"
+                >
+                  <font-awesome-icon
+                    icon="fa-solid fa-calendar"
+                    class="mr-1"
+                  />{{ event.name }}
+                </b-badge>
+              </div>
+            </div>
           </td>
           <td>
             <b-row v-for="pv in song.availablePvs" :key="pv.video.id">
@@ -424,7 +439,8 @@ import {
   getVocaDBSongUrl,
   mapSongTypeStats,
   pageStateIsValid,
-  toggleTagAssignment
+  toggleTagAssignment,
+  getVocaDBEventUrl
 } from "@/utils";
 import { api } from "@/backend";
 import NicoEmbed from "@/components/NicoEmbed.vue";
@@ -445,7 +461,7 @@ import {
 } from "@/constants";
 
 @Component({
-  methods: { disableByStatus: shouldDisableByStatus },
+  methods: { disableByStatus: shouldDisableByStatus, getVocaDBEventUrl },
   components: {
     EntryErrorReport,
     NicoDescription,

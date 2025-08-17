@@ -1,7 +1,7 @@
 package niconicotagger.controller
 
 import niconicotagger.constants.Constants.COOKIE_HEADER_KEY
-import niconicotagger.dto.VocaDbLoginException
+import niconicotagger.dto.DbLoginException
 import org.springframework.http.HttpStatusCode
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.MissingRequestCookieException
@@ -17,10 +17,7 @@ import org.zalando.problem.spring.web.advice.ProblemHandling
 @RestControllerAdvice
 class ExceptionHandling : ProblemHandling, AdviceTrait {
     @ExceptionHandler
-    fun handleVocadbLoginException(
-        exception: VocaDbLoginException,
-        request: NativeWebRequest,
-    ): ResponseEntity<Problem> {
+    fun handleVocadbLoginException(exception: DbLoginException, request: NativeWebRequest): ResponseEntity<Problem> {
         val message =
             exception.errorData.errors[""]?.joinToString(", ")
                 ?: exception.errorData.errors.entries

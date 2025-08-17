@@ -21,12 +21,13 @@ sealed interface NndVideoWithAssociatedVocaDbEntry<T : SongEntryBase> {
     val publisher: PublisherInfo?
 }
 
-data class SongEntry(
+data class SongEntryWithPublishDateAndReleaseEventInfo(
     override val id: Long,
     override val name: String,
     override val type: SongType,
     override val artistString: String,
     @JsonSerialize(using = InstantToLocalDateSerializer::class) @JsonProperty("publishedOn") val publishedAt: Instant?,
+    val events: List<ReleaseEvent>,
 ) : SongEntryBase
 
 data class SongEntryWithTagAssignmentInfo(

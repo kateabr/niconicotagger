@@ -8,5 +8,6 @@ export interface VideosByNndEventTagsRequest {
   maxResults: number;
   orderBy: NndSortOrder;
   dates: EventDateBounds;
+  eventId: number;
   clientType: string;
 }

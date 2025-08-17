@@ -8,7 +8,8 @@ import niconicotagger.dto.api.misc.NndTagData
 import niconicotagger.dto.api.misc.NndTagType.MAPPED
 import niconicotagger.dto.api.misc.NndTagType.NONE
 import niconicotagger.dto.api.misc.PvWithSuggestedTags
-import niconicotagger.dto.api.misc.SongEntry
+import niconicotagger.dto.api.misc.ReleaseEvent
+import niconicotagger.dto.api.misc.SongEntryWithPublishDateAndReleaseEventInfo
 import niconicotagger.dto.api.misc.UnavailableNndVideo
 import niconicotagger.dto.api.misc.VocaDbSongEntryWithPvs
 import niconicotagger.dto.api.response.SongsWithPvsResponse
@@ -21,11 +22,11 @@ import niconicotagger.dto.inner.nnd.NndTag
 import niconicotagger.dto.inner.nnd.NndThumbnailError
 import niconicotagger.dto.inner.nnd.NndThumbnailOk
 import niconicotagger.dto.inner.nnd.ThumbData
-import niconicotagger.dto.inner.vocadb.VocaDbSongEntryWithNndPvsAndTags
+import niconicotagger.dto.inner.vocadb.VocaDbSongEntryWithNndPvsTagsAndReleaseEvents
 import niconicotagger.dto.inner.vocadb.VocaDbTag
 import niconicotagger.dto.inner.vocadb.VocaDbTagMapping
 import niconicotagger.dto.inner.vocadb.VocaDbTagSelectable
-import niconicotagger.dto.inner.vocadb.search.result.VocaDbSongEntryWithNndPvsAndTagsSearchResult
+import niconicotagger.dto.inner.vocadb.search.result.VocaDbSongEntryWithNndPvsTagsAndReleaseEventsSearchResult
 import niconicotagger.serde.Utils.kata2hiraAndLowercase
 import org.assertj.core.api.Assertions.assertThat
 import org.instancio.Instancio
@@ -46,7 +47,7 @@ class SongWithPvsMapperTest {
     @ParameterizedTest
     @ArgumentsSource(TestData::class)
     fun `SongsWithPvsResponse map test`(
-        searchResult: VocaDbSongEntryWithNndPvsAndTagsSearchResult,
+        searchResult: VocaDbSongEntryWithNndPvsTagsAndReleaseEventsSearchResult,
         nonDisabledPvs: Map<String, NndThumbnailError>,
         tagMappings: Map<String, List<VocaDbTagMapping>>,
         likelyFirstWorks: List<Long>,
@@ -66,10 +67,10 @@ class SongWithPvsMapperTest {
                     Instancio.ofMap(object : TypeToken<String> {}, object : TypeToken<List<VocaDbTagMapping>> {})
                         .create()
                 val searchResult =
-                    VocaDbSongEntryWithNndPvsAndTagsSearchResult(
-                        Instancio.of(VocaDbSongEntryWithNndPvsAndTags::class.java).set(field("pvs"), songPvs).`as` {
-                            listOf(it)
-                        },
+                    VocaDbSongEntryWithNndPvsTagsAndReleaseEventsSearchResult(
+                        Instancio.of(VocaDbSongEntryWithNndPvsTagsAndReleaseEvents::class.java)
+                            .set(field("pvs"), songPvs)
+                            .`as` { listOf(it) },
                         Instancio.create(Long::class.java),
                     )
                 val nonDisabledPvs = mapOf(songPvs[0].id to NndThumbnailError(Instancio.create(Error::class.java)))
@@ -78,7 +79,14 @@ class SongWithPvsMapperTest {
                         SongsWithPvsResponse(
                             listOf(
                                 VocaDbSongEntryWithPvs(
-                                    SongEntry(it.id, it.name, it.type, it.artistString, it.publishedAt),
+                                    SongEntryWithPublishDateAndReleaseEventInfo(
+                                        it.id,
+                                        it.name,
+                                        it.type,
+                                        it.artistString,
+                                        it.publishedAt,
+                                        it.events.map { event -> ReleaseEvent(event.id, event.name, event.seriesId) },
+                                    ),
                                     listOf(),
                                     listOf(
                                         UnavailableNndVideo(
@@ -106,8 +114,8 @@ class SongWithPvsMapperTest {
 
             private fun oneNndPvWithoutMappedTags(): ArgumentSet {
                 val searchResult =
-                    VocaDbSongEntryWithNndPvsAndTagsSearchResult(
-                        Instancio.of(VocaDbSongEntryWithNndPvsAndTags::class.java)
+                    VocaDbSongEntryWithNndPvsTagsAndReleaseEventsSearchResult(
+                        Instancio.of(VocaDbSongEntryWithNndPvsTagsAndReleaseEvents::class.java)
                             .generate(field("pvs")) { gen -> gen.collection<SongPv>().size(1) }
                             .set(field(SongPv::class.java, "service"), NicoNicoDouga)
                             .`as` { listOf(it) },
@@ -134,7 +142,14 @@ class SongWithPvsMapperTest {
                         SongsWithPvsResponse(
                             listOf(
                                 VocaDbSongEntryWithPvs(
-                                    SongEntry(item.id, item.name, item.type, item.artistString, item.publishedAt),
+                                    SongEntryWithPublishDateAndReleaseEventInfo(
+                                        item.id,
+                                        item.name,
+                                        item.type,
+                                        item.artistString,
+                                        item.publishedAt,
+                                        item.events.map { event -> ReleaseEvent(event.id, event.name, event.seriesId) },
+                                    ),
                                     listOf(
                                         requireNotNull(nonDisabledPvs[searchResult.items[0].pvs[0].id]).data.let {
                                             PvWithSuggestedTags(
@@ -194,8 +209,8 @@ class SongWithPvsMapperTest {
                             listOf(VocaDbTagMapping("first_work", VocaDbTag(FIRST_WORK_TAG_ID, "first work"))),
                     )
                 val searchResult =
-                    VocaDbSongEntryWithNndPvsAndTagsSearchResult(
-                        Instancio.of(VocaDbSongEntryWithNndPvsAndTags::class.java)
+                    VocaDbSongEntryWithNndPvsTagsAndReleaseEventsSearchResult(
+                        Instancio.of(VocaDbSongEntryWithNndPvsTagsAndReleaseEvents::class.java)
                             .set(field("type"), Unspecified) // does not have ignored tags, easier to check this way
                             .generate(field("pvs")) { gen -> gen.collection<SongPv>().size(2) }
                             .set(field(SongPv::class.java, "service"), NicoNicoDouga)
@@ -228,12 +243,15 @@ class SongWithPvsMapperTest {
                     SongsWithPvsResponse(
                         listOf(
                             VocaDbSongEntryWithPvs(
-                                SongEntry(
+                                SongEntryWithPublishDateAndReleaseEventInfo(
                                     searchResult.items[0].id,
                                     searchResult.items[0].name,
                                     searchResult.items[0].type,
                                     searchResult.items[0].artistString,
                                     searchResult.items[0].publishedAt,
+                                    searchResult.items[0].events.map { event ->
+                                        ReleaseEvent(event.id, event.name, event.seriesId)
+                                    },
                                 ),
                                 listOf(
                                     PvWithSuggestedTags(

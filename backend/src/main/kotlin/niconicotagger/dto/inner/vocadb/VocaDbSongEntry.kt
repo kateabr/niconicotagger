@@ -27,6 +27,26 @@ sealed interface VocaDbSongEntryWithTagsBase : VocaDbSongEntryBase {
     val tags: List<VocaDbTag>
 }
 
+sealed interface VocaDbSongEntryWithPvsBase : VocaDbSongEntryBase {
+    override val id: Long
+    override val name: String
+    override val type: SongType
+    override val artists: List<VocaDbEntryArtist>
+    override val artistString: String
+    override val publishedAt: Instant?
+    val pvs: List<SongPv>
+}
+
+sealed interface VocaDbSongEntryWithReleaseEventsBase : VocaDbSongEntryBase {
+    override val id: Long
+    override val name: String
+    override val type: SongType
+    override val artists: List<VocaDbEntryArtist>
+    override val artistString: String
+    override val publishedAt: Instant?
+    val events: List<VocaDbReleaseEvent>
+}
+
 data class VocaDbSongWithReleaseEvents(
     override val id: Long,
     override val name: String,
@@ -34,8 +54,8 @@ data class VocaDbSongWithReleaseEvents(
     override val artists: List<VocaDbEntryArtist> = emptyList(),
     override val artistString: String,
     @JsonProperty("publishDate") override val publishedAt: Instant?,
-    @JsonProperty("releaseEvents") val events: List<VocaDbReleaseEvent> = emptyList(),
-) : VocaDbSongEntryBase
+    @JsonProperty("releaseEvents") override val events: List<VocaDbReleaseEvent> = emptyList(),
+) : VocaDbSongEntryWithReleaseEventsBase
 
 data class VocaDbSongEntryWithTags(
     override val id: Long,
@@ -47,7 +67,7 @@ data class VocaDbSongEntryWithTags(
     @JsonDeserialize(contentUsing = VocaDbTagDeserializer::class) override val tags: List<VocaDbTag>,
 ) : VocaDbSongEntryWithTagsBase
 
-data class VocaDbSongEntryWithNndPvsAndTags(
+data class VocaDbSongEntryWithNndPvsTagsAndReleaseEvents(
     override val id: Long,
     override val name: String,
     @JsonAlias("songType") override val type: SongType,
@@ -55,5 +75,6 @@ data class VocaDbSongEntryWithNndPvsAndTags(
     override val artistString: String,
     @JsonProperty("publishDate") override val publishedAt: Instant?,
     @JsonDeserialize(contentUsing = VocaDbTagDeserializer::class) override val tags: List<VocaDbTag> = emptyList(),
-    val pvs: List<SongPv> = emptyList(),
-) : VocaDbSongEntryWithTagsBase
+    override val pvs: List<SongPv> = emptyList(),
+    @JsonProperty("releaseEvents") override val events: List<VocaDbReleaseEvent> = emptyList(),
+) : VocaDbSongEntryWithTagsBase, VocaDbSongEntryWithPvsBase, VocaDbSongEntryWithReleaseEventsBase

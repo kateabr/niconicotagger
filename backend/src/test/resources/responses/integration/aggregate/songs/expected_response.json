@@ -6,7 +6,14 @@
         "name": "バア",
         "type": "Original",
         "artistString": "幽霊一文字 feat. 巡音ルカ",
-        "publishedOn": "2025-01-28"
+        "publishedOn": "2025-01-28",
+        "events": [
+          {
+            "id": 3011,
+            "name": "巡音ルカ誕生祭 2025",
+            "seriesId": 12
+          }
+        ]
       },
       "availablePvs": [
         {
