@@ -1,5 +1,6 @@
 package niconicotagger.configuration
 
+import com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES
 import com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS
 import com.fasterxml.jackson.databind.json.JsonMapper
 import com.fasterxml.jackson.dataformat.xml.XmlMapper
@@ -22,6 +23,7 @@ class ObjectMapperConfiguration {
             .findAndAddModules()
             .addModules(problemModule, constraintViolationProblemModule)
             .disable(WRITE_DATES_AS_TIMESTAMPS)
+            .disable(FAIL_ON_UNKNOWN_PROPERTIES)
             .build()
 
     @Bean fun xmlMapper(): XmlMapper = XmlMapper.builder().findAndAddModules().addModule(JavaTimeModule()).build()

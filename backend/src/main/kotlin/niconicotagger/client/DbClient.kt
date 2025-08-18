@@ -3,15 +3,13 @@ package niconicotagger.client
 import com.fasterxml.jackson.databind.json.JsonMapper
 import com.github.benmanes.caffeine.cache.Caffeine
 import com.sksamuel.aedile.core.asCache
-import io.netty.channel.ChannelOption.CONNECT_TIMEOUT_MILLIS
 import io.netty.handler.logging.LogLevel.DEBUG
-import io.netty.handler.timeout.ReadTimeoutHandler
-import io.netty.handler.timeout.WriteTimeoutHandler
 import java.time.Duration
 import java.time.LocalDate
 import java.util.concurrent.TimeUnit.HOURS
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
+import niconicotagger.client.Utils.performLargeGet
 import niconicotagger.constants.Constants.COOKIE_HEADER_KEY
 import niconicotagger.constants.Constants.DEFAULT_USER_AGENT
 import niconicotagger.dto.DbLoginException
@@ -60,34 +58,22 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import org.springframework.web.reactive.function.client.awaitBodilessEntity
 import org.springframework.web.reactive.function.client.awaitBody
 import org.springframework.web.reactive.function.client.awaitExchange
-import org.springframework.web.reactive.function.client.toEntity
-import reactor.netty.Connection
 import reactor.netty.http.client.HttpClient
 import reactor.netty.transport.logging.AdvancedByteBufFormat.TEXTUAL
 import reactor.util.retry.Retry
 
 /** Swagger: https://vocadb.net/swagger/index.html */
-open class DbClient(baseUrl: String, private val jsonMapper: JsonMapper) {
-    private val timeoutSeconds: Int = 45
-
+open class DbClient(baseUrl: String, private val jsonMapper: JsonMapper, webClientBuilder: WebClient.Builder) {
     private val client: WebClient =
-        WebClient.builder()
+        webClientBuilder
             .clientConnector(
                 ReactorClientHttpConnector(
-                    HttpClient.create()
-                        .wiretap(this::class.java.getCanonicalName(), DEBUG, TEXTUAL)
-                        .option(CONNECT_TIMEOUT_MILLIS, timeoutSeconds * 1000)
-                        .doOnConnected { conn: Connection ->
-                            conn
-                                .addHandlerFirst(ReadTimeoutHandler(timeoutSeconds))
-                                .addHandlerFirst(WriteTimeoutHandler(timeoutSeconds))
-                        }
+                    HttpClient.create().wiretap(this::class.java.getCanonicalName(), DEBUG, TEXTUAL)
                 )
             )
             .baseUrl(baseUrl)
             .defaultHeader(USER_AGENT, DEFAULT_USER_AGENT)
             .defaultHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
-            .codecs { configurer -> configurer.defaultCodecs().maxInMemorySize(1000 * 1024) }
             .build()
     private var maxTagMappingsToLoad = 10_000
     private var maxEventsToLoad = 1_000
@@ -247,9 +233,7 @@ open class DbClient(baseUrl: String, private val jsonMapper: JsonMapper) {
                         mapOf("maxEntries" to maxTagMappingsToLoad),
                     )
                     .retrieve()
-                    .toEntity<VocaDbTagMappings>()
-                    .awaitSingle()
-                    .body ?: error("Failed to load tag mappings")
+                    .let { performLargeGet<VocaDbTagMappings>(it, jsonMapper) } ?: error("Failed to load tag mappings")
 
             if (response.totalCount > response.items.size) {
                 maxTagMappingsToLoad += 1000
@@ -281,19 +265,17 @@ open class DbClient(baseUrl: String, private val jsonMapper: JsonMapper) {
                 (cachedValue is VocaDbSongEntryWithReleaseEventsBase &&
                     cachedValue.events.none { it.id == targetEventId })
         ) {
-            val value =
-                client
-                    .get()
-                    .uri(
-                        "/api/songs/byPv?pvId=$pvId&pvService=NicoNicoDouga&fields={fields}",
-                        mapOf("fields" to fieldsString),
-                    )
-                    .retrieve()
-                    .toEntity(responseClass)
-                    .awaitSingle()
-                    .body
-                    ?.also { songsByNndPvCache.put(cacheKey, it) }
-            value
+            client
+                .get()
+                .uri(
+                    "/api/songs/byPv?pvId=$pvId&pvService=NicoNicoDouga&fields={fields}",
+                    mapOf("fields" to fieldsString),
+                )
+                .retrieve()
+                .toEntity(responseClass)
+                .awaitSingle()
+                .body
+                ?.also { songsByNndPvCache.put(cacheKey, it) }
         } else {
             cachedValue
         }
@@ -384,14 +366,13 @@ open class DbClient(baseUrl: String, private val jsonMapper: JsonMapper) {
                     .build()
             }
             .retrieve()
-            .toEntity(
+            .let {
                 when (apiType) {
-                    ARTISTS -> queryConsoleArtistResponseTypeReference
-                    SONGS -> queryConsoleSongResponseTypeReference
+                    ARTISTS ->
+                        performLargeGet<VocaDbCustomQuerySearchResult<VocaDbCustomQueryArtistData>>(it, jsonMapper)
+                    SONGS -> performLargeGet<VocaDbCustomQuerySearchResult<VocaDbCustomQuerySongData>>(it, jsonMapper)
                 }
-            )
-            .awaitSingle()
-            ?.body ?: error("Could not load data")
+            } ?: error("Could not load data")
     }
 
     suspend fun getSongs(
@@ -413,9 +394,8 @@ open class DbClient(baseUrl: String, private val jsonMapper: JsonMapper) {
                 builder.build()
             }
             .retrieve()
-            .toEntity(VocaDbSongEntryWithNndPvsTagsAndReleaseEventsSearchResult::class.java)
-            .awaitSingle()
-            ?.body ?: error("Could not load songs"))
+            .let { performLargeGet<VocaDbSongEntryWithNndPvsTagsAndReleaseEventsSearchResult>(it, jsonMapper) }
+            ?: error("Could not load songs"))
     }
 
     suspend fun getAllEventsForYear(useCached: Boolean): List<VocaDbReleaseEvent> {
@@ -440,9 +420,8 @@ open class DbClient(baseUrl: String, private val jsonMapper: JsonMapper) {
                             .build()
                     }
                     .retrieve()
-                    .toEntity(VocaDbReleaseEventSearchResult::class.java)
-                    .awaitSingle()
-                    ?.body ?: error("Could not load event previews")
+                    .let { performLargeGet<VocaDbReleaseEventSearchResult>(it, jsonMapper) }
+                    ?: error("Could not load event previews")
 
             if (response.totalCount > response.items.size) {
                 maxEventsToLoad += 500
@@ -469,10 +448,6 @@ open class DbClient(baseUrl: String, private val jsonMapper: JsonMapper) {
     }
 
     companion object {
-        private val queryConsoleArtistResponseTypeReference =
-            object : ParameterizedTypeReference<VocaDbCustomQuerySearchResult<VocaDbCustomQueryArtistData>>() {}
-        private val queryConsoleSongResponseTypeReference =
-            object : ParameterizedTypeReference<VocaDbCustomQuerySearchResult<VocaDbCustomQuerySongData>>() {}
         private val evenfFieldsForSchedule = "$Series,$MainPicture"
 
         val artistDuplicateResponseTypeReference =

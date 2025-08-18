@@ -50,6 +50,7 @@ import org.springframework.http.HttpHeaders.USER_AGENT
 import org.springframework.http.MediaType.APPLICATION_JSON_VALUE
 import org.springframework.http.MediaType.APPLICATION_XML_VALUE
 import org.springframework.http.MediaType.TEXT_HTML_VALUE
+import org.springframework.web.reactive.function.client.WebClient
 
 @WireMockTest
 @ExtendWith(InstancioExtension::class)
@@ -70,17 +71,7 @@ class NndClientTest {
                 .willReturn(ok().withResponseBody(Body(body)).withHeader(CONTENT_TYPE, APPLICATION_XML_VALUE))
         )
 
-        assertThat(
-                NndClient(
-                        thumbBaseUrl = wm.httpBaseUrl,
-                        jsonMapper = jsonMapper,
-                        xmlMapper = xmlMapper,
-                        embedBaseUrl = "",
-                        apiBaseUrl = "",
-                        channelBaseHost = "",
-                    )
-                    .getThumbInfo(id)
-            )
+        assertThat(createClient(thumbBaseUrl = wm.httpBaseUrl).getThumbInfo(id))
             .usingRecursiveComparison()
             .isEqualTo(expected)
     }
@@ -94,17 +85,7 @@ class NndClientTest {
                 .willReturn(ok().withResponseBody(Body(sampleEmbed)).withHeader(CONTENT_TYPE, TEXT_HTML_VALUE))
         )
 
-        assertThat(
-                NndClient(
-                        embedBaseUrl = wm.httpBaseUrl,
-                        jsonMapper = jsonMapper,
-                        xmlMapper = xmlMapper,
-                        thumbBaseUrl = "",
-                        apiBaseUrl = "",
-                        channelBaseHost = "",
-                    )
-                    .getFormattedDescription(id)
-            )
+        assertThat(createClient(embedBaseUrl = wm.httpBaseUrl).getFormattedDescription(id))
             .isEqualTo(expectedDescription)
     }
 
@@ -131,17 +112,7 @@ class NndClientTest {
                 .willReturn(ok().withResponseBody(Body(sampleEmbed)).withHeader(CONTENT_TYPE, TEXT_HTML_VALUE))
         )
 
-        assertThat(
-                NndClient(
-                        embedBaseUrl = wm.httpBaseUrl,
-                        jsonMapper = jsonMapper,
-                        xmlMapper = xmlMapper,
-                        thumbBaseUrl = "",
-                        apiBaseUrl = "",
-                        channelBaseHost = "",
-                    )
-                    .getFormattedDescription(id)
-            )
+        assertThat(createClient(embedBaseUrl = wm.httpBaseUrl).getFormattedDescription(id))
             .isEqualTo(expectedDescription)
     }
 
@@ -171,14 +142,7 @@ class NndClientTest {
         )
 
         assertThat(
-                NndClient(
-                        apiBaseUrl = wm.httpBaseUrl,
-                        jsonMapper = jsonMapper,
-                        xmlMapper = xmlMapper,
-                        thumbBaseUrl = "",
-                        embedBaseUrl = "",
-                        channelBaseHost = "",
-                    )
+                createClient(apiBaseUrl = wm.httpBaseUrl)
                     .getVideosByTags(
                         VideosByNndTagsRequest(
                             setOf("tag"),
@@ -250,14 +214,7 @@ class NndClientTest {
         )
 
         assertThat(
-                NndClient(
-                        apiBaseUrl = wm.httpBaseUrl,
-                        jsonMapper = jsonMapper,
-                        xmlMapper = xmlMapper,
-                        thumbBaseUrl = "",
-                        embedBaseUrl = "",
-                        channelBaseHost = "",
-                    )
+                createClient(apiBaseUrl = wm.httpBaseUrl)
                     .getVideosByTags(
                         VideosByNndEventTagsRequest(
                             setOf("tag"),
@@ -322,18 +279,7 @@ class NndClientTest {
                 .willReturn(ok().withHeader("location", "/$channelHandle"))
         )
 
-        assertThat(
-                NndClient(
-                        apiBaseUrl = "",
-                        jsonMapper = jsonMapper,
-                        xmlMapper = xmlMapper,
-                        thumbBaseUrl = "",
-                        embedBaseUrl = "",
-                        channelBaseHost = wm.httpBaseUrl,
-                    )
-                    .getChannelHandle(channelId)
-            )
-            .isEqualTo(channelHandle)
+        assertThat(createClient(channelBaseHost = wm.httpBaseUrl).getChannelHandle(channelId)).isEqualTo(channelHandle)
     }
 
     @Test
@@ -345,18 +291,7 @@ class NndClientTest {
                 .willReturn(notFound())
         )
 
-        assertThat(
-                NndClient(
-                        apiBaseUrl = "",
-                        jsonMapper = jsonMapper,
-                        xmlMapper = xmlMapper,
-                        thumbBaseUrl = "",
-                        embedBaseUrl = "",
-                        channelBaseHost = wm.httpBaseUrl,
-                    )
-                    .getChannelHandle(channelId)
-            )
-            .isNull()
+        assertThat(createClient(channelBaseHost = wm.httpBaseUrl).getChannelHandle(channelId)).isNull()
     }
 
     companion object {
@@ -441,5 +376,21 @@ class NndClientTest {
         val sampleEmbed = loadResource("responses/nnd/sample_embed.html")
         const val expectedDescription =
             "賑やかしに短い動画を上げました。<br />三人に歌ってもらったよ（輪唱っていいよね）<br><br>作曲：春乃ねむり<br>歌唱：小春六花・夏色花梨・花隈千冬（SynthesizerV）<br>マイリスト：https://www.nicovideo.jp/mylist/18804133<br>　"
+
+        fun createClient(
+            channelBaseHost: String = "",
+            thumbBaseUrl: String = "",
+            embedBaseUrl: String = "",
+            apiBaseUrl: String = "",
+        ) =
+            NndClient(
+                channelBaseHost,
+                thumbBaseUrl,
+                embedBaseUrl,
+                apiBaseUrl,
+                jsonMapper,
+                xmlMapper,
+                WebClient.builder(),
+            )
     }
 }

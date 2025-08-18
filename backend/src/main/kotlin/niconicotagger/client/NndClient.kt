@@ -10,6 +10,7 @@ import java.util.concurrent.TimeUnit.HOURS
 import java.util.regex.Pattern
 import kotlinx.coroutines.reactor.awaitSingle
 import niconicotagger.client.Utils.createNndFilters
+import niconicotagger.client.Utils.performLargeGet
 import niconicotagger.constants.Constants.API_SEARCH_FIELDS
 import niconicotagger.constants.Constants.DEFAULT_USER_AGENT
 import niconicotagger.dto.api.request.VideosByNndTagsRequestBase
@@ -42,9 +43,10 @@ class NndClient(
     private val apiBaseUrl: String,
     private val jsonMapper: JsonMapper,
     private val xmlMapper: XmlMapper,
+    webClientBuilder: WebClient.Builder,
 ) {
     private val client: WebClient =
-        WebClient.builder()
+        webClientBuilder
             .defaultHeader(USER_AGENT, DEFAULT_USER_AGENT)
             .clientConnector(
                 ReactorClientHttpConnector(
@@ -104,18 +106,12 @@ class NndClient(
         }
     }
 
-    suspend fun <T : VideosByNndTagsRequestBase> getVideosByTags(request: T): NndApiSearchResult {
-        return videosByTagsCache.getOrNull(request.hashCode()) {
-            client
-                .get()
-                .uri(buildApiRequestUri(request))
-                .header(CONTENT_TYPE, APPLICATION_JSON_VALUE)
-                .retrieve()
-                .toEntity(NndApiSearchResult::class.java)
-                .awaitSingle()
-                .body
+    suspend fun <T : VideosByNndTagsRequestBase> getVideosByTags(request: T): NndApiSearchResult =
+        videosByTagsCache.getOrNull(request.hashCode()) {
+            client.get().uri(buildApiRequestUri(request)).header(CONTENT_TYPE, APPLICATION_JSON_VALUE).retrieve().let {
+                performLargeGet<NndApiSearchResult>(it, jsonMapper)
+            }
         } ?: error("Failed to load videos for tag \"${request.tags}\"")
-    }
 
     @Suppress("SwallowedException")
     suspend fun getChannelHandle(channelId: Long) =

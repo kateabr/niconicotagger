@@ -2,10 +2,6 @@ app:
   service:
     offline-events: AlbumRelease, Club, Concert, Convention, Other
     default-event-scope: 14d
-  validation:
-    event-scope-days:
-      min: 1
-      max: 365
   api-props:
     database:
       # -> https://vocadb.net/Ar/{artist id}
@@ -41,6 +37,7 @@ app:
             host: "https://ch.nicovideo.jp"
 
 spring:
-  web:
-    resources:
-      add-mappings: false
+  web.resources.add-mappings: false
+  http.client.connect-timeout: 45s
+
+logging.level.org:.springframework.web: INFO

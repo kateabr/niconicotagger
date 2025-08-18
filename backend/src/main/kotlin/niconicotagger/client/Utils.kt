@@ -1,12 +1,16 @@
 package niconicotagger.client
 
+import com.fasterxml.jackson.core.type.TypeReference
+import com.fasterxml.jackson.databind.json.JsonMapper
 import java.time.temporal.ChronoUnit.DAYS
+import kotlinx.coroutines.reactive.awaitFirstOrNull
 import niconicotagger.constants.Constants.GENRE_FILTER
 import niconicotagger.dto.api.request.VideosByNndEventTagsRequest
 import niconicotagger.dto.api.request.VideosByNndTagsRequestBase
 import niconicotagger.dto.inner.nnd.AndFilter
 import niconicotagger.dto.inner.nnd.RangeFilter
 import niconicotagger.dto.inner.nnd.SearchFilter
+import org.springframework.web.reactive.function.client.WebClient
 
 object Utils {
     fun <T : VideosByNndTagsRequestBase> createNndFilters(request: T): SearchFilter {
@@ -40,4 +44,9 @@ object Utils {
             else -> GENRE_FILTER
         }
     }
+
+    suspend inline fun <reified T> performLargeGet(response: WebClient.ResponseSpec, jsonMapper: JsonMapper) =
+        response.bodyToFlux(ByteArray::class.java).reduce(ByteArray::plus).awaitFirstOrNull()?.let {
+            jsonMapper.readValue(it, object : TypeReference<T>() {})
+        }
 }

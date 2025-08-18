@@ -92,6 +92,7 @@ import org.springframework.http.HttpHeaders.CONTENT_TYPE
 import org.springframework.http.HttpHeaders.SET_COOKIE
 import org.springframework.http.HttpHeaders.USER_AGENT
 import org.springframework.http.MediaType.APPLICATION_JSON_VALUE
+import org.springframework.web.reactive.function.client.WebClient
 
 @WireMockTest
 @ExtendWith(InstancioExtension::class)
@@ -141,7 +142,7 @@ class DbClientTest {
                 )
         )
 
-        assertThat(DbClient(wm.httpBaseUrl, jsonMapper).login(username, password))
+        assertThat(createClient(wm.httpBaseUrl).login(username, password))
             .hasSize(1)
             .extractingByKey(COOKIE_HEADER_KEY)
             .asInstanceOf(list(String::class.java))
@@ -194,7 +195,7 @@ class DbClientTest {
         )
 
         assertThatExceptionOfType(IllegalStateException::class.java).isThrownBy {
-            runBlocking { DbClient(wm.httpBaseUrl, jsonMapper).login(username, password) }
+            runBlocking { createClient(wm.httpBaseUrl).login(username, password) }
         }
     }
 
@@ -211,7 +212,7 @@ class DbClientTest {
                 )
         )
 
-        assertThat(DbClient(wm.httpBaseUrl, jsonMapper).getTagByName("shoegaze"))
+        assertThat(createClient(wm.httpBaseUrl).getTagByName("shoegaze"))
             .usingRecursiveComparison()
             .isEqualTo(VocaDbTag(395, "shoegaze"))
     }
@@ -230,7 +231,7 @@ class DbClientTest {
         )
 
         assertThatExceptionOfType(IllegalStateException::class.java).isThrownBy {
-            runBlocking { DbClient(wm.httpBaseUrl, jsonMapper).getTagByName("shoegaze") }
+            runBlocking { createClient(wm.httpBaseUrl).getTagByName("shoegaze") }
         }
     }
 
@@ -249,7 +250,7 @@ class DbClientTest {
                     )
             )
 
-            assertThat(DbClient(wm.httpBaseUrl, jsonMapper).getSongForEdit(songId, cookie))
+            assertThat(createClient(wm.httpBaseUrl).getSongForEdit(songId, cookie))
                 .asInstanceOf(map(String::class.java, Any::class.java))
                 .extractingByKey("id")
                 .isEqualTo(657_775)
@@ -282,7 +283,7 @@ class DbClientTest {
                 )
         )
 
-        assertThat(DbClient(wm.httpBaseUrl, jsonMapper).getEventByName("重音テト誕生祭 2023", WebLinks, Tags))
+        assertThat(createClient(wm.httpBaseUrl).getEventByName("重音テト誕生祭 2023", WebLinks, Tags))
             .usingRecursiveComparison()
             .ignoringCollectionOrder()
             .isEqualTo(
@@ -320,7 +321,7 @@ class DbClientTest {
                 )
         )
 
-        assertThat(DbClient(wm.httpBaseUrl, jsonMapper).getEventSeriesById(63))
+        assertThat(createClient(wm.httpBaseUrl).getEventSeriesById(63))
             .usingRecursiveComparison()
             .ignoringCollectionOrder()
             .isEqualTo(VocaDbReleaseEventSeries(63, Anniversary, emptyList()))
@@ -341,7 +342,7 @@ class DbClientTest {
                 )
         )
 
-        assertThat(DbClient(wm.httpBaseUrl, jsonMapper).getAllVocaDbTagMappings(false))
+        assertThat(createClient(wm.httpBaseUrl).getAllVocaDbTagMappings(false))
             .containsExactlyInAnyOrderElementsOf(
                 listOf(
                     VocaDbTagMapping("トリップミック", VocaDbTag(2956, "trip hop")),
@@ -374,7 +375,7 @@ class DbClientTest {
         )
 
         assertThat(
-                DbClient(wm.httpBaseUrl, jsonMapper)
+                createClient(wm.httpBaseUrl)
                     .getSongByNndPv(VocaDbSongEntryWithTags::class.java, "sm42029727", Tags, Artists)
             )
             .usingRecursiveComparison()
@@ -421,7 +422,7 @@ class DbClientTest {
                 )
         )
 
-        assertThat(DbClient(wm.httpBaseUrl, jsonMapper).getArtistByQuery("user/34514369"))
+        assertThat(createClient(wm.httpBaseUrl).getArtistByQuery("user/34514369"))
             .usingRecursiveComparison()
             .isEqualTo(VocaDbArtist(21_260, "おゆう"))
     }
@@ -442,9 +443,7 @@ class DbClientTest {
                 )
         )
 
-        assertThat(
-                DbClient(wm.httpBaseUrl, jsonMapper).findArtistDuplicate("https://ch.nicovideo.jp/channel/ch2648319")
-            )
+        assertThat(createClient(wm.httpBaseUrl).findArtistDuplicate("https://ch.nicovideo.jp/channel/ch2648319"))
             .usingRecursiveComparison()
             .isEqualTo(VocaDbArtist(106_476, "無色透名祭"))
     }
@@ -478,8 +477,7 @@ class DbClientTest {
                 )
         )
 
-        assertThat(DbClient(wm.httpBaseUrl, jsonMapper).artistHasSongsBeforeDate(123, "beforeDate"))
-            .isEqualTo(expectedResult)
+        assertThat(createClient(wm.httpBaseUrl).artistHasSongsBeforeDate(123, "beforeDate")).isEqualTo(expectedResult)
     }
 
     @Test
@@ -496,7 +494,7 @@ class DbClientTest {
                 )
         )
 
-        assertThat(DbClient(wm.httpBaseUrl, jsonMapper).getSongTags(63_276, cookie))
+        assertThat(createClient(wm.httpBaseUrl).getSongTags(63_276, cookie))
             .containsExactlyInAnyOrder(
                 VocaDbTagSelectable(VocaDbTag(8087, "karaoke available (DAM&JOY)"), true),
                 VocaDbTagSelectable(VocaDbTag(8909, "blue"), false),
@@ -517,7 +515,7 @@ class DbClientTest {
                 )
         )
 
-        assertThat(DbClient(wm.httpBaseUrl, jsonMapper).getTagUsages(SONGS, 657_775, cookie))
+        assertThat(createClient(wm.httpBaseUrl).getTagUsages(SONGS, 657_775, cookie))
             .usingRecursiveComparison()
             .isEqualTo(
                 VocaDbTagUsages(
@@ -561,7 +559,7 @@ class DbClientTest {
         )
 
         assertThat(
-                DbClient(wm.httpBaseUrl, jsonMapper)
+                createClient(wm.httpBaseUrl)
                     .getDataWithTagsByCustomQuery(
                         apiType,
                         "maxResults=1&tagId[]=158&tagId[]=3353&advancedFilters[0][filterType]=HasMedia&advancedFilters[0][negate]=true",
@@ -589,7 +587,7 @@ class DbClientTest {
         )
 
         assertThatNoException().isThrownBy {
-            runBlocking { DbClient(wm.httpBaseUrl, jsonMapper).deleteTagUsage(apiType, tagUsageId, cookie) }
+            runBlocking { createClient(wm.httpBaseUrl).deleteTagUsage(apiType, tagUsageId, cookie) }
         }
     }
 
@@ -618,7 +616,7 @@ class DbClientTest {
                 )
         )
 
-        assertThat(DbClient(wm.httpBaseUrl, jsonMapper).getSongs(startOffset, maxResults, orderBy, emptyMap()))
+        assertThat(createClient(wm.httpBaseUrl).getSongs(startOffset, maxResults, orderBy, emptyMap()))
             .usingRecursiveComparison()
             .ignoringCollectionOrder()
             .isEqualTo(
@@ -670,7 +668,7 @@ class DbClientTest {
                 )
         )
 
-        assertThat(DbClient(wm.httpBaseUrl, jsonMapper).getAllEventsForYear(false))
+        assertThat(createClient(wm.httpBaseUrl).getAllEventsForYear(false))
             .containsExactlyInAnyOrder(
                 VocaDbReleaseEvent(
                     8657,
@@ -711,7 +709,7 @@ class DbClientTest {
                 )
         )
 
-        assertThat(DbClient(wm.httpBaseUrl, jsonMapper).getFrontPageData())
+        assertThat(createClient(wm.httpBaseUrl).getFrontPageData())
             .usingRecursiveComparison()
             .isEqualTo(
                 VocaDbFrontPageData(
@@ -782,5 +780,7 @@ class DbClientTest {
                 .create()
                 .filter { !it.active || !setOf(Trusted, Moderator, Admin).contains(it.groupId) }
                 .map { Arguments.of(it) }
+
+        fun createClient(baseUrl: String) = DbClient(baseUrl, jsonMapper, WebClient.builder())
     }
 }
