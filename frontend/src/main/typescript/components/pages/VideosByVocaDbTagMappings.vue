@@ -289,7 +289,7 @@
             last-number
             limit="10"
             :disabled="defaultDisableCondition()"
-            @input="loadPage(page)"
+            @change.self="loadPage"
           ></b-pagination>
         </div>
       </template>
@@ -477,7 +477,7 @@
           last-number
           limit="10"
           :disabled="defaultDisableCondition()"
-          @input="loadPage(page)"
+          @change.self="loadPage"
         ></b-pagination>
       </div>
     </b-row>
