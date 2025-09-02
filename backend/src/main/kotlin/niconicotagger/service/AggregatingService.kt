@@ -43,6 +43,9 @@ import niconicotagger.dto.inner.misc.EntryField.WebLinks
 import niconicotagger.dto.inner.misc.PvService.NicoNicoDouga
 import niconicotagger.dto.inner.misc.ReleaseEventCategory
 import niconicotagger.dto.inner.misc.TagTypeHolder
+import niconicotagger.dto.inner.nnd.NndEmbed
+import niconicotagger.dto.inner.nnd.NndEmbedError
+import niconicotagger.dto.inner.nnd.NndEmbedOk
 import niconicotagger.dto.inner.nnd.NndThumbnailOk
 import niconicotagger.dto.inner.vocadb.VocaDbSongEntryWithTags
 import niconicotagger.dto.inner.vocadb.VocaDbSongEntryWithTagsBase
@@ -114,7 +117,9 @@ class AggregatingService(
                             video.tags.forEach { tagStyleHolder.put(it, NONE) }
                             val videoTagsWithStyle = video.tags.associateWith { tagStyleHolder.get(it) }
 
-                            val description = async { video.description ?: nndClient.getFormattedDescription(video.id) }
+                            val description = async {
+                                video.description ?: extractDescription(nndClient.getEmbedInfo(video.id))
+                            }
                             val songEntry = async {
                                 getClient(request.clientType)
                                     .getSongByNndPv(
@@ -180,7 +185,7 @@ class AggregatingService(
                             val publisher =
                                 if (songEntry == null) publisherInfoService.getPublisher(video, request.clientType)
                                 else null
-                            val description = video.description ?: nndClient.getFormattedDescription(video.id)
+                            val description = video.description ?: extractDescription(nndClient.getEmbedInfo(video.id))
                             val resultingTagSet =
                                 buildResultingTagSet(request.clientType, songEntry, correspondingVocaDbTags)
 
@@ -345,4 +350,10 @@ class AggregatingService(
             .sortedWith(compareBy({ it.status.priority }, { it.date }))
             .let { EventScheduleResponse(it, eventScope.toDays()) }
     }
+
+    private fun extractDescription(embed: NndEmbed) =
+        when (embed) {
+            is NndEmbedOk -> embed.description
+            is NndEmbedError -> null
+        }
 }

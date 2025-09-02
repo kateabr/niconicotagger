@@ -43,6 +43,7 @@ import niconicotagger.dto.inner.misc.PvService.NicoNicoDouga
 import niconicotagger.dto.inner.misc.PvService.Youtube
 import niconicotagger.dto.inner.misc.SongPv
 import niconicotagger.dto.inner.nnd.NndApiSearchResult
+import niconicotagger.dto.inner.nnd.NndEmbedOk
 import niconicotagger.dto.inner.nnd.NndMeta
 import niconicotagger.dto.inner.nnd.NndTag
 import niconicotagger.dto.inner.nnd.NndThumbnailOk
@@ -167,7 +168,8 @@ class NndTagMethodsTest : AggregatingServiceTest() {
         coEvery { dbClient.getAllVocaDbTagMappings(eq(false)) } returns dbTagMappings
         coEvery { nndClient.getVideosByTags(eq(request)) } returns NndApiSearchResult(NndMeta(1), listOf(video))
         if (video.description == null) {
-            coEvery { nndClient.getFormattedDescription(video.id) } returns additionalDescription
+            coEvery { nndClient.getEmbedInfo(video.id) } returns
+                Instancio.of(NndEmbedOk::class.java).set(field("description"), additionalDescription).create()
         }
         if (song == null) {
             coEvery { publisherInfoService.getPublisher(eq(video), eq(request.clientType)) } returns publisher
@@ -220,7 +222,7 @@ class NndTagMethodsTest : AggregatingServiceTest() {
             aggregatingService.buildResultingTagSet(any(), any(), any())
         }
         coVerifyCount {
-            (if (video.description == null) 1 else 0) * { nndClient.getFormattedDescription(any()) }
+            (if (video.description == null) 1 else 0) * { nndClient.getEmbedInfo(any()) }
             (if (song == null) 1 else 0) * { publisherInfoService.getPublisher(any(), any()) }
         }
         confirmVerified(dbClient, nndClient, eventMapper, aggregatingService)
@@ -298,7 +300,8 @@ class NndTagMethodsTest : AggregatingServiceTest() {
         coEvery { dbClient.getAllVocaDbTagMappings(eq(true)) } returns tagMappings
         coEvery { nndClient.getVideosByTags(eq(request)) } returns NndApiSearchResult(NndMeta(1), listOf(video))
         if (video.description == null) {
-            coEvery { nndClient.getFormattedDescription(video.id) } returns additionalDescription
+            coEvery { nndClient.getEmbedInfo(video.id) } returns
+                Instancio.of(NndEmbedOk::class.java).set(field("description"), additionalDescription).create()
         }
         if (song == null) {
             coEvery { publisherInfoService.getPublisher(eq(video), eq(request.clientType)) } returns publisher
@@ -347,7 +350,7 @@ class NndTagMethodsTest : AggregatingServiceTest() {
             )
         }
         coVerifyCount {
-            (if (video.description == null) 1 else 0) * { nndClient.getFormattedDescription(any()) }
+            (if (video.description == null) 1 else 0) * { nndClient.getEmbedInfo(any()) }
             (if (song == null) 1 else 0) * { publisherInfoService.getPublisher(any(), any()) }
         }
         confirmVerified(dbClient, nndClient, aggregatingService)

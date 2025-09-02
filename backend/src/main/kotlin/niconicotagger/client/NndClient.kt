@@ -1,13 +1,11 @@
 package niconicotagger.client
 
-import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.json.JsonMapper
 import com.fasterxml.jackson.dataformat.xml.XmlMapper
 import com.github.benmanes.caffeine.cache.Caffeine
 import com.sksamuel.aedile.core.asCache
 import io.netty.handler.logging.LogLevel.DEBUG
 import java.util.concurrent.TimeUnit.HOURS
-import java.util.regex.Pattern
 import kotlinx.coroutines.reactor.awaitSingle
 import niconicotagger.client.Utils.createNndFilters
 import niconicotagger.client.Utils.performLargeGet
@@ -15,9 +13,9 @@ import niconicotagger.constants.Constants.API_SEARCH_FIELDS
 import niconicotagger.constants.Constants.DEFAULT_USER_AGENT
 import niconicotagger.dto.api.request.VideosByNndTagsRequestBase
 import niconicotagger.dto.inner.nnd.NndApiSearchResult
+import niconicotagger.dto.inner.nnd.NndEmbed
 import niconicotagger.dto.inner.nnd.NndThumbnail
 import org.jsoup.Jsoup
-import org.jsoup.parser.Parser
 import org.springframework.http.HttpHeaders.CONTENT_TYPE
 import org.springframework.http.HttpHeaders.USER_AGENT
 import org.springframework.http.MediaType.APPLICATION_JSON_VALUE
@@ -50,7 +48,9 @@ class NndClient(
             .defaultHeader(USER_AGENT, DEFAULT_USER_AGENT)
             .clientConnector(
                 ReactorClientHttpConnector(
-                    HttpClient.create().wiretap(this::class.java.getCanonicalName(), DEBUG, TEXTUAL)
+                    HttpClient.create()
+                        .wiretap(this::class.java.getCanonicalName(), DEBUG, TEXTUAL)
+                        .followRedirect(true)
                 )
             )
             .exchangeStrategies(
@@ -61,8 +61,8 @@ class NndClient(
             .build()
     private val thumbCache =
         Caffeine.newBuilder().expireAfterAccess(1, HOURS).maximumSize(10_000).asCache<String, NndThumbnail>()
-    private val formattedDescriptionCache =
-        Caffeine.newBuilder().expireAfterAccess(12, HOURS).maximumSize(10_000).asCache<String, String?>()
+    private val embedCache =
+        Caffeine.newBuilder().expireAfterAccess(1, HOURS).maximumSize(10_000).asCache<String, NndEmbed>()
     private val videosByTagsCache =
         Caffeine.newBuilder().expireAfterAccess(1, HOURS).maximumSize(1_000).asCache<Int, NndApiSearchResult>()
 
@@ -80,30 +80,25 @@ class NndClient(
         }
     }
 
-    private suspend fun getEmbedResponse(id: String): String {
-        return client
-            .get()
-            .uri("$embedBaseUrl/watch/{id}", id)
-            .header(CONTENT_TYPE, TEXT_HTML_VALUE)
-            .exchangeToMono { it.bodyToMono(String::class.java) }
-            .awaitSingle()
-    }
+    suspend fun getEmbedInfo(id: String): NndEmbed {
+        val cachedValue = embedCache.getIfPresent(id)
+        if (cachedValue != null) return cachedValue
 
-    suspend fun getFormattedDescription(id: String): String? {
-        return formattedDescriptionCache.getOrNull(id) {
-            var html = getEmbedResponse(id)
-            val redirectionMatcher = redirectionPattern.matcher(html)
+        val html =
+            client
+                .get()
+                .uri("$embedBaseUrl/watch/{id}", id)
+                .header(CONTENT_TYPE, TEXT_HTML_VALUE)
+                .exchangeToMono { it.bodyToMono(String::class.java) }
+                .awaitSingle()
 
-            if (redirectionMatcher.matches()) {
-                html = getEmbedResponse(redirectionMatcher.group(1))
-            }
+        val dataProps = Jsoup.parse(html).body().getElementById("ext-player")?.attr("data-props")
+        if (dataProps.isNullOrEmpty()) error("Failed to extract embed data for $id")
 
-            val dataProps = Jsoup.parse(html).body().getElementById("ext-player")?.attr("data-props")
-            val description =
-                jsonMapper.readValue(dataProps, object : TypeReference<Map<String, Any>>() {})["description"] as String?
+        val parsedData = jsonMapper.readValue(dataProps, NndEmbed::class.java)
+        embedCache.put(id, parsedData)
 
-            description?.let { Parser.unescapeEntities(it, false) }
-        }
+        return parsedData
     }
 
     suspend fun <T : VideosByNndTagsRequestBase> getVideosByTags(request: T): NndApiSearchResult =
@@ -148,8 +143,4 @@ class NndClient(
             .build()
             .encode()
             .toUri()
-
-    companion object {
-        private val redirectionPattern = Pattern.compile(".*Redirecting to https://embed.nicovideo.jp/watch/(.+)")
-    }
 }

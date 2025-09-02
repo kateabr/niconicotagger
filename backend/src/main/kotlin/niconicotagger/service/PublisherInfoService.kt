@@ -54,7 +54,7 @@ class PublisherInfoService(
     private suspend fun buildLink(id: String, publisherType: String): URI =
         getPublisherLinkProps(publisherType).let {
             UriComponentsBuilder.fromUri(it.host)
-                .pathSegment(*listOfNotNull(it.publisherPath, "${it.idPrefix ?: ""}$id").toTypedArray())
+                .pathSegment(*listOfNotNull(it.publisherPath, "${it.idPrefix.orEmpty()}$id").toTypedArray())
                 .build(emptyMap<String, Any>())
         }
 

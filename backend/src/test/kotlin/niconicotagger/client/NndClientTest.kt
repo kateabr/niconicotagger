@@ -27,6 +27,11 @@ import niconicotagger.dto.api.request.VideosByNndEventTagsRequest
 import niconicotagger.dto.api.request.VideosByNndTagsRequest
 import niconicotagger.dto.inner.nnd.Error
 import niconicotagger.dto.inner.nnd.NndApiSearchResult
+import niconicotagger.dto.inner.nnd.NndEmbed
+import niconicotagger.dto.inner.nnd.NndEmbedError
+import niconicotagger.dto.inner.nnd.NndEmbedError.ErrorParams
+import niconicotagger.dto.inner.nnd.NndEmbedOk
+import niconicotagger.dto.inner.nnd.NndEmbedOk.Channel
 import niconicotagger.dto.inner.nnd.NndMeta
 import niconicotagger.dto.inner.nnd.NndTag
 import niconicotagger.dto.inner.nnd.NndThumbnail
@@ -57,7 +62,7 @@ import org.springframework.web.reactive.function.client.WebClient
 class NndClientTest {
 
     @ParameterizedTest
-    @FieldSource("testData")
+    @FieldSource("getThumbnailTestData")
     fun `get thumbnail test`(
         body: ByteArray,
         expected: NndThumbnail,
@@ -76,44 +81,24 @@ class NndClientTest {
             .isEqualTo(expected)
     }
 
-    @Test
-    fun `get formatted description test`(wm: WireMockRuntimeInfo, @Given id: String): Unit = runBlocking {
-        stubFor(
-            get(urlPathTemplate("/watch/{id}"))
-                .withPathParam("id", equalTo(id))
-                .withHeader(USER_AGENT, equalTo(DEFAULT_USER_AGENT))
-                .willReturn(ok().withResponseBody(Body(sampleEmbed)).withHeader(CONTENT_TYPE, TEXT_HTML_VALUE))
-        )
-
-        assertThat(createClient(embedBaseUrl = wm.httpBaseUrl).getFormattedDescription(id))
-            .isEqualTo(expectedDescription)
-    }
-
-    @Test
-    fun `get formatted description test (redirection)`(
+    @ParameterizedTest
+    @FieldSource("getEmbedTestData")
+    fun `get embed info test`(
+        response: ByteArray,
+        expectedEmbed: NndEmbed,
         wm: WireMockRuntimeInfo,
         @Given id: String,
-        @Given newId: Long,
     ): Unit = runBlocking {
         stubFor(
             get(urlPathTemplate("/watch/{id}"))
                 .withPathParam("id", equalTo(id))
                 .withHeader(USER_AGENT, equalTo(DEFAULT_USER_AGENT))
-                .willReturn(
-                    ok()
-                        .withResponseBody(Body("Found. Redirecting to https://embed.nicovideo.jp/watch/$newId"))
-                        .withHeader(CONTENT_TYPE, TEXT_HTML_VALUE)
-                )
-        )
-        stubFor(
-            get(urlPathTemplate("/watch/{id}"))
-                .withPathParam("id", equalTo(newId.toString()))
-                .withHeader(USER_AGENT, equalTo(DEFAULT_USER_AGENT))
-                .willReturn(ok().withResponseBody(Body(sampleEmbed)).withHeader(CONTENT_TYPE, TEXT_HTML_VALUE))
+                .willReturn(ok().withResponseBody(Body(response)).withHeader(CONTENT_TYPE, TEXT_HTML_VALUE))
         )
 
-        assertThat(createClient(embedBaseUrl = wm.httpBaseUrl).getFormattedDescription(id))
-            .isEqualTo(expectedDescription)
+        assertThat(createClient(embedBaseUrl = wm.httpBaseUrl).getEmbedInfo(id))
+            .usingRecursiveComparison()
+            .isEqualTo(expectedEmbed)
     }
 
     @ParameterizedTest
@@ -294,8 +279,9 @@ class NndClientTest {
         assertThat(createClient(channelBaseHost = wm.httpBaseUrl).getChannelHandle(channelId)).isNull()
     }
 
+    @Suppress("UnderscoresInNumericLiterals")
     companion object {
-        val testData =
+        val getThumbnailTestData =
             listOf(
                 argumentSet(
                     "error",
@@ -325,7 +311,7 @@ class NndClientTest {
                                 NndTag("花隈千冬オリジナル曲", false),
                                 NndTag("VOCALOID", false),
                             ),
-                            5_360_605,
+                            5360605,
                             null,
                             "春乃ねむり",
                         )
@@ -351,7 +337,7 @@ class NndClientTest {
                                 NndTag("無色透名祭Ⅱ作者不明曲リンク", false),
                             ),
                             null,
-                            2_648_319,
+                            2648319,
                             "ボカロ曲匿名投稿イベント 無色透名祭",
                         )
                     ),
@@ -373,9 +359,53 @@ class NndClientTest {
                 ),
             )
 
-        val sampleEmbed = loadResource("responses/nnd/sample_embed.html")
-        const val expectedDescription =
-            "賑やかしに短い動画を上げました。<br />三人に歌ってもらったよ（輪唱っていいよね）<br><br>作曲：春乃ねむり<br>歌唱：小春六花・夏色花梨・花隈千冬（SynthesizerV）<br>マイリスト：https://www.nicovideo.jp/mylist/18804133<br>　"
+        val getEmbedTestData =
+            listOf(
+                argumentSet(
+                    "error",
+                    loadResource("responses/nnd/sample_embed_unavailable.html"),
+                    NndEmbedError(ErrorParams("possibly_deleted_video")),
+                ),
+                argumentSet(
+                    "success (published by user)",
+                    loadResource("responses/nnd/sample_embed_user.html"),
+                    NndEmbedOk(
+                        "sm43909677",
+                        "星たちは歌う/小春六花・夏色花梨・花隈千冬",
+                        5360605L,
+                        null,
+                        "賑やかしに短い動画を上げました。<br />三人に歌ってもらったよ（輪唱っていいよね）<br><br>作曲：春乃ねむり<br>歌唱：小春六花・夏色花梨・花隈千冬（SynthesizerV）<br>マイリスト：https://www.nicovideo.jp/mylist/18804133<br>　",
+                        Instant.ofEpochSecond(1722871506000),
+                        Duration.ofSeconds(76),
+                        listOf(
+                            "SynthesizerV",
+                            "小春六花",
+                            "夏色花梨",
+                            "花隈千冬",
+                            "ぼかえり2024夏",
+                            "毎月6日はTOKYO6の日",
+                            "小春六花オリジナル曲",
+                            "夏色花梨オリジナル曲",
+                            "花隈千冬オリジナル曲",
+                            "VOCALOID",
+                        ),
+                    ),
+                ),
+                argumentSet(
+                    "success (published by channel)",
+                    loadResource("responses/nnd/sample_embed_channel.html"),
+                    NndEmbedOk(
+                        "so42905224",
+                        "counterfeit / 初音ミク",
+                        null,
+                        Channel(2648319, "ボカロ曲匿名投稿イベント 無色透名祭"),
+                        "【無色透名祭Ⅱ】参加作品です。<br><a href=\"https://site.nicovideo.jp/mushokutomeisai/\" target=\"_blank\">https://site.nicovideo.jp/mushokutomeisai/</a><br>応募番号: M2_2240",
+                        Instant.ofEpochSecond(1698930000000),
+                        Duration.ofSeconds(147),
+                        listOf("音楽", "VOCALOID", "無色透名祭Ⅱ", "無色透名祭Ⅱ参加曲", "VOCALOIDオリジナル曲", "無色透名祭Ⅱ作者不明曲リンク"),
+                    ),
+                ),
+            )
 
         fun createClient(
             channelBaseHost: String = "",
