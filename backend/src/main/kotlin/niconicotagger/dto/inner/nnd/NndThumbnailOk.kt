@@ -10,7 +10,23 @@ import java.time.Instant
 import niconicotagger.serde.NndTagDeserializer
 import niconicotagger.serde.TrimmingStringDeserializer
 
-data class NndThumbnailOk(@JsonProperty("thumb") val data: ThumbData) : NndThumbnail
+data class NndThumbnailOk(@JsonProperty("thumb") val data: ThumbData) : NndThumbnail, GenericNndOkVideoData {
+    override fun videoId() = data.videoId
+
+    override fun title() = data.title
+
+    override fun description() = data.description.orEmpty()
+
+    override fun userId() = data.userId
+
+    override fun channelId() = data.channelId
+
+    override fun uploadDate() = data.uploadDate
+
+    override fun length() = data.length
+
+    override fun tags() = data.tags
+}
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(SnakeCaseStrategy::class)

@@ -13,4 +13,4 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo.Id.NAME
             JsonSubTypes.Type(name = "fail", value = NndThumbnailError::class),
         ]
 )
-sealed interface NndThumbnail
+sealed interface NndThumbnail : GenericNndVideoData

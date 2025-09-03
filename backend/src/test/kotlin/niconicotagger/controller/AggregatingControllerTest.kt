@@ -777,7 +777,20 @@ class AggregatingControllerTest : AbstractControllerTest() {
                     .willReturn(okJson(loadResource("$dataFolder/song_lookup_result.json").decodeToString()))
             )
             mapOf(
-                    "sm44594436" to loadResource("$dataFolder/video_lookup_result_sm44594436.xml"),
+                    "sm44594436" to loadResource("$dataFolder/video_embed_result_sm44594436.html"),
+                    "sm44594435" to loadResource("$dataFolder/video_embed_result_not_found.html"),
+                    "sm44594434" to loadResource("$dataFolder/video_embed_result_sm44594434.html"),
+                )
+                .forEach {
+                    wireMockExtension.stubFor(
+                        get(urlPathTemplate("/watch/{id}"))
+                            .withPathParam("id", equalTo(it.key))
+                            .withHeader(CONTENT_TYPE, equalTo(TEXT_HTML_VALUE))
+                            .withHeader(USER_AGENT, equalTo(DEFAULT_USER_AGENT))
+                            .willReturn(ok().withBody(it.value).withHeader(CONTENT_TYPE, TEXT_HTML_VALUE))
+                    )
+                }
+            mapOf(
                     "sm44594435" to loadResource("$dataFolder/video_lookup_result_not_found.xml"),
                     "sm44594434" to loadResource("$dataFolder/video_lookup_result_sm44594434.xml"),
                 )

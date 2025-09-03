@@ -8,7 +8,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import niconicotagger.client.DbClientHolder
 import niconicotagger.client.NndClient
-import niconicotagger.constants.Constants.FIRST_WORK_TAG_ID
+import niconicotagger.configuration.DbTagProps
 import niconicotagger.dto.api.misc.ClientType
 import niconicotagger.dto.api.misc.NndSortOrder
 import niconicotagger.dto.api.misc.NndSortOrder.LIKE_COUNT
@@ -43,10 +43,11 @@ import niconicotagger.dto.inner.misc.EntryField.WebLinks
 import niconicotagger.dto.inner.misc.PvService.NicoNicoDouga
 import niconicotagger.dto.inner.misc.ReleaseEventCategory
 import niconicotagger.dto.inner.misc.TagTypeHolder
+import niconicotagger.dto.inner.nnd.GenericNndOkVideoData
+import niconicotagger.dto.inner.nnd.GenericNndVideoData
 import niconicotagger.dto.inner.nnd.NndEmbed
 import niconicotagger.dto.inner.nnd.NndEmbedError
 import niconicotagger.dto.inner.nnd.NndEmbedOk
-import niconicotagger.dto.inner.nnd.NndThumbnailOk
 import niconicotagger.dto.inner.vocadb.VocaDbSongEntryWithTags
 import niconicotagger.dto.inner.vocadb.VocaDbSongEntryWithTagsBase
 import niconicotagger.dto.inner.vocadb.VocaDbSongWithReleaseEvents
@@ -74,8 +75,11 @@ class AggregatingService(
     private val publisherInfoService: PublisherInfoService,
     @Value("\${app.service.offline-events}") private val offlineEvents: Set<ReleaseEventCategory>,
     @Value("\${app.service.default-event-scope}") private val defaultEventScope: Duration,
+    private val tagProps: DbTagProps,
 ) {
     private fun getClient(clientType: ClientType) = dbClientHolder.getClient(clientType)
+
+    private fun getClientSpecificTagProps(clientType: ClientType) = tagProps.getClientSpecificProps(clientType)
 
     internal fun <T : NndVideoWithAssociatedVocaDbEntry<T1>, T1 : SongEntryBase> sortResults(
         result: MutableList<T>,
@@ -269,15 +273,16 @@ class AggregatingService(
     ): List<VocaDbTagSelectable> {
         if (songEntry == null) return emptyList()
 
+        val clientSpecificDbTagProps = getClientSpecificTagProps(clientType)
         val assignedTagIds = songEntry.tags.map { it.id }.toSet()
         if (
-            correspondingVocaDbTags.any { it.id == FIRST_WORK_TAG_ID } &&
-                !assignedTagIds.contains(FIRST_WORK_TAG_ID) &&
+            correspondingVocaDbTags.any { it.id == clientSpecificDbTagProps.firstWork.id } &&
+                !assignedTagIds.contains(clientSpecificDbTagProps.firstWork.id) &&
                 !likelyEarliestWork(clientType, songEntry)
         ) {
 
             return correspondingVocaDbTags
-                .filter { it.id != FIRST_WORK_TAG_ID }
+                .filter { it.id != clientSpecificDbTagProps.firstWork.id }
                 .map { VocaDbTagSelectable(it, assignedTagIds.contains(it.id)) }
         }
 
@@ -290,6 +295,7 @@ class AggregatingService(
     }
 
     suspend fun getSongsWithPvsForTagging(request: SongsWithPvsRequest): SongsWithPvsResponse {
+        val clientSpecificTagProps = getClientSpecificTagProps(request.clientType)
         val tagMappings =
             getClient(request.clientType).getAllVocaDbTagMappings(true).groupBy { kata2hiraAndLowercase(it.sourceTag) }
         val songEntries =
@@ -301,16 +307,32 @@ class AggregatingService(
                     request.orderBy,
                     mapOf("pvServices" to NicoNicoDouga, "fields" to "PVs,Tags,Artists,ReleaseEvent"),
                 )
-        val pvs =
+        val pvs: MutableMap<String, GenericNndVideoData> =
             coroutineScope {
                     songEntries.items
                         .flatMap { it.pvs }
                         .filter { !it.disabled && it.service == NicoNicoDouga }
                         .map { it.id }
-                        .map { async { it to nndClient.getThumbInfo(it) } }
+                        .map { async { it to nndClient.getEmbedInfo(it) } }
                 }
                 .awaitAll()
                 .toMap()
+                .toMutableMap()
+
+        val regionBlocked =
+            pvs.filter {
+                    it.value is NndEmbedError &&
+                        (it.value as NndEmbedError).errorParams.code ==
+                            clientSpecificTagProps.regionBlocked.embedErrorCode
+                }
+                .keys
+        val errorsToRecheck =
+            coroutineScope {
+                    pvs.filter { it.value is NndEmbedError }.map { async { it.key to nndClient.getThumbInfo(it.key) } }
+                }
+                .awaitAll()
+                .toMap()
+        errorsToRecheck.forEach { pvs[it.key] = it.value }
 
         val likelyFirstWorks =
             coroutineScope {
@@ -320,13 +342,12 @@ class AggregatingService(
                                 item.pvs
                                     .asSequence()
                                     .mapNotNull { pvs[it.id] }
-                                    .filterIsInstance<NndThumbnailOk>()
-                                    .flatMap { it.data.tags }
-                                    .map { it.name }
-                                    .mapNotNull { tagMappings[kata2hiraAndLowercase(it)] }
+                                    .filterIsInstance<GenericNndOkVideoData>()
+                                    .flatMap { it.tags() }
+                                    .mapNotNull { tagMappings[kata2hiraAndLowercase(it.name)] }
                                     .flatten()
-                                    .any { it.tag.id == FIRST_WORK_TAG_ID }
-                            if (!firstWorkSuggested || item.tags.any { it.id == FIRST_WORK_TAG_ID }) {
+                                    .any { it.tag.id == clientSpecificTagProps.firstWork.id }
+                            if (!firstWorkSuggested || item.tags.any { it.id == clientSpecificTagProps.firstWork.id }) {
                                 null
                             } else {
                                 if (!likelyEarliestWork(request.clientType, item)) null else item.id
@@ -337,7 +358,14 @@ class AggregatingService(
                 .awaitAll()
                 .filterNotNull()
 
-        return songWithPvsMapper.map(songEntries, pvs, tagMappings, likelyFirstWorks)
+        return songWithPvsMapper.map(
+            songEntries,
+            pvs,
+            tagMappings,
+            likelyFirstWorks,
+            regionBlocked,
+            clientSpecificTagProps,
+        )
     }
 
     suspend fun getRecentEvents(request: EventScheduleRequest): EventScheduleResponse {

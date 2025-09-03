@@ -35,6 +35,20 @@ app:
           # -> https://ch.nicovideo.jp/{channel handle}
           nnd_channel_handle:
             host: "https://ch.nicovideo.jp"
+  db-tag-props:
+    first-work:
+      database:
+        vocadb.id: 158
+        vocadb-beta.id: 158
+    region-blocked:
+      embed-error-code: "region_blocked"
+      database:
+        vocadb:
+          id: 8226
+          name: "region blocked"
+        vocadb_beta:
+          id: 8226
+          name: "region blocked"
 
 spring:
   web.resources.add-mappings: false

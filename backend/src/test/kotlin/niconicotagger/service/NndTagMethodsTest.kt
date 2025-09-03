@@ -19,7 +19,6 @@ import kotlinx.coroutines.runBlocking
 import niconicotagger.Utils.createSampleSongTypeStats
 import niconicotagger.Utils.jsonMapper
 import niconicotagger.Utils.loadResource
-import niconicotagger.constants.Constants.FIRST_WORK_TAG_ID
 import niconicotagger.dto.api.misc.NndTagType.MAPPED
 import niconicotagger.dto.api.misc.NndTagType.NONE
 import niconicotagger.dto.api.misc.NndTagType.SCOPE
@@ -43,6 +42,8 @@ import niconicotagger.dto.inner.misc.PvService.NicoNicoDouga
 import niconicotagger.dto.inner.misc.PvService.Youtube
 import niconicotagger.dto.inner.misc.SongPv
 import niconicotagger.dto.inner.nnd.NndApiSearchResult
+import niconicotagger.dto.inner.nnd.NndEmbedError
+import niconicotagger.dto.inner.nnd.NndEmbedError.ErrorParams
 import niconicotagger.dto.inner.nnd.NndEmbedOk
 import niconicotagger.dto.inner.nnd.NndMeta
 import niconicotagger.dto.inner.nnd.NndTag
@@ -140,7 +141,7 @@ class NndTagMethodsTest : AggregatingServiceTest() {
         }
         coVerifyCount {
             (if (song == null) 1 else 0) * { publisherInfoService.getPublisher(any(), any()) }
-            (if (song != null && song.tags.none { it.id == FIRST_WORK_TAG_ID }) 1 else 0).times {
+            (if (song != null && song.tags.none { it.id == clientSpecificDbTagProps.firstWork.id }) 1 else 0).times {
                 aggregatingService.likelyEarliestWork(any(), any())
             }
             (if (priorSongsCheckResult != null) 1 else 0) * { dbClient.artistHasSongsBeforeDate(any(), any()) }
@@ -393,13 +394,13 @@ class NndTagMethodsTest : AggregatingServiceTest() {
         likelyEarliestWork: Boolean,
         @Given request: SongsWithPvsRequest,
     ): Unit = runBlocking {
-        val thumbnailOk =
-            Instancio.of(NndThumbnailOk::class.java)
-                .set(field(ThumbData::class.java, "tags"), listOf(NndTag("アあA1", true), NndTag("tag", false)))
-                .create()
+        val embedOk = Instancio.of(NndEmbedOk::class.java).set(field("tags"), listOf("アあA1", "tag")).create()
         val mappings =
             listOf(
-                VocaDbTagMapping("アあA1", VocaDbTag(if (taggedWithEarliestWork) FIRST_WORK_TAG_ID else -1, "tag")),
+                VocaDbTagMapping(
+                    "アあA1",
+                    VocaDbTag(if (taggedWithEarliestWork) clientSpecificDbTagProps.firstWork.id else -1, "tag"),
+                ),
                 VocaDbTagMapping("tag", Instancio.create(VocaDbTag::class.java)),
             )
         val songPvs =
@@ -421,7 +422,7 @@ class NndTagMethodsTest : AggregatingServiceTest() {
                 eq(mapOf("pvServices" to NicoNicoDouga, "fields" to "PVs,Tags,Artists,ReleaseEvent")),
             )
         } returns searchResult
-        coEvery { nndClient.getThumbInfo(eq(songPvs[0].id)) } returns thumbnailOk
+        coEvery { nndClient.getEmbedInfo(eq(songPvs[0].id)) } returns embedOk
         if (taggedWithEarliestWork) {
             coEvery { aggregatingService.likelyEarliestWork(eq(request.clientType), eq(song)) } returns
                 likelyEarliestWork
@@ -429,9 +430,11 @@ class NndTagMethodsTest : AggregatingServiceTest() {
         every {
             songWithPvsMapper.map(
                 eq(searchResult),
-                eq(mapOf(songPvs[0].id to thumbnailOk)),
+                eq(mapOf(songPvs[0].id to embedOk)),
                 eq(mapOf("ああa1" to listOf(mappings[0]), "tag" to listOf(mappings[1]))),
-                if (likelyEarliestWork) listOf(song.id) else emptyList(),
+                eq(if (likelyEarliestWork) listOf(song.id) else emptyList()),
+                eq(emptySet()),
+                eq(clientSpecificDbTagProps),
             )
         } returns responsePlaceholder
 
@@ -440,12 +443,74 @@ class NndTagMethodsTest : AggregatingServiceTest() {
         coVerifyAll {
             dbClient.getAllVocaDbTagMappings(any())
             dbClient.getSongs(any(), any(), any(), any())
-            nndClient.getThumbInfo(any())
+            nndClient.getEmbedInfo(any())
+            dbTagProps.getClientSpecificProps(any())
         }
         coVerifyCount {
             (if (taggedWithEarliestWork) 1 else 0) * { aggregatingService.likelyEarliestWork(any(), any()) }
+            0 * { nndClient.getThumbInfo(any()) }
         }
-        verifyAll { songWithPvsMapper.map(any(), any(), any(), any()) }
+        verifyAll { songWithPvsMapper.map(any(), any(), any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `get songs for tagging test (region restricted)`(@Given request: SongsWithPvsRequest): Unit = runBlocking {
+        val embedError = NndEmbedError(ErrorParams(clientSpecificDbTagProps.regionBlocked.embedErrorCode!!))
+        Instancio.of(NndEmbedOk::class.java)
+            .set(field("tags"), listOf(NndTag("アあA1", true), NndTag("tag", false)))
+            .create()
+        val thumbnailOk =
+            Instancio.of(NndThumbnailOk::class.java)
+                .set(field(ThumbData::class.java, "tags"), listOf(NndTag("アあA1", true), NndTag("tag", false)))
+                .create()
+        val mappings =
+            listOf(
+                VocaDbTagMapping("アあA1", VocaDbTag(1, "tag")),
+                VocaDbTagMapping("tag", Instancio.create(VocaDbTag::class.java)),
+            )
+        val songPvs =
+            listOf(
+                SongPv(thumbnailOk.videoId(), "1", false, NicoNicoDouga),
+                SongPv("2", "2", true, NicoNicoDouga),
+                SongPv("3", "3", false, Youtube),
+            )
+        val song =
+            Instancio.of(VocaDbSongEntryWithNndPvsTagsAndReleaseEvents::class.java).set(field("pvs"), songPvs).create()
+        val searchResult = VocaDbSongEntryWithNndPvsTagsAndReleaseEventsSearchResult(listOf(song), 1)
+        val responsePlaceholder = mockk<SongsWithPvsResponse>()
+        coEvery { dbClient.getAllVocaDbTagMappings(eq(true)) } returns mappings
+        coEvery {
+            dbClient.getSongs(
+                eq(request.startOffset),
+                eq(request.maxResults),
+                eq(request.orderBy),
+                eq(mapOf("pvServices" to NicoNicoDouga, "fields" to "PVs,Tags,Artists,ReleaseEvent")),
+            )
+        } returns searchResult
+        coEvery { nndClient.getEmbedInfo(eq(songPvs[0].id)) } returns embedError
+        coEvery { nndClient.getThumbInfo(eq(songPvs[0].id)) } returns thumbnailOk
+        every {
+            songWithPvsMapper.map(
+                eq(searchResult),
+                eq(mapOf(songPvs[0].id to thumbnailOk)),
+                eq(mapOf("ああa1" to listOf(mappings[0]), "tag" to listOf(mappings[1]))),
+                eq(emptyList()),
+                eq(setOf(songPvs[0].id)),
+                eq(clientSpecificDbTagProps),
+            )
+        } returns responsePlaceholder
+
+        assertThat(aggregatingService.getSongsWithPvsForTagging(request)).isEqualTo(responsePlaceholder)
+
+        coVerifyAll {
+            dbClient.getAllVocaDbTagMappings(any())
+            dbClient.getSongs(any(), any(), any(), any())
+            nndClient.getEmbedInfo(any())
+            nndClient.getThumbInfo(any())
+            dbTagProps.getClientSpecificProps(any())
+        }
+        coVerifyCount { 0 * { aggregatingService.likelyEarliestWork(any(), any()) } }
+        verifyAll { songWithPvsMapper.map(any(), any(), any(), any(), any(), any()) }
     }
 
     companion object {
@@ -565,7 +630,7 @@ class NndTagMethodsTest : AggregatingServiceTest() {
 
             private val tagMappings =
                 Instancio.createList(String::class.java).map {
-                    VocaDbTagMapping(it, VocaDbTag(FIRST_WORK_TAG_ID, "first work"))
+                    VocaDbTagMapping(it, VocaDbTag(clientSpecificDbTagProps.firstWork.id, "first work"))
                 }
 
             private fun createArgs(emptyTagSet: Boolean): List<ArgumentSet> {

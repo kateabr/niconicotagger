@@ -376,7 +376,7 @@ class NndClientTest {
                         null,
                         "賑やかしに短い動画を上げました。<br />三人に歌ってもらったよ（輪唱っていいよね）<br><br>作曲：春乃ねむり<br>歌唱：小春六花・夏色花梨・花隈千冬（SynthesizerV）<br>マイリスト：https://www.nicovideo.jp/mylist/18804133<br>　",
                         Instant.ofEpochSecond(1722871506000),
-                        Duration.ofSeconds(76),
+                        "1:16",
                         listOf(
                             "SynthesizerV",
                             "小春六花",
@@ -401,7 +401,7 @@ class NndClientTest {
                         Channel(2648319, "ボカロ曲匿名投稿イベント 無色透名祭"),
                         "【無色透名祭Ⅱ】参加作品です。<br><a href=\"https://site.nicovideo.jp/mushokutomeisai/\" target=\"_blank\">https://site.nicovideo.jp/mushokutomeisai/</a><br>応募番号: M2_2240",
                         Instant.ofEpochSecond(1698930000000),
-                        Duration.ofSeconds(147),
+                        "2:27",
                         listOf("音楽", "VOCALOID", "無色透名祭Ⅱ", "無色透名祭Ⅱ参加曲", "VOCALOIDオリジナル曲", "無色透名祭Ⅱ作者不明曲リンク"),
                     ),
                 ),

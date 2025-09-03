@@ -2,7 +2,8 @@ package niconicotagger.mapper
 
 import java.util.stream.Stream
 import niconicotagger.Utils.createSampleSongTypeStats
-import niconicotagger.constants.Constants.FIRST_WORK_TAG_ID
+import niconicotagger.configuration.ClientSpecificDbTagProps
+import niconicotagger.configuration.ClientSpecificDbTagProps.TagProps
 import niconicotagger.dto.api.misc.AvailableNndVideo
 import niconicotagger.dto.api.misc.NndTagData
 import niconicotagger.dto.api.misc.NndTagType.MAPPED
@@ -18,6 +19,7 @@ import niconicotagger.dto.inner.misc.PvService.Youtube
 import niconicotagger.dto.inner.misc.SongPv
 import niconicotagger.dto.inner.misc.SongType.Unspecified
 import niconicotagger.dto.inner.nnd.Error
+import niconicotagger.dto.inner.nnd.NndEmbedOk
 import niconicotagger.dto.inner.nnd.NndTag
 import niconicotagger.dto.inner.nnd.NndThumbnailError
 import niconicotagger.dto.inner.nnd.NndThumbnailOk
@@ -51,15 +53,19 @@ class SongWithPvsMapperTest {
         nonDisabledPvs: Map<String, NndThumbnailError>,
         tagMappings: Map<String, List<VocaDbTagMapping>>,
         likelyFirstWorks: List<Long>,
+        regionBlocked: List<String>,
         expectedObject: SongsWithPvsResponse,
     ) {
-        assertThat(mapper.map(searchResult, nonDisabledPvs, tagMappings, likelyFirstWorks))
+        assertThat(mapper.map(searchResult, nonDisabledPvs, tagMappings, likelyFirstWorks, regionBlocked, tagProps))
             .usingRecursiveComparison()
             .ignoringCollectionOrder()
             .isEqualTo(expectedObject)
     }
 
     companion object {
+        private val tagProps =
+            ClientSpecificDbTagProps(TagProps(null, -1, null), TagProps("region_blocked", -2, "region blocked"))
+
         class TestData : ArgumentsProvider {
             private fun pvShouldBeDisabled(): ArgumentSet {
                 val songPvs = listOf(SongPv("id", "name", false, NicoNicoDouga), SongPv("2", "2", false, Youtube))
@@ -108,6 +114,72 @@ class SongWithPvsMapperTest {
                     nonDisabledPvs,
                     tagMappings,
                     emptyList<Long>(),
+                    emptyList<String>(),
+                    expectedObject,
+                )
+            }
+
+            private fun regionBlockedPv(hasTag: Boolean): ArgumentSet {
+                val regionBlockedTag = VocaDbTag(tagProps.regionBlocked.id, tagProps.regionBlocked.name!!)
+
+                val searchResult =
+                    VocaDbSongEntryWithNndPvsTagsAndReleaseEventsSearchResult(
+                        Instancio.of(VocaDbSongEntryWithNndPvsTagsAndReleaseEvents::class.java)
+                            .generate(field("pvs")) { gen -> gen.collection<SongPv>().size(1) }
+                            .set(field(SongPv::class.java, "service"), NicoNicoDouga)
+                            .set(
+                                field("tags"),
+                                if (hasTag) {
+                                    listOf(regionBlockedTag)
+                                } else emptyList(),
+                            )
+                            .`as` { listOf(it) },
+                        Instancio.create(Long::class.java),
+                    )
+                val nonDisabledPvs =
+                    mapOf(searchResult.items[0].pvs[0].id to Instancio.create(NndThumbnailOk::class.java))
+
+                val expectedObject =
+                    searchResult.items[0].let { item ->
+                        SongsWithPvsResponse(
+                            listOf(
+                                VocaDbSongEntryWithPvs(
+                                    SongEntryWithPublishDateAndReleaseEventInfo(
+                                        item.id,
+                                        item.name,
+                                        item.type,
+                                        item.artistString,
+                                        item.publishedAt,
+                                        item.events.map { event -> ReleaseEvent(event.id, event.name, event.seriesId) },
+                                    ),
+                                    listOf(
+                                        requireNotNull(nonDisabledPvs[searchResult.items[0].pvs[0].id]).data.let {
+                                            PvWithSuggestedTags(
+                                                AvailableNndVideo(
+                                                    searchResult.items[0].pvs[0].id,
+                                                    searchResult.items[0].pvs[0].name,
+                                                    it.description,
+                                                    it.tags.map { NndTagData(it.name, NONE, it.locked) },
+                                                ),
+                                                listOf(VocaDbTagSelectable(regionBlockedTag, hasTag)),
+                                            )
+                                        }
+                                    ),
+                                    emptyList(),
+                                )
+                            ),
+                            createSampleSongTypeStats(item.type),
+                            searchResult.totalCount,
+                        )
+                    }
+
+                return argumentSet(
+                    "one region-blocked NND PV; entry is ${if (hasTag) "already" else "not"} tagged as such",
+                    searchResult,
+                    nonDisabledPvs,
+                    emptyMap<String, List<VocaDbTagMapping>>(),
+                    emptyList<String>(),
+                    listOf(searchResult.items[0].pvs[0].id),
                     expectedObject,
                 )
             }
@@ -132,7 +204,7 @@ class SongWithPvsMapperTest {
                 val tagMappings =
                     mapOf(
                         kata2hiraAndLowercase(nndTags[0]) to
-                            listOf(VocaDbTagMapping(nndTags[0], VocaDbTag(FIRST_WORK_TAG_ID, "first work")))
+                            listOf(VocaDbTagMapping(nndTags[0], VocaDbTag(tagProps.firstWork.id, "first work")))
                     ) +
                         Instancio.ofMap(object : TypeToken<String> {}, object : TypeToken<List<VocaDbTagMapping>> {})
                             .filter<String>(field(VocaDbTagMapping::class.java, "sourceTag")) { !nndTags.contains(it) }
@@ -178,6 +250,7 @@ class SongWithPvsMapperTest {
                     nonDisabledPvs,
                     tagMappings,
                     emptyList<Long>(),
+                    emptyList<String>(),
                     expectedObject,
                 )
             }
@@ -206,7 +279,7 @@ class SongWithPvsMapperTest {
                                 VocaDbTagMapping("4", VocaDbTag(44, "44")),
                             ),
                         "first_work" to
-                            listOf(VocaDbTagMapping("first_work", VocaDbTag(FIRST_WORK_TAG_ID, "first work"))),
+                            listOf(VocaDbTagMapping("first_work", VocaDbTag(tagProps.firstWork.id, "first work"))),
                     )
                 val searchResult =
                     VocaDbSongEntryWithNndPvsTagsAndReleaseEventsSearchResult(
@@ -225,11 +298,8 @@ class SongWithPvsMapperTest {
                 val nonDisabledPvs =
                     mapOf(
                         searchResult.items[0].pvs[0].id to
-                            Instancio.of(NndThumbnailOk::class.java)
-                                .set(
-                                    field(ThumbData::class.java, "tags"),
-                                    listOf(NndTag("1", false), NndTag("2", true), NndTag("first_work", true)),
-                                )
+                            Instancio.of(NndEmbedOk::class.java)
+                                .set(field("tags"), listOf("1", "2", "first_work"))
                                 .create(),
                         searchResult.items[0].pvs[1].id to
                             Instancio.of(NndThumbnailOk::class.java)
@@ -259,12 +329,11 @@ class SongWithPvsMapperTest {
                                             searchResult.items[0].pvs[0].id,
                                             searchResult.items[0].pvs[0].name,
                                             requireNotNull(nonDisabledPvs[searchResult.items[0].pvs[0].id])
-                                                .data
-                                                .description,
+                                                .description(),
                                             listOf(
                                                 NndTagData("1", MAPPED, false),
-                                                NndTagData("2", MAPPED, true),
-                                                NndTagData("first_work", MAPPED, true),
+                                                NndTagData("2", MAPPED, false),
+                                                NndTagData("first_work", MAPPED, false),
                                             ),
                                         ),
                                         listOf(
@@ -272,7 +341,7 @@ class SongWithPvsMapperTest {
                                             VocaDbTagSelectable(VocaDbTag(11, "11"), false),
                                             VocaDbTagSelectable(VocaDbTag(2, "2"), true),
                                             VocaDbTagSelectable(VocaDbTag(22, "22"), false),
-                                            VocaDbTagSelectable(VocaDbTag(FIRST_WORK_TAG_ID, "first work"), false),
+                                            VocaDbTagSelectable(VocaDbTag(tagProps.firstWork.id, "first work"), false),
                                         ),
                                     ),
                                     PvWithSuggestedTags(
@@ -280,8 +349,7 @@ class SongWithPvsMapperTest {
                                             searchResult.items[0].pvs[1].id,
                                             searchResult.items[0].pvs[1].name,
                                             requireNotNull(nonDisabledPvs[searchResult.items[0].pvs[1].id])
-                                                .data
-                                                .description,
+                                                .description(),
                                             listOf(NndTagData("3", MAPPED, true), NndTagData("4", MAPPED, false)),
                                         ),
                                         listOf(
@@ -305,12 +373,19 @@ class SongWithPvsMapperTest {
                     nonDisabledPvs,
                     tagMappings,
                     listOf(searchResult.items[0].id),
+                    emptyList<String>(),
                     expectedObject,
                 )
             }
 
             override fun provideArguments(context: ExtensionContext?): Stream<out Arguments> {
-                return Stream.of(pvShouldBeDisabled(), oneNndPvWithoutMappedTags(), twoNndPvsWithDifferentTags())
+                return Stream.of(
+                    pvShouldBeDisabled(),
+                    regionBlockedPv(true),
+                    regionBlockedPv(false),
+                    oneNndPvWithoutMappedTags(),
+                    twoNndPvsWithDifferentTags(),
+                )
             }
         }
     }

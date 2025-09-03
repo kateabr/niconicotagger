@@ -7,6 +7,9 @@ import java.time.Duration
 import niconicotagger.client.DbClient
 import niconicotagger.client.DbClientHolder
 import niconicotagger.client.NndClient
+import niconicotagger.configuration.ClientSpecificDbTagProps
+import niconicotagger.configuration.ClientSpecificDbTagProps.TagProps
+import niconicotagger.configuration.DbTagProps
 import niconicotagger.dto.inner.misc.ReleaseEventCategory.AlbumRelease
 import niconicotagger.dto.inner.misc.ReleaseEventCategory.Club
 import niconicotagger.dto.inner.misc.ReleaseEventCategory.Concert
@@ -32,6 +35,7 @@ abstract class AggregatingServiceTest {
     val queryResponseMapper = mockk<QueryResponseMapper>()
     val songWithPvsMapper = mockk<SongWithPvsMapper>()
     val publisherInfoService = mockk<PublisherInfoService>()
+    val dbTagProps = mockk<DbTagProps>()
     val aggregatingService =
         spyk(
             AggregatingService(
@@ -45,15 +49,19 @@ abstract class AggregatingServiceTest {
                 publisherInfoService,
                 setOf(AlbumRelease, Club, Concert, Convention, Other),
                 defaultEventScope,
+                dbTagProps,
             )
         )
 
     @BeforeEach
     fun setup() {
         every { dbClientHolder.getClient(any()) } returns dbClient
+        every { dbTagProps.getClientSpecificProps(any()) } returns clientSpecificDbTagProps
     }
 
     companion object {
         val defaultEventScope: Duration = Duration.ofDays(14)
+        val clientSpecificDbTagProps =
+            ClientSpecificDbTagProps(TagProps(null, 158, null), TagProps("region_blocked", 8226, "region blocked"))
     }
 }
