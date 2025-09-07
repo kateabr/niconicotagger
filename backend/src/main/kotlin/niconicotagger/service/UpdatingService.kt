@@ -102,6 +102,6 @@ class UpdatingService(private val dbClientHolder: DbClientHolder) {
     }
 
     suspend fun removeSongsByPvFromCache(clientType: ClientType, pvId: String) {
-        getClient(clientType).removeSongsByPvCache(pvId)
+        getClient(clientType).removeFromSongsByPvCache(pvId)
     }
 }

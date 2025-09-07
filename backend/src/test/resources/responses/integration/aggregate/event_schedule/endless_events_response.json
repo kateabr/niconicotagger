@@ -1,0 +1,62 @@
+{
+  "items": [
+    {
+      "category": "Unspecified",
+      "date": "2024-08-02T00:00:00Z",
+      "endDate": "2024-08-05T00:00:00Z",
+      "id": 7234,
+      "mainPicture": {
+        "mime": "image/jpeg",
+        "urlOriginal": "https://static.vocadb.net/img/releaseeventseries/mainOrig/665.jpg?v=3",
+        "urlSmallThumb": "https://static.vocadb.net/img/releaseeventseries/mainSmall/665.jpg?v=3",
+        "urlThumb": "https://static.vocadb.net/img/releaseeventseries/mainThumb/665.jpg?v=3",
+        "urlTinyThumb": "https://static.vocadb.net/img/releaseeventseries/mainTiny/665.jpg?v=3"
+      },
+      "name": "にんじん投稿祭 2024 夏",
+      "series": {
+        "additionalNames": "Carrot Submission Festival",
+        "category": "Festival",
+        "deleted": false,
+        "description": "",
+        "id": 665,
+        "name": "にんじん投稿祭",
+        "pictureMime": "image/jpeg",
+        "status": "Draft",
+        "urlSlug": "carrot-submission-festival",
+        "version": 3
+      },
+      "seriesId": 665,
+      "seriesNumber": 2024,
+      "seriesSuffix": "",
+      "status": "Draft",
+      "urlSlug": "carrot-submission-festival-202",
+      "venueName": "",
+      "version": 2
+    },
+    {
+      "category": "Unspecified",
+      "date": "2025-06-09T00:00:00Z",
+      "id": 9611,
+      "name": "モミアゲヲ投稿祭〜ざ・ふぁいなる〜",
+      "series": {
+        "additionalNames": "Momi Agewo Upload Festival",
+        "category": "Festival",
+        "deleted": false,
+        "description": "",
+        "id": 545,
+        "name": "モミアゲヲ投稿祭",
+        "status": "Draft",
+        "urlSlug": "momi-agewo-upload-festival",
+        "version": 3
+      },
+      "seriesId": 545,
+      "seriesNumber": 2025,
+      "seriesSuffix": "",
+      "status": "Draft",
+      "urlSlug": "momi-agewo-upload-festival-the",
+      "venueName": "",
+      "version": 2
+    }
+  ],
+  "totalCount": 2
+}

@@ -934,11 +934,26 @@ class ResponseSerializationTest {
                         .create()
             }
 
+            @Suppress("CognitiveComplexMethod")
             override fun provideArguments(context: ExtensionContext?): Stream<out Arguments> {
                 return Stream.of(true, false).map {
                     val preview = createPreview(it)
                     argumentSet(
                         if (it) "one-day event without picture" else "several-day event with picture",
+                        preview,
+                        """
+                        {
+                            "id": ${preview.id},
+                            "date": "2025-05-22",
+                            "endDate": ${if (it) null else "\"2025-05-23\""},
+                            "name": "${preview.name}",
+                            "category": "${preview.category}",
+                            "status": "${preview.status}",
+                            "pictureUrl": ${if (it) null else "\"" + preview.pictureUrl + "\""},
+                            "isOffline": ${preview.isOffline}
+                        }
+                        """
+                            .trimIndent(),
                         preview,
                         """
                         {

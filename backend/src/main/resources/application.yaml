@@ -49,6 +49,9 @@ app:
         vocadb_beta:
           id: 8226
           name: "region blocked"
+    endless-event.database:
+      vocadb.id: 11999
+      vocadb_beta.id: 11999
 
 spring:
   web.resources.add-mappings: false

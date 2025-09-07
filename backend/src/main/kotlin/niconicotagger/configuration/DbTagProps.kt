@@ -4,7 +4,11 @@ import niconicotagger.dto.api.misc.ClientType
 import org.springframework.boot.context.properties.ConfigurationProperties
 
 @ConfigurationProperties(prefix = "app.db-tag-props")
-class DbTagProps(private val firstWork: TagProps, private val regionBlocked: TagProps) {
+class DbTagProps(
+    private val firstWork: TagProps,
+    private val regionBlocked: TagProps,
+    private val endlessEvent: TagProps,
+) {
     data class TagProps(val embedErrorCode: String?, val database: Map<ClientType, DbProps>) {
         data class DbProps(val id: Long, val name: String?)
 
@@ -16,9 +20,10 @@ class DbTagProps(private val firstWork: TagProps, private val regionBlocked: Tag
         ClientSpecificDbTagProps(
             this.firstWork.toClientSpecificTagProps(clientType),
             this.regionBlocked.toClientSpecificTagProps(clientType),
+            this.endlessEvent.toClientSpecificTagProps(clientType),
         )
 }
 
-data class ClientSpecificDbTagProps(val firstWork: TagProps, val regionBlocked: TagProps) {
+data class ClientSpecificDbTagProps(val firstWork: TagProps, val regionBlocked: TagProps, val endlessEvent: TagProps) {
     data class TagProps(val embedErrorCode: String?, val id: Long, val name: String?)
 }

@@ -668,7 +668,7 @@ class DbClientTest {
                 )
         )
 
-        assertThat(createClient(wm.httpBaseUrl).getAllEventsForYear(false))
+        assertThat(createClient(wm.httpBaseUrl).getAllEventsForYear())
             .containsExactlyInAnyOrder(
                 VocaDbReleaseEvent(
                     8657,

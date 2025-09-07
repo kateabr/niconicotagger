@@ -8,6 +8,8 @@ import niconicotagger.dto.api.response.ReleaseEventPreview
 import niconicotagger.dto.api.response.ReleaseEventWithVocaDbTagsResponse
 import niconicotagger.dto.api.response.ReleaseEventWitnNndTagsResponse
 import niconicotagger.dto.inner.misc.EventStatus
+import niconicotagger.dto.inner.misc.EventStatus.ENDED
+import niconicotagger.dto.inner.misc.EventStatus.ENDLESS
 import niconicotagger.dto.inner.misc.EventStatus.OUT_OF_RECENT_SCOPE
 import niconicotagger.dto.inner.misc.ReleaseEventCategory
 import niconicotagger.dto.inner.vocadb.VocaDbReleaseEvent
@@ -26,8 +28,12 @@ abstract class ReleaseEventMapper {
         event: VocaDbReleaseEvent,
         eventScope: Duration,
         offlineEvents: Set<ReleaseEventCategory>,
+        isEndless: Boolean,
     ): ReleaseEventPreview? {
-        val eventStatus = Utils.getEventStatus(event, eventScope, clock)
+        val eventStatus =
+            Utils.getEventStatus(event, eventScope, clock).let {
+                if ((it == OUT_OF_RECENT_SCOPE || it == ENDED) && isEndless) ENDLESS else it
+            }
         return if (eventStatus == OUT_OF_RECENT_SCOPE) null else mapEventPreview(event, eventStatus, offlineEvents)
     }
 

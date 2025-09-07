@@ -21,3 +21,11 @@ data class VocaDbReleaseEvent(
 )
 
 data class MainPicture(val urlOriginal: URI)
+
+data class VocaDbReleaseEventScheduleDto(
+    val eventsByDate: List<VocaDbReleaseEvent>,
+    val frontPageEvents: List<VocaDbReleaseEvent>,
+    val endlessEvents: List<VocaDbReleaseEvent>,
+) {
+    fun toEventList() = eventsByDate + frontPageEvents + endlessEvents
+}

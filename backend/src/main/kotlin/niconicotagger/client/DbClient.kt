@@ -10,6 +10,7 @@ import java.util.concurrent.TimeUnit.HOURS
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import niconicotagger.client.Utils.performLargeGet
+import niconicotagger.client.Utils.useCachedOrForceUpdate
 import niconicotagger.constants.Constants.COOKIE_HEADER_KEY
 import niconicotagger.constants.Constants.DEFAULT_USER_AGENT
 import niconicotagger.dto.DbLoginException
@@ -30,6 +31,7 @@ import niconicotagger.dto.inner.vocadb.VocaDbCustomQueryData
 import niconicotagger.dto.inner.vocadb.VocaDbCustomQuerySongData
 import niconicotagger.dto.inner.vocadb.VocaDbFrontPageData
 import niconicotagger.dto.inner.vocadb.VocaDbReleaseEvent
+import niconicotagger.dto.inner.vocadb.VocaDbReleaseEventScheduleDto
 import niconicotagger.dto.inner.vocadb.VocaDbReleaseEventSeries
 import niconicotagger.dto.inner.vocadb.VocaDbSongEntryBase
 import niconicotagger.dto.inner.vocadb.VocaDbSongEntryWithReleaseEventsBase
@@ -79,8 +81,11 @@ open class DbClient(baseUrl: String, private val jsonMapper: JsonMapper, webClie
     private var maxEventsToLoad = 1_000
     private val tagMappingsCache =
         Caffeine.newBuilder().expireAfterAccess(12, HOURS).maximumSize(1).asCache<String, List<VocaDbTagMapping>>()
-    private val eventPreviewCache =
-        Caffeine.newBuilder().expireAfterAccess(12, HOURS).maximumSize(1).asCache<String, List<VocaDbReleaseEvent>>()
+    private val eventScheduleCache =
+        Caffeine.newBuilder()
+            .expireAfterAccess(12, HOURS)
+            .maximumSize(1)
+            .asCache<String, VocaDbReleaseEventScheduleDto>()
     private val songsByNndPvCache =
         Caffeine.newBuilder().expireAfterWrite(12, HOURS).maximumSize(10_000).asCache<String, VocaDbSongEntryBase>()
 
@@ -219,31 +224,29 @@ open class DbClient(baseUrl: String, private val jsonMapper: JsonMapper, webClie
             .awaitBodilessEntity()
     }
 
-    open suspend fun getAllVocaDbTagMappings(useCachedMappings: Boolean): List<VocaDbTagMapping> {
-        if (useCachedMappings) {
-            val cached = tagMappingsCache.getIfPresent("mappings")
-            if (cached != null) return cached
-        }
-        while (true) {
-            val response =
-                client
-                    .get()
-                    .uri(
-                        "/api/tags/mappings?start=0&maxEntries={maxEntries}&getTotalCount=true",
-                        mapOf("maxEntries" to maxTagMappingsToLoad),
-                    )
-                    .retrieve()
-                    .let { performLargeGet<VocaDbTagMappings>(it, jsonMapper) } ?: error("Failed to load tag mappings")
+    open suspend fun getAllVocaDbTagMappings(useCachedMappings: Boolean): List<VocaDbTagMapping> =
+        tagMappingsCache.useCachedOrForceUpdate(useCachedMappings, "mappings") {
+            while (true) {
+                val response =
+                    client
+                        .get()
+                        .uri(
+                            "/api/tags/mappings?start=0&maxEntries={maxEntries}&getTotalCount=true",
+                            mapOf("maxEntries" to maxTagMappingsToLoad),
+                        )
+                        .retrieve()
+                        .let { performLargeGet<VocaDbTagMappings>(it, jsonMapper) }
+                        ?: error("Failed to load tag mappings")
 
-            if (response.totalCount > response.items.size) {
-                maxTagMappingsToLoad += 1000
-                continue
+                if (response.totalCount > response.items.size) {
+                    maxTagMappingsToLoad += 1000
+                    continue
+                }
+
+                return@useCachedOrForceUpdate response.items
             }
-
-            tagMappingsCache.put("mappings", response.items)
-            return response.items
+            error("should not reach here")
         }
-    }
 
     suspend fun <T : VocaDbSongEntryBase> getSongByNndPv(
         responseClass: Class<T>,
@@ -398,11 +401,7 @@ open class DbClient(baseUrl: String, private val jsonMapper: JsonMapper, webClie
             ?: error("Could not load songs"))
     }
 
-    suspend fun getAllEventsForYear(useCached: Boolean): List<VocaDbReleaseEvent> {
-        if (useCached) {
-            val cached = eventPreviewCache.getOrNull("eventPreviews")
-            if (cached != null) return cached
-        }
+    suspend fun getAllEventsForYear(): List<VocaDbReleaseEvent> {
         while (true) {
             val response =
                 client
@@ -414,7 +413,7 @@ open class DbClient(baseUrl: String, private val jsonMapper: JsonMapper, webClie
                             .queryParam("start", 0)
                             .queryParam("maxResults", maxEventsToLoad)
                             .queryParam("getTotalCount", true)
-                            .queryParam("fields", evenfFieldsForSchedule)
+                            .queryParam("fields", eventFieldsForSchedule)
                             .queryParam("sort", "Date")
                             .queryParam("sortDirection", "Ascending")
                             .build()
@@ -428,7 +427,6 @@ open class DbClient(baseUrl: String, private val jsonMapper: JsonMapper, webClie
                 continue
             }
 
-            eventPreviewCache.put("eventPreviews", response.items)
             return response.items
         }
     }
@@ -440,15 +438,53 @@ open class DbClient(baseUrl: String, private val jsonMapper: JsonMapper, webClie
             .retrieve()
             .toEntity(VocaDbFrontPageData::class.java)
             .awaitSingle()
-            ?.body ?: error("Could not load event previews")
+            ?.body ?: error("Could not load front page data")
     }
 
-    suspend fun removeSongsByPvCache(pvId: String) {
+    suspend fun getEndlessEvents(endlessEventTagId: Long): List<VocaDbReleaseEvent> {
+        while (true) {
+            val response =
+                client
+                    .get()
+                    .uri {
+                        it.path("/api/releaseEvents")
+                            .queryParam("tagId[]", endlessEventTagId)
+                            .queryParam("start", 0)
+                            .queryParam("maxResults", maxEventsToLoad)
+                            .queryParam("getTotalCount", true)
+                            .queryParam("fields", eventFieldsForSchedule)
+                            .queryParam("sort", "Date")
+                            .queryParam("sortDirection", "Ascending")
+                            .build()
+                    }
+                    .retrieve()
+                    .let { performLargeGet<VocaDbReleaseEventSearchResult>(it, jsonMapper) }
+                    ?: error("Could not load endless events")
+
+            if (response.totalCount > response.items.size) {
+                maxEventsToLoad += 500
+                continue
+            }
+
+            return response.items
+        }
+    }
+
+    suspend fun getReleaseEventSchedule(useCached: Boolean, endlessEventTagId: Long): VocaDbReleaseEventScheduleDto =
+        eventScheduleCache.useCachedOrForceUpdate(useCached, "eventSchedule") {
+            VocaDbReleaseEventScheduleDto(
+                getAllEventsForYear(),
+                getFrontPageData().newEvents,
+                getEndlessEvents(endlessEventTagId),
+            )
+        }
+
+    suspend fun removeFromSongsByPvCache(pvId: String) {
         songsByNndPvCache.asMap().keys.filter { it.startsWith(pvId) }.forEach { songsByNndPvCache.invalidate(it) }
     }
 
     companion object {
-        private val evenfFieldsForSchedule = "$Series,$MainPicture"
+        private val eventFieldsForSchedule = "$Series,$MainPicture"
 
         val artistDuplicateResponseTypeReference =
             object : ParameterizedTypeReference<List<ArtistDuplicateSearchResult>>() {}

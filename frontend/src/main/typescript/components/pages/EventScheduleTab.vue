@@ -100,6 +100,17 @@
                 <b-card-body />
               </b-collapse>
             </b-card>
+
+            <b-card no-body>
+              <b-card-header header-tag="header" class="p-1" role="tab">
+                <b-button v-b-toggle.endless disabled block variant="link"
+                  >Endless</b-button
+                >
+              </b-card-header>
+              <b-collapse id="endless" accordion="my-accordion" role="tabpanel">
+                <b-card-body />
+              </b-collapse>
+            </b-card>
           </div>
           <event-preview-accordion
             v-else-if="!failedToLoadPreviews"

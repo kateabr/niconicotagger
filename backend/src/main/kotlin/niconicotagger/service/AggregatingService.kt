@@ -369,12 +369,17 @@ class AggregatingService(
     }
 
     suspend fun getRecentEvents(request: EventScheduleRequest): EventScheduleResponse {
+        val endlessEventTagId = tagProps.getClientSpecificProps(request.clientType).endlessEvent.id
         val eventScope = request.eventScopeDays?.let(Duration::ofDays) ?: defaultEventScope
-        return (dbClientHolder.getClient(request.clientType).getAllEventsForYear(request.useCached) +
-                dbClientHolder.getClient(request.clientType).getFrontPageData().newEvents)
+        val events =
+            dbClientHolder.getClient(request.clientType).getReleaseEventSchedule(request.useCached, endlessEventTagId)
+        val endlessEventIds = events.endlessEvents.map { it.id }.toSet()
+
+        return events
+            .toEventList()
             .distinctBy { it.id }
             .filterNot { it.date == null }
-            .mapNotNull { eventMapper.mapForPreview(it, eventScope, offlineEvents) }
+            .mapNotNull { eventMapper.mapForPreview(it, eventScope, offlineEvents, endlessEventIds.contains(it.id)) }
             .sortedWith(compareBy({ it.status.priority }, { it.date }))
             .let { EventScheduleResponse(it, eventScope.toDays()) }
     }

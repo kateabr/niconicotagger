@@ -3,7 +3,7 @@ export type NndTagType = "primary" | "info" | "dark" | "secondary";
 export type QueryConsoleApiType = "songs" | "artists";
 export type NndSortOrder = "viewCounter" | "startTime" | "likeCounter";
 export type PublisherType = "NND_USER" | "NND_CHANNEL" | "DATABASE";
-export type EventStatus = "ENDED" | "ONGOING" | "UPCOMING";
+export type EventStatus = "ENDED" | "ONGOING" | "UPCOMING" | "ENDLESS";
 
 export enum SongType {
   Unspecified = 0,

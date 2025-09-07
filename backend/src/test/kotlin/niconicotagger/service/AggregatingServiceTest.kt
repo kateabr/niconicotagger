@@ -4,11 +4,10 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.spyk
 import java.time.Duration
+import niconicotagger.Utils.clientSpecificDbTagProps
 import niconicotagger.client.DbClient
 import niconicotagger.client.DbClientHolder
 import niconicotagger.client.NndClient
-import niconicotagger.configuration.ClientSpecificDbTagProps
-import niconicotagger.configuration.ClientSpecificDbTagProps.TagProps
 import niconicotagger.configuration.DbTagProps
 import niconicotagger.dto.inner.misc.ReleaseEventCategory.AlbumRelease
 import niconicotagger.dto.inner.misc.ReleaseEventCategory.Club
@@ -61,7 +60,5 @@ abstract class AggregatingServiceTest {
 
     companion object {
         val defaultEventScope: Duration = Duration.ofDays(14)
-        val clientSpecificDbTagProps =
-            ClientSpecificDbTagProps(TagProps(null, 158, null), TagProps("region_blocked", 8226, "region blocked"))
     }
 }

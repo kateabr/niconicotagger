@@ -699,6 +699,26 @@
       "status": "UPCOMING",
       "pictureUrl": "https://static.vocadb.net/img/releaseeventseries/mainOrig/98.jpg?v=4",
       "isOffline": true
+    },
+    {
+      "id": 7234,
+      "date": "2024-08-02",
+      "endDate": "2024-08-05",
+      "name": "にんじん投稿祭 2024 夏",
+      "category": "Festival",
+      "status": "ENDLESS",
+      "pictureUrl": "https://static.vocadb.net/img/releaseeventseries/mainOrig/665.jpg?v=3",
+      "isOffline": false
+    },
+    {
+      "id": 9611,
+      "date": "2025-06-09",
+      "endDate": null,
+      "name": "モミアゲヲ投稿祭〜ざ・ふぁいなる〜",
+      "category": "Festival",
+      "status": "ENDLESS",
+      "pictureUrl": null,
+      "isOffline": false
     }
   ],
   "eventScopeDays": 14

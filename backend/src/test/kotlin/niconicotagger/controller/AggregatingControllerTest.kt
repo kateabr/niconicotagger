@@ -102,6 +102,22 @@ class AggregatingControllerTest : AbstractControllerTest() {
             get(urlPathTemplate("/api/releaseEvents"))
                 .withQueryParams(
                     mapOf(
+                        "start" to equalTo("0"),
+                        "maxResults" to equalTo("1000"),
+                        "getTotalCount" to equalTo("true"),
+                        "fields" to equalTo("Series,MainPicture"),
+                        "sort" to equalTo("Date"),
+                        "sortDirection" to equalTo("Ascending"),
+                    )
+                )
+                .withHeader(CONTENT_TYPE, equalTo(APPLICATION_JSON_VALUE))
+                .withHeader(USER_AGENT, equalTo(DEFAULT_USER_AGENT))
+                .willReturn(okJson(loadResource("$basePath/endless_events_response.json").decodeToString()))
+        )
+        wireMockExtension.stubFor(
+            get(urlPathTemplate("/api/releaseEvents"))
+                .withQueryParams(
+                    mapOf(
                         "afterDate" to
                             equalToDateTime(
                                 LocalDate.now().minusYears(1).withMonth(12).withDayOfMonth(31).atStartOfDay()

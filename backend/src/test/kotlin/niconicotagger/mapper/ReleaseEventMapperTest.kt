@@ -16,6 +16,7 @@ import niconicotagger.dto.api.response.ReleaseEventPreview
 import niconicotagger.dto.api.response.ReleaseEventWithVocaDbTagsResponse
 import niconicotagger.dto.api.response.ReleaseEventWitnNndTagsResponse
 import niconicotagger.dto.inner.misc.EventStatus.ENDED
+import niconicotagger.dto.inner.misc.EventStatus.ENDLESS
 import niconicotagger.dto.inner.misc.EventStatus.ONGOING
 import niconicotagger.dto.inner.misc.EventStatus.UPCOMING
 import niconicotagger.dto.inner.misc.ReleaseEventCategory
@@ -63,9 +64,10 @@ class ReleaseEventMapperTest {
         event: VocaDbReleaseEvent,
         eventScope: Duration,
         offlineEvents: Set<ReleaseEventCategory>,
+        isEndless: Boolean,
         expectedObject: ReleaseEventPreview?,
     ) {
-        assertThat(mapper.mapForPreview(event, eventScope, offlineEvents))
+        assertThat(mapper.mapForPreview(event, eventScope, offlineEvents, isEndless))
             .usingRecursiveComparison()
             .ignoringFields("category") // checked separately
             .isEqualTo(expectedObject)
@@ -77,7 +79,7 @@ class ReleaseEventMapperTest {
         event: VocaDbReleaseEvent,
         expectedCategory: ReleaseEventCategory,
     ) {
-        assertThat(mapper.mapForPreview(event, Duration.ofDays(14), emptySet()))
+        assertThat(mapper.mapForPreview(event, Duration.ofDays(14), emptySet(), false))
             .usingRecursiveComparison()
             .asInstanceOf(type(ReleaseEventPreview::class.java))
             .extracting { it.category }
@@ -360,45 +362,48 @@ class ReleaseEventMapperTest {
                     createEvent(Instancio.gen().booleans().get(), startDate, endDate),
                     eventScope,
                     offlineEvents,
+                    false,
                     null,
                 )
             }
 
-            private fun recentlyEnded(hasEndDate: Boolean, isOffline: Boolean): ArgumentSet {
+            private fun recentlyEnded(hasEndDate: Boolean, isOffline: Boolean, isEndless: Boolean): ArgumentSet {
                 val eventScope = eventScopeSpecs.get().let(Duration::ofDays)
                 val endDate = if (!hasEndDate) null else eventPreviewFixedDate.minusDays(1)
                 val startDate = (endDate ?: eventPreviewFixedDate).minusDays(1)
                 val event = createEvent(isOffline, startDate, endDate)
 
                 return argumentSet(
-                    "event recently ended (${if (hasEndDate) "several-day" else "one-day"} event, ${if (isOffline) "offline" else "online"}, scope: $eventScope)",
+                    "event recently ended (${if (hasEndDate) "several-day" else "one-day"} event, ${if (isOffline) "offline" else "online"}${if (isEndless) ", endless" else ""}, scope: $eventScope)",
                     event,
                     eventScope,
                     offlineEvents,
+                    isEndless,
                     ReleaseEventPreview(
                         event.id,
                         requireNotNull(event.date),
                         event.endDate,
                         event.name,
                         Unspecified,
-                        ENDED,
+                        if (isEndless) ENDLESS else ENDED,
                         event.mainPicture?.urlOriginal,
                         isOffline,
                     ),
                 )
             }
 
-            private fun ongoing(hasEndDate: Boolean, isOffline: Boolean): ArgumentSet {
+            private fun ongoing(hasEndDate: Boolean, isOffline: Boolean, isEndless: Boolean): ArgumentSet {
                 val eventScope = eventScopeSpecs.get().let(Duration::ofDays)
                 val startDate = eventPreviewFixedDate
                 val endDate = if (!hasEndDate) null else startDate.plusDays(1)
                 val event = createEvent(isOffline, startDate, endDate)
 
                 return argumentSet(
-                    "event currently happening (${if (hasEndDate) "several-day" else "one-day"} event, ${if (isOffline) "offline" else "online"}, scope: $eventScope)",
+                    "event currently happening (${if (hasEndDate) "several-day" else "one-day"} event, ${if (isOffline) "offline" else "online"}${if (isEndless) ", endless" else ""}, scope: $eventScope)",
                     event,
                     eventScope,
                     offlineEvents,
+                    isEndless,
                     ReleaseEventPreview(
                         event.id,
                         requireNotNull(event.date),
@@ -412,17 +417,18 @@ class ReleaseEventMapperTest {
                 )
             }
 
-            private fun upcoming(hasEndDate: Boolean, isOffline: Boolean): ArgumentSet {
+            private fun upcoming(hasEndDate: Boolean, isOffline: Boolean, isEndless: Boolean): ArgumentSet {
                 val eventScope = eventScopeSpecs.get().let(Duration::ofDays)
                 val startDate = eventPreviewFixedDate.plusDays(1)
                 val endDate = if (!hasEndDate) null else startDate.plusDays(eventScope.toDays())
                 val event = createEvent(isOffline, startDate, endDate)
 
                 return argumentSet(
-                    "upcoming event (${if (hasEndDate) "several-day" else "one-day"} event, ${if (isOffline) "offline" else "online"})",
+                    "upcoming event (${if (hasEndDate) "several-day" else "one-day"} event, ${if (isOffline) "offline" else "online"}${if (isEndless) ", endless" else ""})",
                     event,
                     eventScope,
                     offlineEvents,
+                    isEndless,
                     ReleaseEventPreview(
                         event.id,
                         requireNotNull(event.date),
@@ -440,13 +446,17 @@ class ReleaseEventMapperTest {
                 return listOf(true, false)
                     .flatMap { hasEndDate ->
                         listOf(-2L, 2L).map { offByDays -> outOfRecentScope(offByDays, hasEndDate) } +
-                            listOf(true, false).flatMap { isOffline ->
-                                listOf(
-                                    recentlyEnded(hasEndDate, isOffline),
-                                    ongoing(hasEndDate, isOffline),
-                                    upcoming(hasEndDate, isOffline),
-                                )
-                            }
+                            listOf(true, false)
+                                .flatMap { isOffline ->
+                                    listOf(true, false).map { isEndless -> isOffline to isEndless }
+                                }
+                                .flatMap { (isOffline, isEndless) ->
+                                    listOf(
+                                        recentlyEnded(hasEndDate, isOffline, isEndless),
+                                        ongoing(hasEndDate, isOffline, isEndless),
+                                        upcoming(hasEndDate, isOffline, isEndless),
+                                    )
+                                }
                     }
                     .stream()
             }

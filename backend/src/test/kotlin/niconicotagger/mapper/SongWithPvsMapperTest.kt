@@ -1,9 +1,8 @@
 package niconicotagger.mapper
 
 import java.util.stream.Stream
+import niconicotagger.Utils.clientSpecificDbTagProps
 import niconicotagger.Utils.createSampleSongTypeStats
-import niconicotagger.configuration.ClientSpecificDbTagProps
-import niconicotagger.configuration.ClientSpecificDbTagProps.TagProps
 import niconicotagger.dto.api.misc.AvailableNndVideo
 import niconicotagger.dto.api.misc.NndTagData
 import niconicotagger.dto.api.misc.NndTagType.MAPPED
@@ -56,16 +55,22 @@ class SongWithPvsMapperTest {
         regionBlocked: List<String>,
         expectedObject: SongsWithPvsResponse,
     ) {
-        assertThat(mapper.map(searchResult, nonDisabledPvs, tagMappings, likelyFirstWorks, regionBlocked, tagProps))
+        assertThat(
+                mapper.map(
+                    searchResult,
+                    nonDisabledPvs,
+                    tagMappings,
+                    likelyFirstWorks,
+                    regionBlocked,
+                    clientSpecificDbTagProps,
+                )
+            )
             .usingRecursiveComparison()
             .ignoringCollectionOrder()
             .isEqualTo(expectedObject)
     }
 
     companion object {
-        private val tagProps =
-            ClientSpecificDbTagProps(TagProps(null, -1, null), TagProps("region_blocked", -2, "region blocked"))
-
         class TestData : ArgumentsProvider {
             private fun pvShouldBeDisabled(): ArgumentSet {
                 val songPvs = listOf(SongPv("id", "name", false, NicoNicoDouga), SongPv("2", "2", false, Youtube))
@@ -120,7 +125,8 @@ class SongWithPvsMapperTest {
             }
 
             private fun regionBlockedPv(hasTag: Boolean): ArgumentSet {
-                val regionBlockedTag = VocaDbTag(tagProps.regionBlocked.id, tagProps.regionBlocked.name!!)
+                val regionBlockedTag =
+                    VocaDbTag(clientSpecificDbTagProps.regionBlocked.id, clientSpecificDbTagProps.regionBlocked.name!!)
 
                 val searchResult =
                     VocaDbSongEntryWithNndPvsTagsAndReleaseEventsSearchResult(
@@ -204,7 +210,12 @@ class SongWithPvsMapperTest {
                 val tagMappings =
                     mapOf(
                         kata2hiraAndLowercase(nndTags[0]) to
-                            listOf(VocaDbTagMapping(nndTags[0], VocaDbTag(tagProps.firstWork.id, "first work")))
+                            listOf(
+                                VocaDbTagMapping(
+                                    nndTags[0],
+                                    VocaDbTag(clientSpecificDbTagProps.firstWork.id, "first work"),
+                                )
+                            )
                     ) +
                         Instancio.ofMap(object : TypeToken<String> {}, object : TypeToken<List<VocaDbTagMapping>> {})
                             .filter<String>(field(VocaDbTagMapping::class.java, "sourceTag")) { !nndTags.contains(it) }
@@ -279,7 +290,12 @@ class SongWithPvsMapperTest {
                                 VocaDbTagMapping("4", VocaDbTag(44, "44")),
                             ),
                         "first_work" to
-                            listOf(VocaDbTagMapping("first_work", VocaDbTag(tagProps.firstWork.id, "first work"))),
+                            listOf(
+                                VocaDbTagMapping(
+                                    "first_work",
+                                    VocaDbTag(clientSpecificDbTagProps.firstWork.id, "first work"),
+                                )
+                            ),
                     )
                 val searchResult =
                     VocaDbSongEntryWithNndPvsTagsAndReleaseEventsSearchResult(
@@ -341,7 +357,10 @@ class SongWithPvsMapperTest {
                                             VocaDbTagSelectable(VocaDbTag(11, "11"), false),
                                             VocaDbTagSelectable(VocaDbTag(2, "2"), true),
                                             VocaDbTagSelectable(VocaDbTag(22, "22"), false),
-                                            VocaDbTagSelectable(VocaDbTag(tagProps.firstWork.id, "first work"), false),
+                                            VocaDbTagSelectable(
+                                                VocaDbTag(clientSpecificDbTagProps.firstWork.id, "first work"),
+                                                false,
+                                            ),
                                         ),
                                     ),
                                     PvWithSuggestedTags(

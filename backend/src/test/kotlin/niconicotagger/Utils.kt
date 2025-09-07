@@ -5,10 +5,14 @@ import com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMEST
 import com.fasterxml.jackson.databind.json.JsonMapper
 import com.fasterxml.jackson.dataformat.xml.XmlMapper
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
+import java.lang.reflect.Modifier.PRIVATE
+import java.lang.reflect.Modifier.PROTECTED
 import java.time.Clock
 import java.time.LocalDate
 import java.time.ZoneOffset.UTC
 import java.util.function.Supplier
+import niconicotagger.configuration.ClientSpecificDbTagProps
+import niconicotagger.configuration.ClientSpecificDbTagProps.TagProps
 import niconicotagger.dto.inner.misc.SongType
 import org.instancio.Instancio
 import org.instancio.Select.root
@@ -29,6 +33,14 @@ object Utils {
     val eventPreviewFixedDate = LocalDate.of(2025, 5, 22)
     val eventPreviewMapperFixedClock: Clock = Clock.fixed(eventPreviewFixedDate.atStartOfDay().toInstant(UTC), UTC)
 
+    @Suppress("UnderscoresInNumericLiterals")
+    val clientSpecificDbTagProps =
+        ClientSpecificDbTagProps(
+            TagProps(null, 158, null),
+            TagProps("region_blocked", 8226, "region blocked"),
+            TagProps(null, 11999, null),
+        )
+
     fun loadResource(path: String) =
         Utils::class.java.classLoader.getResourceAsStream(path)?.readAllBytes() ?: error("Invalid path $path")
 
@@ -46,5 +58,14 @@ object Utils {
         val result = SongType.entries.associateWith { _ -> 0 }.toMutableMap()
         songTypes.forEach { result.computeIfPresent(it) { _, v -> v + 1 } }
         return result
+    }
+
+    fun Any.mockPrivateField(name: String, value: Any): Any {
+        javaClass.declaredFields
+            .filter { it.modifiers.and(PRIVATE) > 0 || it.modifiers.and(PROTECTED) > 0 }
+            .firstOrNull { it.name == name && it.type == value.javaClass }
+            ?.also { it.isAccessible = true }
+            ?.set(this, value)
+        return this
     }
 }

@@ -2,6 +2,7 @@ package niconicotagger.client
 
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.json.JsonMapper
+import com.sksamuel.aedile.core.Cache
 import java.time.temporal.ChronoUnit.DAYS
 import kotlinx.coroutines.reactive.awaitFirstOrNull
 import niconicotagger.constants.Constants.GENRE_FILTER
@@ -49,4 +50,12 @@ object Utils {
         response.bodyToFlux(ByteArray::class.java).reduce(ByteArray::plus).awaitFirstOrNull()?.let {
             jsonMapper.readValue(it, object : TypeReference<T>() {})
         }
+
+    suspend fun <K, V> Cache<K, V>.useCachedOrForceUpdate(useCached: Boolean, key: K, compute: suspend (K) -> V): V {
+        if (useCached) {
+            val cachedValue = getIfPresent(key)
+            if (cachedValue != null) return cachedValue
+        }
+        return compute.invoke(key).also { put(key, it) }
+    }
 }
