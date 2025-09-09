@@ -116,7 +116,7 @@ class AggregatingService(
         val videos = nndClient.getVideosByTags(request)
         val result =
             coroutineScope {
-                    nndClient.getVideosByTags(request).data.map { video ->
+                    videos.data.map { video ->
                         async {
                             video.tags.forEach { tagStyleHolder.put(it, NONE) }
                             val videoTagsWithStyle = video.tags.associateWith { tagStyleHolder.get(it) }

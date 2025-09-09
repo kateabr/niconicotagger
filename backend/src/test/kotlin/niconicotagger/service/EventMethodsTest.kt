@@ -2,7 +2,6 @@ package niconicotagger.service
 
 import com.sksamuel.aedile.core.Cache
 import io.mockk.coEvery
-import io.mockk.coVerify
 import io.mockk.coVerifyAll
 import io.mockk.coVerifyCount
 import io.mockk.confirmVerified
@@ -73,8 +72,10 @@ class EventMethodsTest : AggregatingServiceTest() {
             assertThat(aggregatingService.getReleaseEventByName(GetReleaseEventRequest(eventName, clientType)))
                 .isEqualTo(resultPlaceholder)
 
-            coVerify { dbClient.getEventByName(any(), *anyVararg()) }
-            coVerifyCount { (if (seriesId == null) 0 else 1) * { dbClient.getEventSeriesById(any(), any()) } }
+            coVerifyCount {
+                1 * { dbClient.getEventByName(any(), *anyVararg()) }
+                (if (seriesId == null) 0 else 1) * { dbClient.getEventSeriesById(any(), any()) }
+            }
             confirmVerified(dbClient)
             verifyAll { eventMapper.mapWithLinks(any(), any(VocaDbReleaseEventSeries::class)) }
         }
@@ -105,8 +106,10 @@ class EventMethodsTest : AggregatingServiceTest() {
         assertThat(aggregatingService.getReleaseEventWithLinkedTags(GetReleaseEventRequest(eventName, clientType)))
             .isEqualTo(resultPlaceholder)
 
-        coVerify { dbClient.getEventByName(any(), *anyVararg()) }
-        coVerifyCount { (if (seriesId != null) 1 else 0) * { dbClient.getEventSeriesById(any()) } }
+        coVerifyCount {
+            1 * { dbClient.getEventByName(any(), *anyVararg()) }
+            (if (seriesId != null) 1 else 0) * { dbClient.getEventSeriesById(any()) }
+        }
         confirmVerified(dbClient)
         verifyAll { eventMapper.mapWithTags(any(), any()) }
     }

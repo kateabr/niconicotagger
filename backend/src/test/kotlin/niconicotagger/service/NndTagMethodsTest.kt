@@ -130,7 +130,7 @@ class NndTagMethodsTest : AggregatingServiceTest() {
 
         aggregatingService.getVideosByNndTags(request)
 
-        coVerify {
+        coVerify(exactly = 1) {
             dbClient.getAllVocaDbTagMappings(any())
             dbClient.getSongByNndPv<VocaDbSongEntryWithTags>(any(), any(), *anyVararg())
             aggregatingService.getVideosByNndTags(any())
@@ -212,7 +212,7 @@ class NndTagMethodsTest : AggregatingServiceTest() {
                 )
             )
 
-        coVerify {
+        coVerify(exactly = 1) {
             dbClient.getAllVocaDbTagMappings(any())
             nndClient.getVideosByTags(any())
             dbClient.getSongByNndPv<VocaDbSongEntryWithTags>(any(), any(), *anyVararg())
@@ -341,7 +341,7 @@ class NndTagMethodsTest : AggregatingServiceTest() {
             .usingRecursiveComparison()
             .isEqualTo(VideosByNndTagsResponseForEvent(listOf(resultPlaceholder), 1, request.scope))
 
-        coVerify {
+        coVerify(exactly = 1) {
             dbClient.getAllVocaDbTagMappings(any())
             nndClient.getVideosByTags(any())
             dbClient.getSongByNndPv<VocaDbSongWithReleaseEvents>(any(), anyNullable(), any(String::class), *anyVararg())
