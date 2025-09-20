@@ -27,3 +27,4 @@ export const videoStatusesToDisable = ["DELETED"];
 export const serviceName = "NicoNicoTagger";
 
 export const unknownClientType = "UNKNOWN";
+export const defaultClientType = "vocadb";

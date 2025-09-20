@@ -62,6 +62,15 @@
             @click="login"
             >Log in</b-button
           >
+          <b-button
+            size="sm"
+            :disabled="loggingIn"
+            block
+            variant="secondary"
+            @click="setClientType"
+          >
+            Continue in read-only mode
+          </b-button>
         </b-form>
       </div>
       <b-toaster class="b-toaster-bottom-center" name="toaster"> </b-toaster>
@@ -84,7 +93,8 @@ import { getErrorData, getClientType } from "@/utils";
 import {
   localStorageKeyBaseUrl,
   localStorageKeyClientType,
-  unknownClientType
+  unknownClientType,
+  defaultClientType
 } from "@/constants";
 import { AxiosError } from "axios";
 import { SupportedDatabaseResponse } from "@/backend/dto/response/supportedDatabaseResponse";
@@ -117,6 +127,7 @@ export default class extends Vue {
         variant: "success",
         noAutoHide: true
       });
+      this.setClientType();
     } catch (err) {
       this.clientType = unknownClientType;
       localStorage.removeItem(localStorageKeyClientType);
@@ -130,38 +141,45 @@ export default class extends Vue {
       });
     } finally {
       this.loggingIn = false;
-      localStorage.setItem(
-        localStorageKeyClientType,
-        this.selectedDatabase.clientType
-      );
-      localStorage.setItem(
-        localStorageKeyBaseUrl,
-        this.selectedDatabase.baseAddress
-      );
     }
+  }
+
+  private setClientType() {
+    localStorage.setItem(
+      localStorageKeyClientType,
+      this.selectedDatabase.clientType
+    );
+    localStorage.setItem(
+      localStorageKeyBaseUrl,
+      this.selectedDatabase.baseAddress
+    );
     this.clientType = this.selectedDatabase.clientType;
   }
 
   private async loadSupportedDatabases() {
     this.databaseOptions = await api.getSupportedDatabases();
+    const currentlySelectedClientType =
+      this.clientType == unknownClientType
+        ? defaultClientType
+        : this.clientType;
+    const baseAddress =
+      this.clientType == unknownClientType
+        ? ""
+        : this.databaseOptions.filter(
+            entry => entry.clientType == currentlySelectedClientType
+          )[0].displayName;
+    const displayName = this.databaseOptions.filter(
+      entry => entry.clientType == currentlySelectedClientType
+    )[0].displayName;
     this.selectedDatabase = {
-      clientType: this.clientType,
-      displayName: this.databaseOptions.filter(
-        entry => entry.clientType == this.clientType
-      )[0].displayName,
-      baseAddress: this.databaseOptions.filter(
-        entry => entry.clientType == this.clientType
-      )[0].baseAddress
+      clientType: currentlySelectedClientType,
+      displayName: displayName,
+      baseAddress: baseAddress
     };
   }
 
   created(): void {
-    let clientType = getClientType();
-    if (clientType != unknownClientType) {
-      this.clientType = clientType;
-    } else {
-      this.clientType = "vocadb";
-    }
+    this.clientType = getClientType();
     this.loadSupportedDatabases();
   }
 }

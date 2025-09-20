@@ -28,7 +28,7 @@
       <b-navbar-nav class="ml-auto">
         <b-nav-text class="mr-2"
           ><span
-            v-if="clientType !== ''"
+            v-if="clientType !== unknownClientType"
             class="border rounded-sm border-info p-2 text-info bg-light"
             ><b-icon icon="key-fill" class="mr-1"></b-icon
             >{{ getDbName() }}</span

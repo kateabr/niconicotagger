@@ -1,9 +1,6 @@
 <template>
   <div>
-    <nav-bar-menu
-      active-mode="tags"
-      :client-type="clientType != undefined ? clientType : unknownClientType"
-    />
+    <nav-bar-menu active-mode="tags" :client-type="clientType" />
     <b-row class="col-12 m-0">
       <b-toaster class="b-toaster-top-center" name="toaster-2"></b-toaster>
       <b-col>
