@@ -163,11 +163,11 @@ export default class extends Vue {
         ? defaultClientType
         : this.clientType;
     const baseAddress =
-      this.clientType == unknownClientType
+      currentlySelectedClientType == unknownClientType
         ? ""
         : this.databaseOptions.filter(
             entry => entry.clientType == currentlySelectedClientType
-          )[0].displayName;
+          )[0].baseAddress;
     const displayName = this.databaseOptions.filter(
       entry => entry.clientType == currentlySelectedClientType
     )[0].displayName;
